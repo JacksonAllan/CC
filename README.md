@@ -146,9 +146,9 @@ An article detailing these and other techinques is forthcoming.
 
 **How is cc.h tested?**
 
-cc.h has been tested under GCC, MingW, and Clang in two ways. unit_tests/unit_tests.c includes unit tests for all container types, with an emphasis on testing corner cases. tests_against_stl/tests_against_stl.cpp includes randomized tests that perform the same operations on equivallent cc.h and C++ STL containers and check to ensure they remain in sync. Both approaches use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
+cc.h has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on testing corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivallent cc.h and C++ STL containers and then check to ensure the same results. Both approaches use a memory-tracking and randomly failing allocator in order to detect memory leaks and test out-of-memory conditions.
 
-**What is the liscence?**
+**What is the lisence?**
 
 MIT.
 
