@@ -96,11 +96,13 @@ int main( void )
   vec( int ) our_vec;
   init( &our_vec );
   push( &our_vec, 5 );
+  printf( "%d\n", *get( &our_vec, 0 ) );
   cleanup( &our_vec );
 
-  map( int, double ) our_map;
+  map( int, float ) our_map;
   init( &our_map );
   insert( &our_map, 5, 0.5 );
+  printf( "%f\n", *get( &our_map, 5 ) );
   cleanup( &our_map );
 }
 ```
