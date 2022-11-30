@@ -43,7 +43,59 @@ int main( void )
   cleanup( &our_map );
 }
 ```
-It also provides these features:
+
+<table>
+<tr>
+<td>
+
+```c
+#include "other_container_library.h"
+
+DEFINE_VEC( int, double, int_vec )
+DEFINE_MAP( int, double, int_double_map )
+
+int main( void )
+{
+  int_vec our_vec;
+  int_vec init( &our_vec );
+  int_vec_push( &our_vec, 5 );
+  int_vec_cleanup( &our_vec );
+
+  int_double_map our_map;
+  int_double_map_init( &our_map );                  
+  int_double_map_insert( &our_map, 5, 0.5 );        
+  int_double_map_cleanup( &our_map );
+}
+```
+
+</td> 
+<td>
+
+```c
+#include "cc.h"
+
+int main( void )
+{
+  vec( int ) our_vec;
+  init( &our_vec );
+  push( &our_vec, 5 );
+  cleanup( &our_vec );
+
+  map( int, double ) our_map;
+  init( &our_map );
+  insert( &our_map, 5, 0.5 );
+  cleanup( &our_map );
+}
+
+
+
+```
+
+</td>
+</tr>
+<table>
+
+cc.h also provides these features:
 
 - User-defined destructor, comparison, and hash functions associated with element and key types.
 - Handles memory allocation failure.
