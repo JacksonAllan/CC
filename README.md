@@ -1,7 +1,7 @@
 # CC.H: Convenient Containers
 
 ## Overview
-cc.h is a usability-oriented container library for C. It provides generic vectors, doubly linked lists, unordered maps, and unordered sets.
+cc.h is a usability-oriented generic container library for C. It includes vectors, doubly linked lists, unordered maps, and unordered sets.
 
 Traditionally, C container libraries require users to pre-declare container types for every element type and/or specify the container and element type at every API call (whether via casting, passing types as macro arguments, prefixing the call with the name of the pre-declared container type, or some other mechanism):
 
@@ -42,11 +42,58 @@ It also provides these features:
 It requires C23, or C11 and compiler support for `__typeof__`, or C++11.
 
 ## Installation
-Download cc.h and place it in your project's folder.
 
-## Simple Usage
+Simply download cc.h and place it in your project's folder or shared header folder.
 
-Vector:
+## Examples
+
+**Vector** (a dynamic array):
+
+```c
+#include <stdio.h>
+
+#define CC_SHORT_NAMES // Exposes API without the cc_ prefix
+#include "cc.h"
+
+int main( void )
+{
+  vec( int ) our_vec;
+  init( &our_vec );
+
+  // Adding elements to end.
+  for( int i = 0; i < 10; ++i )
+    if( !push( &our_vec, i ) )
+      exit( 1 ); // Out of memory.
+
+  // Inserting an element at an index.
+  for( int i = 0; i < 10; ++i )
+    if( !insert( &our_vec, i * 2, i ) )
+      exit( 1 ); // Out of memory.
+
+  // Retrieving and erasing elements.
+  for( int i = 0; i < size( &our_vec ); )
+  {
+    if( *get( &our_vec, i ) % 3 == 0 )
+      erase( &our_vec, i );
+    else
+      ++i;
+  }
+
+  // Iteration #1.
+  for_each( &our_vec, el )
+    printf( "%d ", *el );
+  printf( "\n" );
+  // Printed: 1 1 2 2 4 4 5 5 7 7 8 8
+
+  // Iteration #2.
+  for( int *el = first( &our_vec ); el != end( &our_vec ); el = next( &our_vec, el ) )
+    printf( "%d ", *el );
+  printf( "\n" );
+  // Printed: Same as above.
+
+  cleanup( &our_vec );
+}
+```
 
 List:
 
