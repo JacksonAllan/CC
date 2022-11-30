@@ -48,7 +48,7 @@ int main( void )
   vec our_vec;
   vec_init( &our_vec, sizeof( int ) );
   vec_push( &our_vec, &( int }{ 5 } );
-  printf( "%d\n", *( int * )vec_get( &our_vec, 0 ) );
+  printf( "%d\n", *(int *)vec_get( &our_vec, 0 ) );
   vec_cleanup( &our_vec );
 
   map our_map;
