@@ -1,6 +1,6 @@
 # cc.h: Convenient Containers
 
-## Overview
+## Introduction
 `cc.h` is a usability-oriented generic container library for C. It includes vectors, doubly linked lists, unordered maps, and unordered sets.
 
 Traditionally, C container libraries require users to pre-declare container types for every element type. They also require the user to specify the container and/or element type at every API call (whether via casting, passing types as macro arguments, prefixing the call with the name of the pre-declared container type, or some other mechanism). The consequence is code verbosity.
@@ -128,23 +128,13 @@ Map:
 
 Set:
 
-## Advanced Usage
-
 Destructors:
 
 Comparsion and hash functions:
 
 Containers of containers:
 
-## Advanced Usage
-
-Destructors:
-
-Comparsion and hash functions:
-
-Containers of containers:
-
-## Questions
+## FAQ
 
 **How does does cc.h work?**
 
@@ -166,4 +156,4 @@ MIT.
 
 The next major version should include `NULL`-terminated strings, ordered maps, and ordered sets.
 
-## Full API
+## API Quick Reference
