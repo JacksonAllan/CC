@@ -74,11 +74,11 @@ Containers of containers:
 
 **How does does cc.h work?**
 
-cc.h packs compile-time type information into each container handle.
+cc.h packs compile-time type information into each container handle, which is actually a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )` pointing to the container's metadata and contents. API macros then use preprocessor, `typeof`, and `_Generic` tricks to infer the container, key, and element types from the container handle, selecting the relevant function and passing the type information, along with the aforementioned pointer, into it. 
 
-Various preprocessor, `typeof`, and `_Generic` tricks are then used to infer type information into 
+Destructor, compare, and hash functions are inferred via a novel technique for creating user-extendable `_Generic`-based macros.
 
-...
+An article detailing these and other techinques is forthcoming.
 
 **How is cc.h tested?**
 
@@ -88,5 +88,8 @@ cc.h has been tested under GCC, MingW, and Clang in two ways. unit_tests/unit_te
 
 MIT.
 
+**How will cc.h be developed?**
 
-## API
+The next major version should include `NULL`-terminated strings, ordered maps, and ordered sets.
+
+## Full API
