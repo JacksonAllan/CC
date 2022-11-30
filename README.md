@@ -9,6 +9,60 @@ In contrast, `cc.h` requires no pre-declarations and provides an API agnostic to
 
 <table>
 <tr>
+</tr>
+<tr>
+<td>
+
+```c
+#include "other_container_lib_1.h"
+#include <stdio.h>
+
+DEFINE_VEC( int, int_vec )
+DEFINE_MAP( int, float, int_float_map )
+
+int main( void )
+{
+  int_vec our_vec;
+  int_vec_init( &our_vec );
+  int_vec_push( &our_vec, 5 );
+  printf( "%d\n", *int_vec_get( &our_vec, 0 ) );
+  int_vec_cleanup( &our_vec );
+
+  int_float_map our_map;
+  int_float_map_init( &our_map );
+  int_float_map_insert( &our_map, 5, 0.5f );
+  printf( "%f\n", *int_float_map_get( &our_map, 5 ) );
+  int_float_map_cleanup( &our_map );
+}
+```
+
+</td>
+<td>
+
+```c
+#include "other_container_lib_2.h"
+#include <stdio.h>
+
+int main( void )
+{
+  vec our_vec;
+  vec_init( &our_vec, sizeof( int ) );
+  vec_push( &our_vec, &( int }{ 5 } );
+  printf( "%d\n", *( int * )vec_get( &our_vec, 0 ) );
+  vec_cleanup( &our_vec );
+
+  map our_map;
+  map_init( &our_map, sizeof( int ), sizeof( float ) );
+  map_insert( &our_map, &(int}{ 5 }, &(float}{ 0.5f } );
+  printf( "%f\n", *(float *)map_get( &our_map, &(int}{ 5 } ) );
+  map_cleanup( &our_map );
+}
+```
+
+</td>
+<tr>
+</tr>
+<tr>
 <td>
 
 ```c
@@ -49,10 +103,6 @@ int main( void )
   insert( &our_map, 5, 0.5 );
   cleanup( &our_map );
 }
-
-
-
-
 ```
 
 </td>
