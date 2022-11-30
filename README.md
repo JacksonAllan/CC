@@ -3,9 +3,9 @@
 ## Introduction
 `cc.h` is a usability-oriented generic container library for C. It includes vectors, doubly linked lists, unordered maps, and unordered sets.
 
-Traditionally, C container libraries require users to pre-declare container types for every element type. They also require the user to specify the container and/or element type at every API call (whether via casting, passing types as macro arguments, prefixing the call with the name of the pre-declared container type, or some other mechanism). The consequence is code verbosity.
+Traditional C container libraries require users to declare types for every container/element/key type combination. They also require the user to specify the container and/or element type at every API call (whether by casting, passing types as macro arguments, type-specific function names, or some other mechanism). The consequence is verbose code.
 
-In contrast, `cc.h` requires no pre-declarations and provides a fully generic API:
+In contrast, `cc.h` requires no pre-declarations and provides an API agnostic to container and element/key types. The following table compares `cc.h` to other container library paradigms:
 
 <table>
 <tr>
@@ -59,7 +59,7 @@ int main( void )
 </tr>
 <table>
 
-cc.h also provides these features:
+`cc.h`'s other standout features include:
 
 - User-defined destructor, comparison, and hash functions associated with element and key types.
 - Handles memory allocation failure.
@@ -136,24 +136,28 @@ Containers of containers:
 
 ## FAQ
 
-**How does does cc.h work?**
+### How does does cc.h work?
 
-`cc.h` packs compile-time type information into each container handle, which is actually a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )` pointing to the container's metadata and contents. API macros then use preprocessor, `typeof`, and `_Generic` tricks to infer the container, key, and element types from the container handle, selecting the relevant function and passing the type information, along with the aforementioned pointer, into it. 
+`cc.h` associates type information with a container handle by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )`. The pointer points to the container's metadata and contents. API macros then `typeof`, and `_Generic` tricks to infer the container, key, and element types from the pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it. 
 
 Destructor, compare, and hash functions are inferred via a novel technique for creating user-extendable `_Generic`-based macros.
 
-An article detailing these and other techinques is forthcoming.
+An article detailing these and other techinques is in the works.
 
-**How is cc.h tested?**
+### How is cc.h tested?
 
 cc.h has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on testing corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivallent cc.h and C++ STL containers and then check to ensure the same results. Both approaches use a memory-tracking and randomly failing allocator in order to detect memory leaks and test out-of-memory conditions.
 
-**What is the lisence?**
+### How does cc.h impact compile times?
+    
+...
+
+### What is the license?
 
 MIT.
 
-**How will cc.h be developed?**
+### How will cc.h be developed?
 
 The next major version should include `NULL`-terminated strings, ordered maps, and ordered sets.
 
-## API Quick Reference
+## API Cheat Sheet
