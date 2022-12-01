@@ -3,9 +3,9 @@
 ## Introduction
 `cc.h` is a usability-oriented generic container library for C. It includes vectors, doubly linked lists, unordered maps, and unordered sets.
 
-Traditional C container libraries require users to declare types for every container/element/key type combination. They also require the user to specify the container and/or element type at every API call (whether by casting, passing types as macro arguments, type-specific function names, or some other mechanism). The consequence is verbose code.
+Traditionally, C container libraries require users to define types for every container/element type combination and/or to specify the container and/or element type at every API call (whether by casting, type-specific function names, or some other mechanism). The result is verbose code.
 
-In contrast, `cc.h` requires no pre-declarations and provides an API agnostic to container and element/key types. The following table compares `cc.h` to other container library paradigms:
+In contrast, `cc.h` requires no type definitions and provides an API agnostic to container and element/key types. The following table compares `cc.h` to other container library paradigms:
 
 <table>
 <tr>
