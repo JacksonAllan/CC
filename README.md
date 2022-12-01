@@ -210,7 +210,7 @@ Containers of containers:
 
 `cc.h` associates type information with a container handle by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )`. The pointer points to the container's metadata and contents. API macros then use `sizeof`, `typeof`, and `_Generic` tricks to infer the container, element, and key types from the pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it. 
 
-Destructor, compare, and hash functions are inferred via a novel technique for user-extendable `_Generic` macros.
+Destructor, comparison, and hash functions are, where needed, infered via a novel technique for user-extendable `_Generic` macros.
 
 An article detailing these and other techinques is in the works.
 
