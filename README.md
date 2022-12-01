@@ -3,7 +3,7 @@
 ## Introduction
 `cc.h` is a usability-oriented generic container library for C. It includes vectors, doubly linked lists, unordered maps, and unordered sets.
 
-Traditionally, C container libraries require users to define types for every container/element type combination and/or to specify the container and/or element type at every API call (whether by casting, type-specific function names, or some other mechanism). The result is verbose code.
+Traditionally, C container libraries require users to define types for every container/element type combination and/or specify the container and/or element type at every API call (whether by casting, type-specific function names, or some other mechanism). The result is verbose code.
 
 In contrast, `cc.h` requires no type definitions and provides an API agnostic to container and element types. The following table compares `cc.h` usage to other container library paradigms:
 
@@ -140,9 +140,9 @@ It requires C23, or C11 and compiler support for `__typeof__`, or C++11.
 
 ## Installation
 
-Download `cc.h` and place it in your project's folder or your shared header folder.
+Download `cc.h` and place it in your project's directory or your shared header directory.
 
-## Examples
+## Usage
 
 **Vector** (a dynamic array):
 
