@@ -14,7 +14,6 @@ In contrast, `cc.h` requires no type definitions and provides an API agnostic to
 <td>
 
 ```c
-// CC.H
 #include "cc.h"
 #include <stdio.h>
 
@@ -42,7 +41,6 @@ int main( void )
 <td>
 
 ```c
-// Template instantiation paradigm
 #include "other_container_lib_1.h"
 #include <stdio.h>
 
@@ -72,7 +70,6 @@ int main( void )
 <td>
 
 ```c
-// Typed pointer paradigm
 #include "other_container_lib_2.h"
 #include <stdio.h>
 
@@ -100,7 +97,6 @@ int main( void )
 <td>
 
 ```c
-// Void pointers paradigm
 #include "other_container_lib_3.h"
 #include <stdio.h>
 
@@ -114,8 +110,8 @@ int main( void )
 
   map our_map;
   map_init( &our_map, sizeof( int ), sizeof( float ) );
-  map_insert( &our_map, &(int}{ 5 }, &(float}{ 0.5f } );
-  printf( "%f\n", *(float *)map_get( &our_map, &(int}{ 5 } ) );
+  map_insert( &our_map, &(int){ 5 }, &(float){ 0.5f } );
+  printf( "%f\n", *(float *)map_get( &our_map, &(int){ 5 } ) );
   map_cleanup( &our_map );
 }
 
