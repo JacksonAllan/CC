@@ -11,7 +11,7 @@ In contrast, `cc.h` requires no type definitions and provides an API agnostic to
 <tr>
 </tr>
 <tr>
-<td>
+<td><b>
 
 ```c
 #include "cc.h"
@@ -37,7 +37,7 @@ int main( void )
 
 ```
 
-</td>
+</b></td>
 <td>
 
 ```c
