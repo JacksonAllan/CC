@@ -140,9 +140,9 @@ It requires C23, or C11 and compiler support for `__typeof__`, or C++11.
 
 ## Installation
 
-Download `cc.h` and place it in your project's directory or your shared header directory.
+Just download `cc.h` and place it in your project's directory or your shared header directory.
 
-## Usage
+## Examples
 
 **Vector** (a dynamic array):
 
