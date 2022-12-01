@@ -1,4 +1,4 @@
-# cc.h: Convenient Containers
+# CC.H: Convenient Containers
 
 ## Introduction
 `cc.h` is a usability-oriented generic container library for C. It includes vectors, doubly linked lists, unordered maps, and unordered sets.
@@ -11,6 +11,33 @@ In contrast, `cc.h` requires no pre-declarations and provides an API agnostic to
 <tr>
 </tr>
 <tr>
+<td>
+
+```c
+#include "cc.h"
+#include <stdio.h>
+
+int main( void )
+{
+  vec( int ) our_vec;
+  init( &our_vec );
+  push( &our_vec, 5 );
+  printf( "%d\n", *get( &our_vec, 0 ) );
+  cleanup( &our_vec );
+
+  map( int, float ) our_map;
+  init( &our_map );
+  insert( &our_map, 5, 0.5 );
+  printf( "%f\n", *get( &our_map, 5 ) );
+  cleanup( &our_map );
+}
+
+
+
+
+```
+
+</td>
 <td>
 
 ```c
@@ -37,40 +64,13 @@ int main( void )
 ```
 
 </td>
-<td>
-
-```c
-#include "other_container_lib_2.h"
-#include <stdio.h>
-
-int main( void )
-{
-  vec our_vec;
-  vec_init( &our_vec, sizeof( int ) );
-  vec_push( &our_vec, &(int){ 5 } );
-  printf( "%d\n", *(int *)vec_get( &our_vec, 0 ) );
-  vec_cleanup( &our_vec );
-
-  map our_map;
-  map_init( &our_map, sizeof( int ), sizeof( float ) );
-  map_insert( &our_map, &(int}{ 5 }, &(float}{ 0.5f } );
-  printf( "%f\n", *(float *)map_get( &our_map, &(int}{ 5 } ) );
-  map_cleanup( &our_map );
-}
-
-
-
-
-```
-
-</td>
 <tr>
 </tr>
 <tr>
 <td>
 
 ```c
-#include "other_container_lib_3.h"
+#include "other_container_lib_2.h"
 #include <stdio.h>
 
 typedef struct
@@ -97,22 +97,22 @@ int main( void )
 <td>
 
 ```c
-#include "cc.h"
+#include "other_container_lib_3.h"
 #include <stdio.h>
 
 int main( void )
 {
-  vec( int ) our_vec;
-  init( &our_vec );
-  push( &our_vec, 5 );
-  printf( "%d\n", *get( &our_vec, 0 ) );
-  cleanup( &our_vec );
+  vec our_vec;
+  vec_init( &our_vec, sizeof( int ) );
+  vec_push( &our_vec, &(int){ 5 } );
+  printf( "%d\n", *(int *)vec_get( &our_vec, 0 ) );
+  vec_cleanup( &our_vec );
 
-  map( int, float ) our_map;
-  init( &our_map );
-  insert( &our_map, 5, 0.5 );
-  printf( "%f\n", *get( &our_map, 5 ) );
-  cleanup( &our_map );
+  map our_map;
+  map_init( &our_map, sizeof( int ), sizeof( float ) );
+  map_insert( &our_map, &(int}{ 5 }, &(float}{ 0.5f } );
+  printf( "%f\n", *(float *)map_get( &our_map, &(int}{ 5 } ) );
+  map_cleanup( &our_map );
 }
 
 
