@@ -226,7 +226,7 @@ cc.h has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` incl
 
 MIT.
 
-### What's on the horizon?
+### What's next?
 
 The next major version should include `NULL`-terminated strings, ordered maps, and ordered sets.
 
