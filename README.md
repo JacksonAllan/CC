@@ -5,7 +5,7 @@
 
 Traditionally, C container libraries require users to define types for every container/element type combination and/or to specify the container and/or element type at every API call (whether by casting, type-specific function names, or some other mechanism). The result is verbose code.
 
-In contrast, `cc.h` requires no type definitions and provides an API agnostic to container and element/key types. The following table compares `cc.h` to other container library paradigms:
+In contrast, `cc.h` requires no type definitions and provides an API agnostic to container and element types. The following table compares `cc.h` usage to other container library paradigms:
 
 <table>
 <tr>
