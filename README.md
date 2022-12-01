@@ -131,12 +131,16 @@ int main( void )
 
 `cc.h`'s other standout features include:
 
+- Type safety.
 - User-defined destructor, comparison, and hash functions associated with element and key types.
 - Handles memory allocation failure.
 - Single header.
 - Compiles in C and C++.
+- Macro safety.*
 
 It requires C23, or C11 and compiler support for `__typeof__`, or C++11.
+
+<sup>* Only the first argument - the container pointer - of API macros may be evaluated multiple times, and GNU compilers will warn in the case of side effects.</sup>
 
 ## Installation
 
