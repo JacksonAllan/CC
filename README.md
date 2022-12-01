@@ -14,6 +14,7 @@ In contrast, `cc.h` requires no type definitions and provides an API agnostic to
 <td>
 
 ```c
+// CC.H
 #include "cc.h"
 #include <stdio.h>
 
@@ -41,6 +42,7 @@ int main( void )
 <td>
 
 ```c
+// Template instantiation paradigm
 #include "other_container_lib_1.h"
 #include <stdio.h>
 
@@ -70,6 +72,7 @@ int main( void )
 <td>
 
 ```c
+// Typed pointer paradigm
 #include "other_container_lib_2.h"
 #include <stdio.h>
 
@@ -97,6 +100,7 @@ int main( void )
 <td>
 
 ```c
+// Void pointers paradigm
 #include "other_container_lib_3.h"
 #include <stdio.h>
 
