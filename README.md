@@ -13,7 +13,7 @@ Its features include:
 - Safe API macros.*
 <sup>* Only the first argument - the container pointer - of API macros may be evaluated multiple times, and GNU compilers will warn in the case of side effects.</sup>
 
-It requires C23, or C11 and compiler support for `__typeof__`, or C++11.
+It requires C23, or C11 and compiler support for `typeof`, or C++11.
 
 It is distributed under BSD-2 simplified license.
 
@@ -215,7 +215,7 @@ Containers of containers:
 
 ### How does does it work?
 
-`cc.h` associates type information with a container handle by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )`. The pointer points to the container's metadata and contents. API macros then use `sizeof`, `typeof`, and `_Generic` tricks to infer the container, element, and key types from the pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it. 
+`cc.h` associates type information with a container handle by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )` (hence, it is a complex variation of the aforementioned "typed pointer with hidden metadata" paradigm). The pointer points to the container's metadata and contents. API macros then use `sizeof`, `typeof`, and `_Generic` tricks to infer the container, element, and key types from the pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it. 
 
 Destructor, comparison, and hash functions are, where needed, infered via a novel technique for user-extendable `_Generic` macros.
 
