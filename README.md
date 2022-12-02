@@ -215,7 +215,7 @@ Containers of containers:
 
 ### How does does it work?
 
-`cc.h` associates type information with a container handle by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )` (hence, it is a complex variation of the aforementioned "typed pointer with hidden metadata" paradigm). The pointer points to the container's metadata and contents. API macros then use `sizeof`, `typeof`, and `_Generic` tricks to infer the container, element, and key types from the pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it. 
+`cc.h` associates type information with a container handle by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )`. The pointer points to the container's metadata and contents. API macros then use `sizeof`, `typeof`, and `_Generic` tricks to infer the container, element, and key types from the pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it. 
 
 Destructor, comparison, and hash functions are, where needed, infered via a novel technique for user-extendable `_Generic` macros.
 
@@ -223,15 +223,11 @@ An article detailing these and other techinques is in the works.
 
 ### How is it tested?
 
-cc.h has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivallent `cc.h` and C++ STL containers and then check that they are in-sync. Both approaches use a memory-tracking and randomly failing allocator in order to detect memory leaks and test out-of-memory conditions.
+cc.h has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivallent `cc.h` and C++ STL containers and then check that they remain in-sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
 
 ### How does it affect compile times?
     
 ...
-
-### What's the license?
-
-MIT.
 
 ### What's next?
 
