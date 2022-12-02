@@ -241,10 +241,17 @@ The next major version should include `NULL`-terminated strings, ordered maps, a
 
 ## API
 
+```c
+cel_ty *push( vec( el_ty ) *cntr, el_ty el )
+```
+
+Inserts an element at the end of the vector.
+
+
 <table>
 <tr></tr>
 <tr><td>
-el_ty *push( vec( el_ty ) *cntr, el_ty el )
+```cel_ty *push( vec( el_ty ) *cntr, el_ty el )```
 </td></tr>
 <tr><td>
   Inserts an element at the end of the vector.
