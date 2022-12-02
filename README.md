@@ -1,6 +1,6 @@
 # cc.h: Convenient Containers
 
-`cc.h` is a usability-oriented generic container library for C that provides vectors, doubly linked lists, unordered maps, and unordered sets.
+**cc.h** is a usability-oriented generic container library for C that provides vectors, doubly linked lists, unordered maps, and unordered sets.
 
 Its features include:
 
@@ -21,17 +21,18 @@ It is distributed under BSD-2 simplified license.
 
 Traditionally, C container libraries require users to define types for every container/element type combination and/or specify the container and/or element type at every API call (whether by casting, type-specific function names, or some other mechanism). The result is verbose code.
 
-In contrast, `cc.h` requires no type definitions and provides an API agnostic to container and element types. The following table compares `cc.h` usage to other container library paradigms:
+In contrast, **cc.h** requires no type definitions and provides an API agnostic to container and element types. The following table compares **cc.h** usage to other container library paradigms:
 
 <table>
 <tr>
 </tr>
 <tr>
-<td><b>
+<td>
 
 ```c
-#include "cc.h"
+// cc.h
 #include <stdio.h>
+#include "cc.h"
 
 int main( void )
 {
@@ -53,12 +54,13 @@ int main( void )
 
 ```
 
-</b></td>
+</td>
 <td>
 
 ```c
-#include "other_container_lib_1.h"
+// Template instantiation paradigm
 #include <stdio.h>
+#include "other_container_lib.h"
 
 DEFINE_VEC( int, int_vec )
 DEFINE_MAP( int, float, int_float_map )
@@ -86,8 +88,9 @@ int main( void )
 <td>
 
 ```c
-#include "other_container_lib_2.h"
+// Typed pointer with hidden metadata paradigm
 #include <stdio.h>
+#include "other_container_lib.h"
 
 typedef struct
 {
@@ -113,8 +116,9 @@ int main( void )
 <td>
 
 ```c
-#include "other_container_lib_3.h"
+// void pointers paradigm
 #include <stdio.h>
+#include "other_container_lib.h"
 
 int main( void )
 {
