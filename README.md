@@ -205,11 +205,15 @@ Map:
 
 Set:
 
+Prefixed API:
+
 Destructors:
 
 Comparsion and hash functions:
 
-Containers of containers:
+**Containers of containers:**
+
+Containers of containers work exactly as expected. However, you probably want to define a destructor so that the inner container is automatically cleaned-up upon clean-up of the outer container.
 
 ## FAQ
 
