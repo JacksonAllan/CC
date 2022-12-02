@@ -1,12 +1,10 @@
 # CC.H: Convenient Containers
 
-<svg><text fill="#FF0000">Hello World</text></svg>
-
-**cc.h** is a usability-oriented generic container library for C that provides vectors, doubly linked lists, unordered maps, and unordered sets.
+CC.H is a usability-oriented generic container library for C that provides vectors, doubly linked lists, unordered maps, and unordered sets.
 
 Its features include:
 
-- Fully generic API that requires no type definitions.
+- Fully generic API.
 - Type safety.
 - User-defined destructor, comparison, and hash functions associated with element and key types.
 - No assumption of successful memory allocation.
@@ -23,7 +21,7 @@ It is distributed under BSD-2 simplified license.
 
 Traditionally, C container libraries require users to define types for every container/element type combination and/or specify the container and/or element type at every API call (whether by casting, type-specific function names, or some other mechanism). The result is verbose code.
 
-In contrast, **cc.h** requires no type definitions and provides an API agnostic to container and element types. The following table compares **cc.h** usage to other container library paradigms:
+In contrast, CC.H requires no type definitions and provides an API agnostic to container and element types. The following table compares **cc.h** usage to other container library paradigms:
 
 <table>
 <tr>
@@ -34,7 +32,7 @@ In contrast, **cc.h** requires no type definitions and provides an API agnostic 
 ```c
 // cc.h
 #include <stdio.h>
-#include "cc.h"
+#include "CC.H"
 
 int main( void )
 {
@@ -239,21 +237,47 @@ cc.h has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` incl
 
 The next major version should include `NULL`-terminated strings, ordered maps, and ordered sets.
 
-## API
+<details><summary><h2>API</h2></summary>
+<p>
 
-```c
-cel_ty *push( vec( el_ty ) *cntr, el_ty el )
+#### We can hide anything, even code!
+
+```ruby
+   puts "Hello World"
 ```
 
-Inserts an element at the end of the vector.
+</p>
+</details>
 
+## API
 
-<table>
-<tr></tr>
-<tr><td>
-```cel_ty *push( vec( el_ty ) *cntr, el_ty el )```
-</td></tr>
-<tr><td>
-  Inserts an element at the end of the vector.
-</td></tr>
-</table>
+### General notes:
+
+- API macros may evaluate their first argument - the pointer to the container - multiple times, so never use
+  expressions with side effects (e.g. &our_containers[ ++i ] ) for that argument. In GCC and Clang, attempting to do
+  so will cause a compiler warning. All other arguments are "safe" (i.e. they are only evaluated once).
+- Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original.
+  Hence, only create a duplicate via assignment (including through function parameters and return values) if you have
+  finished with the original.
+- An iterator is a pointer to an element in the container or to the associated end (or r_end, if the container
+  supports it). In the documentation below, these pointers are called "pointer-iterators".
+- In the documentation below, el_ty is the container's element type and key_ty is the container's key type (where
+  applicable).
+
+### All containers:
+
+  The following macros behave the same way for all containers:
+
+```c
+el_ty *push( vec( el_ty ) *cntr, el_ty el )
+```
+
+Inserts `el` at the end of the vector.  
+Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.
+
+```c
+el_ty *push_n( vec( el_ty ) *cntr, el_ty *els, size_t n )
+```
+
+Inserts `n` elements from array `els` at the end of the vector.  
+Returns a pointer-iterator to the first new element, or `NULL` in the case of memory allocation failure.
