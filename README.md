@@ -1,7 +1,21 @@
 # CC.H: Convenient Containers
 
-## Introduction
-`cc.h` is a usability-oriented generic container library for C. It includes vectors, doubly linked lists, unordered maps, and unordered sets.
+`cc.h` is a usability-oriented generic container library for C that provides vectors, doubly linked lists, unordered maps, and unordered sets.
+
+Its standout features are:
+
+- Fully generic API that requires no type definitions.
+- Type safety.
+- User-defined destructor, comparison, and hash functions associated with element and key types.
+- No assumption of successful memory allocation.
+- Single header.
+- Compiles in C and C++.
+- Safe API macros.*
+<sup>* Only the first argument - the container pointer - of API macros may be evaluated multiple times, and GNU compilers will warn in the case of side effects.</sup>
+
+It requires C23, or C11 and compiler support for `__typeof__`, or C++11.
+
+## Why this library?
 
 Traditionally, C container libraries require users to define types for every container/element type combination and/or specify the container and/or element type at every API call (whether by casting, type-specific function names, or some other mechanism). The result is verbose code.
 
@@ -124,19 +138,6 @@ int main( void )
 </td>
 </tr>
 <table>
-
-`cc.h`'s other standout features include:
-
-- Type safety.
-- User-defined destructor, comparison, and hash functions associated with element and key types.
-- Handles memory allocation failure.
-- Single header.
-- Compiles in C and C++.
-- Macro safety.*
-
-It requires C23, or C11 and compiler support for `__typeof__`, or C++11.
-
-<sup>* Only the first argument - the container pointer - of API macros may be evaluated multiple times, and GNU compilers will warn in the case of side effects.</sup>
 
 ## Installation
 
