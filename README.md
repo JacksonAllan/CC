@@ -1,8 +1,8 @@
-# CC.H: Convenient Containers
+# cc.h: Convenient Containers
 
 `cc.h` is a usability-oriented generic container library for C that provides vectors, doubly linked lists, unordered maps, and unordered sets.
 
-Its standout features are:
+Its features include:
 
 - Fully generic API that requires no type definitions.
 - Type safety.
@@ -15,7 +15,9 @@ Its standout features are:
 
 It requires C23, or C11 and compiler support for `__typeof__`, or C++11.
 
-## Why this library?
+It is distributed under BSD-2 simplified license.
+
+## Why cc.h?
 
 Traditionally, C container libraries require users to define types for every container/element type combination and/or specify the container and/or element type at every API call (whether by casting, type-specific function names, or some other mechanism). The result is verbose code.
 
