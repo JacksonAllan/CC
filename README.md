@@ -1,5 +1,7 @@
 # CC.H: Convenient Containers
 
+<svg><text fill="#FF0000">Hello World</text></svg>
+
 **cc.h** is a usability-oriented generic container library for C that provides vectors, doubly linked lists, unordered maps, and unordered sets.
 
 Its features include:
@@ -237,4 +239,14 @@ cc.h has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` incl
 
 The next major version should include `NULL`-terminated strings, ordered maps, and ordered sets.
 
-## API Cheat Sheet
+## API
+
+<table>
+<tr></tr>
+<tr><td>
+el_ty *push( vec( el_ty ) *cntr, el_ty el )
+</td></tr>
+<tr><td>
+  Inserts an element at the end of the vector.
+</td></tr>
+</table>
