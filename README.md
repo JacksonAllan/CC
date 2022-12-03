@@ -256,8 +256,55 @@ The next major version should include `NULL`-terminated strings, ordered maps, a
 
 ### All containers:
 
-  The following macros behave the same way for all containers:
+The following macros behave the same way for all containers:
 
+```c
+void init( <any container type> *cntr )
+```
+
+Initializes the container for use.
+This call cannot fail (it does not allocate memory).
+
+```c
+bool init_clone( <any container type> *cntr, <same container type> *src )
+```
+
+Initializes `cntr` as a shallow copy of `src`.
+Returns true, or false if unsuccessful due to memory allocation failure.
+
+```c
+size_t size( <any container type> *cntr )
+```
+
+Returns the number of elements.
+
+```c
+void clear( <any container type> *cntr )
+```
+
+Erases all elements, calling the element and key types' destructors where applicable.
+
+```c
+void cleanup( <any container type> *cntr )
+```
+
+Erases all elements (calling the element and key types' destructors where applicable), frees any other memory
+associated with the container, and initializes the container for reuse.
+
+```c
+for_each( <any container type> *cntr, i_name )
+```
+
+Creates a loop iterating over all elements from first to last.
+This macro declares a pointer-iterator (el_ty *) named i_name.
+It is equivalent to
+  `for( el_ty* i_name = first( cntr ); i_name != end( cntr ); i_name = next( cntr, i_name ) )`
+and should be followed by the loop body.
+
+
+
+  
+  
 ```c
 el_ty *push( vec( el_ty ) *cntr, el_ty el )
 ```
