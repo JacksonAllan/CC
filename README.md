@@ -295,7 +295,7 @@ for_each( <any container type> *cntr, i_name )
 ```
 
 Creates a loop iterating over all elements from first to last.  
-This macro declares a pointer-iterator (el_ty *) named i_name.  
+This macro declares a pointer-iterator (`el_ty *`) named `i_name`.  
 It is equivalent to `for( el_ty* i_name = first( cntr ); i_name != end( cntr ); i_name = next( cntr, i_name ) )` and should be followed by the loop body.
 
 </p>
