@@ -296,26 +296,6 @@ for_each( <any container type> *cntr, i_name )
 
 Creates a loop iterating over all elements from first to last.  
 This macro declares a pointer-iterator (el_ty *) named i_name.  
-It is equivalent to  
-  `for( el_ty* i_name = first( cntr ); i_name != end( cntr ); i_name = next( cntr, i_name ) )`  
-and should be followed by the loop body.
-
-
-
-  
-  
-```c
-el_ty *push( vec( el_ty ) *cntr, el_ty el )
-```
-
-Inserts `el` at the end of the vector.  
-Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.
-
-```c
-el_ty *push_n( vec( el_ty ) *cntr, el_ty *els, size_t n )
-```
-
-Inserts `n` elements from array `els` at the end of the vector.  
-Returns a pointer-iterator to the first new element, or `NULL` in the case of memory allocation failure.
+It is equivalent to `for( el_ty* i_name = first( cntr ); i_name != end( cntr ); i_name = next( cntr, i_name ) )` and should be followed by the loop body.
 
 </p>
