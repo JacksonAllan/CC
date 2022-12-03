@@ -14,7 +14,7 @@ Its features include:
 
 It requires C23, or C11 and compiler support for `typeof`, or C++11.
 
-It is distributed under BSD-2 simplified license.
+It is distributed under the MIT license.
 
 ## Why?
 
