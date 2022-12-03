@@ -1,6 +1,6 @@
 # CC.H: Convenient Containers
 
-**cc.h** is a usability-oriented generic container library for C that provides vectors, doubly linked lists, unordered maps, and unordered sets.
+**CC.H** is a usability-oriented generic container library for C that provides vectors, doubly linked lists, unordered maps, and unordered sets.
 
 Its features include:
 
@@ -20,7 +20,7 @@ It is distributed under BSD-2 simplified license.
 
 Traditionally, C container libraries require users to define types for every container/element type combination and/or specify the container and/or element type at every API call (whether by casting, type-specific function names, or some other mechanism). The result is verbose code.
 
-In contrast, CC.H requires no type definitions and provides an API agnostic to container and element types. The following table compares **cc.h** usage to other container library paradigms:
+In contrast, CC.H requires no type definitions and provides an API agnostic to container and element types. The following table compares **CC.H** usage to other container library paradigms:
 
 <table>
 <tr>
@@ -29,9 +29,9 @@ In contrast, CC.H requires no type definitions and provides an API agnostic to c
 <td>
 
 ```c
-// cc.h
+// CC.H
 #include <stdio.h>
-#include "CC.H"
+#include "cc.h"
 
 int main( void )
 {
