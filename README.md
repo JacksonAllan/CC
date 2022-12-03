@@ -238,12 +238,12 @@ The next major version should include `NULL`-terminated strings, ordered maps, a
 
 <details><summary><h2>API</h2></summary>
 <p>
-
+  
 > **Warning**
-> API macros may evaluate their first argument - the pointer to the container - multiple times, so never use expressions with side effects (e.g. `&our_containers[ ++i ]` ) for that argument. In GCC and Clang, attempting to do so will cause a compiler warning. All other arguments are "safe" (i.e. they are only evaluated once).
+> API macros may evaluate their first argument - the pointer to the container - multiple times, so never use expressions with side effects (e.g. `&our_containers[ ++i ]` ) for that argument. In GCC and Clang, attempting to do so will cause a compiler warning. All other arguments are only evaluated once.
 
 > **Note**
-> If CC_NO_SHORT_NAMES was declared, then all API macros are prefixed with cc_.
+> If `CC_NO_SHORT_NAMES` was declared, all API macros are prefixed with `cc_`.
 
 > **Note**
 > Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original. Hence, only create a duplicate via assignment (including through function parameters and return values) if you have finished with the original.
