@@ -1,6 +1,6 @@
 # CC.H: Convenient Containers
 
-CC.H is a usability-oriented generic container library for C that provides vectors, doubly linked lists, unordered maps, and unordered sets.
+**cc.h** is a usability-oriented generic container library for C that provides vectors, doubly linked lists, unordered maps, and unordered sets.
 
 Its features include:
 
@@ -10,14 +10,13 @@ Its features include:
 - No assumption of successful memory allocation.
 - Single header.
 - Compiles in C and C++.
-- Safe API macros.*
-<sup>* Only the first argument - the container pointer - of API macros may be evaluated multiple times, and GNU compilers will warn in the case of side effects.</sup>
+- Safe API macros.
 
 It requires C23, or C11 and compiler support for `typeof`, or C++11.
 
 It is distributed under BSD-2 simplified license.
 
-## Why cc.h?
+## Why?
 
 Traditionally, C container libraries require users to define types for every container/element type combination and/or specify the container and/or element type at every API call (whether by casting, type-specific function names, or some other mechanism). The result is verbose code.
 
@@ -240,29 +239,20 @@ The next major version should include `NULL`-terminated strings, ordered maps, a
 <details><summary><h2>API</h2></summary>
 <p>
 
-#### We can hide anything, even code!
+> **Warning**
+> API macros may evaluate their first argument - the pointer to the container - multiple times, so never use expressions with side effects (e.g. `&our_containers[ ++i ]` ) for that argument. In GCC and Clang, attempting to do so will cause a compiler warning. All other arguments are "safe" (i.e. they are only evaluated once).
 
-```ruby
-   puts "Hello World"
-```
+> **Note**
+> If CC_NO_SHORT_NAMES was declared, then all API macros are prefixed with cc_.
 
-</p>
-</details>
+> **Note**
+> Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original. Hence, only create a duplicate via assignment (including through function parameters and return values) if you have finished with the original.
 
-## API
+> **Note**
+> An iterator is a pointer to an element in the container or to the associated `end` (or `r_end`, if the container supports it). In the documentation below, these pointers are called "pointer-iterators".
 
-### General notes:
-
-- API macros may evaluate their first argument - the pointer to the container - multiple times, so never use
-  expressions with side effects (e.g. &our_containers[ ++i ] ) for that argument. In GCC and Clang, attempting to do
-  so will cause a compiler warning. All other arguments are "safe" (i.e. they are only evaluated once).
-- Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original.
-  Hence, only create a duplicate via assignment (including through function parameters and return values) if you have
-  finished with the original.
-- An iterator is a pointer to an element in the container or to the associated end (or r_end, if the container
-  supports it). In the documentation below, these pointers are called "pointer-iterators".
-- In the documentation below, el_ty is the container's element type and key_ty is the container's key type (where
-  applicable).
+> **Note**
+> In the documentation below, `el_ty` is the container's element type and `key_ty` is the container's key type (where applicable).
 
 ### All containers:
 
@@ -281,3 +271,5 @@ el_ty *push_n( vec( el_ty ) *cntr, el_ty *els, size_t n )
 
 Inserts `n` elements from array `els` at the end of the vector.  
 Returns a pointer-iterator to the first new element, or `NULL` in the case of memory allocation failure.
+
+</p>
