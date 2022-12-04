@@ -17,7 +17,7 @@ It is distributed under the MIT license.
 
 ## Rationale
 
-Traditionally, C container libraries require users to define types for every container/element type combination. They also require the user to specify the container type and (often) the element type (whether by casting, type-specific function names, or some other mechanism) at every API call. This causes verbosity and syntax noise.
+Traditionally, C container libraries require users to define types for every container/element type combination and to specify the container type and (often) the element type (whether by casting, type-specific function names, or some other mechanism) at every API call. This causes verbosity and syntax noise.
 
 In contrast, **CC.H** requires no type definitions and provides an API agnostic to container and element types. The result is simpler, more readable code. The following table compares **CC.H** usage to other container library paradigms:
 
@@ -149,12 +149,11 @@ Just download `cc.h` and place it in your project's directory or your shared hea
 
 ## Examples
 
-**Vector** (a dynamic array):
+### Vector
+(A dynamic array.)
 
 ```c
 #include <stdio.h>
-
-#define CC_SHORT_NAMES // Exposes API without the cc_ prefix
 #include "cc.h"
 
 int main( void )
@@ -217,15 +216,15 @@ Containers of containers work exactly as expected. However, you probably want to
 
 ### How does does it work?
 
-`cc.h` associates type information with a container handle by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )`. The pointer points to the container's metadata and contents. API macros then use `sizeof`, `typeof`, and `_Generic` tricks to infer the container, element, and key types from the pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it. 
+**CC.H** associates type information with a container by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )`. The pointer points to the container's metadata and contents. API macros use `sizeof`, `typeof`, and `_Generic` tricks to deduce the container, element, and key types from this pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it.
 
-Destructor, comparison, and hash functions are, where needed, infered via a novel technique for user-extendable `_Generic` macros.
+Destructor, comparison, and hash functions are also deduced via a novel technique for user-extendable `_Generic` macros.
 
 An article detailing these and other techinques is in the works.
 
 ### How is it tested?
 
-cc.h has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivallent `cc.h` and C++ STL containers and then check that they remain in-sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
+**CC.H** has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivallent **CC.H** and C++ STL containers and then check that they remain in-sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
 
 ### How does it affect compile times?
     
