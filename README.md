@@ -297,13 +297,29 @@ A `set` is a [Robin Hood hash table](https://www.sebastiansylvan.com/post/robin-
 
 ### Prefixed API
 
+**CC.H** macro names like `get` and `init` may collide with names in your own code. If so, use `CC_NO_SHORT_NAMES` to only expose the `cc_`-prefixed API.
+
+```c
+#define CC_NO_SHORT_NAMES
+#include "cc.h"
+
+int main( void )
+{
+  // All API macros, including container declarations, are now prefixed with.
+  cc_vec( int ) our_vec;
+  cc_init( &our_vec );
+  cc_push( &our_vec, 5 );
+  cc_cleanup( &our_vec );
+}
+```
+
 ### Destructors
+
+Destructors are especially useful when creating containers of containers.
 
 ### Custom comparsion and hash functions
 
 ### Containers of containers
-
-Containers of containers work exactly as expected. However, you probably want to define a destructor so that the inner container is automatically cleaned-up upon clean-up of the outer container.
 
 ## FAQ
 
