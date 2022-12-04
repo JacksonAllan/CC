@@ -150,7 +150,6 @@ Just download `cc.h` and place it in your project's directory or your shared hea
 ## Examples
 
 ### Vector
-(A dynamic array.)
 
 ```c
 #include <stdio.h>
@@ -183,32 +182,72 @@ int main( void )
   // Iteration #1.
   for_each( &our_vec, el )
     printf( "%d ", *el );
-  printf( "\n" );
   // Printed: 1 1 2 2 4 4 5 5 7 7 8 8
 
   // Iteration #2.
   for( int *el = first( &our_vec ); el != end( &our_vec ); el = next( &our_vec, el ) )
     printf( "%d ", *el );
-  printf( "\n" );
   // Printed: Same as above.
 
   cleanup( &our_vec );
 }
 ```
 
-List:
+### List
 
-Map:
+```c
+#include <stdio.h>
+#include "../cc.h"
 
-Set:
+int main()
+{
+  list( int ) our_list;
+  init( &our_list );
 
-Prefixed API:
+  // Adding elements to end.
+  for( int i = 0; i < 10; ++i )
+    if( !push( &our_list, i ) )
+      exit( 1 ); // Out of memory.
 
-Destructors:
+  // Inserting an element before another element.
+  for( int *el = first( &our_list ); el != end( &our_list ); el = next( &our_list, el ) )
+    if( !insert( &our_list, el, *el ) )
+      exit( 1 ); // Out of memory.
 
-Comparsion and hash functions:
+  // Erasing elements.
+  for( int *el = first( &our_list ); el != end( &our_list ); )
+  {
+    if( *el % 3 == 0 )
+      el = erase( &our_list, el );
+    else
+      el = next( &our_list, el );
+  }
 
-**Containers of containers:**
+  // Iteration #1.
+  for_each( &our_list, el )
+    printf( "%d ", *el );
+  // Printed: 1 1 2 2 4 4 5 5 7 7 8 8
+
+  // Iteration #2.
+  for( int *el = first( &our_list ); el != end( &our_list ); el = next( &our_list, el ) )
+    printf( "%d ", *el );
+  // Printed: Same as above.
+
+  cleanup( &our_list );
+}
+```
+
+### Map
+
+### Set
+
+### Prefixed API
+
+### Destructors
+
+### Custom comparsion and hash functions
+
+### Containers of containers
 
 Containers of containers work exactly as expected. However, you probably want to define a destructor so that the inner container is automatically cleaned-up upon clean-up of the outer container.
 
