@@ -151,6 +151,8 @@ Just download `cc.h` and place it in your project's directory or your shared hea
 
 ### Vector
 
+A `vec` is dynamic array that stores elements in contiguous memory.
+
 ```c
 #include <stdio.h>
 #include "cc.h"
@@ -195,6 +197,8 @@ int main( void )
 
 ### List
 
+A `list` is a doubly-linked list with sentinels.
+
 ```c
 #include <stdio.h>
 #include "cc.h"
@@ -238,6 +242,8 @@ int main( void )
 ```
 
 ### Map
+
+A `map` is an unordered container associating elements with keys, implemented as a [Robin Hood hash table](https://www.sebastiansylvan.com/post/robin-hood-hashing-should-be-your-default-hash-table-implementation).
 
 ```c
 #include <stdio.h>
@@ -286,6 +292,8 @@ int main( void )
 ```
 
 ### Set
+
+A `set` is a [Robin Hood hash table](https://www.sebastiansylvan.com/post/robin-hood-hashing-should-be-your-default-hash-table-implementation) for elements without a separate key.
 
 ### Prefixed API
 
