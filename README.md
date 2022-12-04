@@ -16,11 +16,11 @@ It requires C23, or C11 and compiler support for `typeof`, or C++11.
 
 It is distributed under the MIT license.
 
-## Why?
+## Rationale
 
 Traditionally, C container libraries require users to define types for every container/element type combination and/or specify the container and/or element type at every API call (whether by casting, type-specific function names, or some other mechanism). This causes verbosity and syntax noise.
 
-In contrast, CC.H requires no type definitions and provides an API agnostic to container and element types. The result is simpler, more readable code. The following table compares **CC.H** usage to other container library paradigms:
+In contrast, **CC.H** requires no type definitions and provides an API agnostic to container and element types. The result is simpler, more readable code. The following table compares **CC.H** usage to other container library paradigms:
 
 <table>
 <tr>
