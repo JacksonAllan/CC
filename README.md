@@ -295,9 +295,12 @@ int main( void )
 
 A `set` is a [Robin Hood hash table](https://www.sebastiansylvan.com/post/robin-hood-hashing-should-be-your-default-hash-table-implementation) for elements without a separate key.
 
+```c
+```
+
 ### Prefixed API
 
-**CC.H** macro names like `get` and `init` may collide with names in your own code. If so, use `CC_NO_SHORT_NAMES` to only expose the `cc_`-prefixed API.
+**CC.H** macro names like `get` and `init` may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only the `cc_`-prefixed API.
 
 ```c
 #define CC_NO_SHORT_NAMES
@@ -315,11 +318,31 @@ int main( void )
 
 ### Destructors
 
+...
+
+```c
+```
+
 Destructors are especially useful when creating containers of containers.
+
+...
+
+```c
+```
 
 ### Custom comparsion and hash functions
 
-### Containers of containers
+...
+
+```c
+```
+
+### Custom allocation and free functions
+
+...
+
+```c
+```
 
 ## FAQ
 
