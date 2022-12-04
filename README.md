@@ -300,7 +300,7 @@ A `set` is a [Robin Hood hash table](https://www.sebastiansylvan.com/post/robin-
 
 ### Prefixed API
 
-**CC.H** macro names like `get` and `init` may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only the `cc_`-prefixed API.
+**CC.H** macro names like `get` and `init` may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only prefixed API.
 
 ```c
 #define CC_NO_SHORT_NAMES
@@ -308,7 +308,7 @@ A `set` is a [Robin Hood hash table](https://www.sebastiansylvan.com/post/robin-
 
 int main( void )
 {
-  // All API macros, including container declarations, are now prefixed with.
+  // All API macros, including container declarations, are now prefixed with "cc_".
   cc_vec( int ) our_vec;
   cc_init( &our_vec );
   cc_push( &our_vec, 5 );
