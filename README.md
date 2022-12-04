@@ -163,12 +163,12 @@ int main( void )
   // Adding elements to end.
   for( int i = 0; i < 10; ++i )
     if( !push( &our_vec, i ) )
-      exit( 1 ); // Out of memory.
+      return 1; // Out of memory.
 
   // Inserting an element at an index.
   for( int i = 0; i < 10; ++i )
     if( !insert( &our_vec, i * 2, i ) )
-      exit( 1 ); // Out of memory.
+      return 1; // Out of memory.
 
   // Retrieving and erasing elements.
   for( int i = 0; i < size( &our_vec ); )
@@ -197,9 +197,9 @@ int main( void )
 
 ```c
 #include <stdio.h>
-#include "../cc.h"
+#include "cc.h"
 
-int main()
+int main( void )
 {
   list( int ) our_list;
   init( &our_list );
@@ -207,12 +207,12 @@ int main()
   // Adding elements to end.
   for( int i = 0; i < 10; ++i )
     if( !push( &our_list, i ) )
-      exit( 1 ); // Out of memory.
+      return 1; // Out of memory.
 
   // Inserting an element before another element.
   for( int *el = first( &our_list ); el != end( &our_list ); el = next( &our_list, el ) )
     if( !insert( &our_list, el, *el ) )
-      exit( 1 ); // Out of memory.
+      return 1; // Out of memory.
 
   // Erasing elements.
   for( int *el = first( &our_list ); el != end( &our_list ); )
@@ -238,6 +238,52 @@ int main()
 ```
 
 ### Map
+
+```c
+#include <stdio.h>
+#include "cc.h"
+
+int main( void )
+{
+  map( int, short ) our_map;
+  init( &our_map );
+
+  // Inserting elements.
+  for( int i = 0; i < 10; ++i )
+    if( !insert( &our_map, i, i + 1 ) )
+      return 1; // Out of memory.
+
+  // Erasing elements.
+  for( int i = 0; i < 10; i += 3 )
+    erase( &our_map, i );
+
+  // Retrieving elements.
+  for( int i = 0; i < 10; ++i )
+  {
+    short *el = get( &our_map, i );
+    if( el )
+      printf( "%d:%d ", i, *el );
+  }
+  // Printed: 1:2 2:3 4:5 5:6 7:8 8:9
+
+  // Iteration #1 (elements only).
+  for_each( &our_map, el )
+    printf( "%d ", *el );
+  // Printed: 2 3 5 6 8 9
+
+  // Iteration #2 (elements and keys).
+  for_each( &our_map, key, el )
+    printf( "%d:%d ", *key, *el );
+  // Printed: 1:2 2:3 4:5 5:6 7:8 8:9
+
+  // Iteration #3 (elements and keys).
+  for( short *el = first( &our_map ); el != end( &our_map ); el = next( &our_map, el ) )
+    printf( "%d:%d ", *key_for( &our_map, el ), *el );
+  // Printed: Same as above.
+
+  cleanup( &our_map );
+}
+```
 
 ### Set
 
