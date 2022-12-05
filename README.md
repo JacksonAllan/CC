@@ -368,9 +368,10 @@ int main( void )
 
 **CC.H** includes default comparison and hash functions for fundamental integer types and `NULL`-terminated strings (`char *`). Hence, these types can be used as `map` keys and `set` elements "out of the box".
 
-However, you may wish to use other types or overwrite the default functions for the aforementioned types. In that case, define custom comparison and hash functions for the type with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )` respectively.
+To use other types or overwrite the default functions for the aforementioned types, define custom comparison and hash functions with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )`, respectively.
 
 ```c
+#include <stdio.h>
 #include "cc.h"
 
 typedef struct
