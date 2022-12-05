@@ -21,7 +21,7 @@ Traditionally, C container libraries require users to define types for every con
 
 In contrast, **CC.H** requires no type definitions and provides an API agnostic to container and element types. The result is simpler, more readable code. The following table compares **CC.H** usage to other container library paradigms:
 
-<table cellpadding="0">
+<table>
 <tr>
 </tr>
 <tr>
@@ -366,9 +366,24 @@ int main( void )
 
 ### Custom comparsion and hash functions
 
-...
+**CC.H** includes default comparison and hash functions for fundamental integer types and `NULL`-terminated strings (`char *`). Hence, these types can be used as `map` keys and `set` elements "out of the box".
+
+However, you may wish to use other types or overwrite the default functions for the aforementioned types. In that case, define custom comparison and hash functions for the type with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )` respectively.
 
 ```c
+#include "cc.h"
+
+typedef struct
+{
+  unsigned int id;
+} our_type;
+
+#define CC_CMPR our_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); } // 0 in the case of equality
+                                                                                    // < 0 in the case of val_1 < val_2
+                                                                                    // > 0 in the case of val_1 > val_2
+#define CC_HASH our_type, { return val.id * 2654435761ull; }
+#include "cc.h"
+
 ```
 
 ### Custom allocation and free functions
