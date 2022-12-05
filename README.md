@@ -311,23 +311,57 @@ int main( void )
   // All API macros, including container declarations, are now prefixed with "cc_".
   cc_vec( int ) our_vec;
   cc_init( &our_vec );
-  cc_push( &our_vec, 5 );
+  
+  if( !cc_push( &our_vec, 5 ) )
+    return 1; // Out of memory.
+
   cc_cleanup( &our_vec );
 }
 ```
 
 ### Destructors
 
-...
+**CC.H** supports per-type destructors with the signature `void ( type val )`. Once defined, the destructor is automatically called whenever an element (or key) of the specified type is removed from a container.
 
 ```c
+#include <stdio.h>
+#include "cc.h"
+
+#define CC_DTOR int, { printf( "%\d ", val ); } // First #define CC_DTOR as <type>, { <function body> }.
+#include "cc.h"                                 // Then re-include cc.h
+
+int main( void )
+{
+  vec( int ) our_vec;
+  init( &our_vec );
+  
+  if( !push( &our_vec, 5 ) )
+    return 1; // Out of memory.
+  
+  cleanup( &our_vec );
+  // Printed: 5
+}
 ```
 
 Destructors are especially useful when creating containers of containers.
 
-...
-
 ```c
+#define CC_DTOR vec( int ), { cleanup( &val ); }
+#include "cc.h"
+
+int main( void )
+{
+  list( vec( int ) ) our_list;
+  init( &our_list );
+  
+  vec( int ) our_vec;
+  init( &our_vec );
+  
+  if( !push( &our_list, our_vec ) )
+    return 1; // Out of memory.
+  
+  cleanup( &our_list ); // cleanup( &our_vec ) called automatically.
+}
 ```
 
 ### Custom comparsion and hash functions
