@@ -21,7 +21,7 @@ Traditionally, C container libraries require users to define types for every con
 
 In contrast, **CC.H** requires no type definitions and provides an API agnostic to container and element types. The result is simpler, more readable code. The following table compares **CC.H** usage to other container library paradigms:
 
-<table>
+<table cellpadding="0">
 <tr>
 </tr>
 <tr>
