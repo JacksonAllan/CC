@@ -371,7 +371,6 @@ int main( void )
 To use other types or overwrite the default functions for the aforementioned types, define custom comparison and hash functions with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )`, respectively.
 
 ```c
-#include <stdio.h>
 #include "cc.h"
 
 typedef struct
