@@ -327,7 +327,7 @@ int main( void )
 #include <stdio.h>
 #include "cc.h"
 
-#define CC_DTOR int, { printf( "%\d ", val ); } // First #define CC_DTOR as <type>, { <function body> }.
+#define CC_DTOR int, { printf( "%d ", val ); } // First #define CC_DTOR as <type>, { <function body> }.
 #include "cc.h"                                 // Then re-include cc.h
 
 int main( void )
@@ -383,7 +383,7 @@ typedef struct
                                                                                     // < 0 in the case of val_1 < val_2
                                                                                     // > 0 in the case of val_1 > val_2
 #define CC_HASH our_type, { return val.id * 2654435761ull; }
-#include "cc.h" // Then re-include cc.h
+#include "cc.h" // Then re-include cc.h.
 
 int main( void )
 {
