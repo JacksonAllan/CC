@@ -86,7 +86,7 @@ int main( void )
 <td>
 
 ```c
-// Typed pointer with hidden metadata paradigm
+// Typed pointer/hidden metadata paradigm
 #include <stdio.h>
 #include "other_container_lib.h"
 
