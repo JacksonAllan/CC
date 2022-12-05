@@ -379,11 +379,19 @@ typedef struct
   unsigned int id;
 } our_type;
 
+// First define comparision and hash functions.
 #define CC_CMPR our_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); } // 0 in the case of equality
                                                                                     // < 0 in the case of val_1 < val_2
                                                                                     // > 0 in the case of val_1 > val_2
 #define CC_HASH our_type, { return val.id * 2654435761ull; }
-#include "cc.h"
+#include "cc.h" // Then re-include cc.h
+
+int main( void )
+{
+  // Now we can use our own type as map keys and set elements.
+  map( our_type, int ) our_map;
+  set( our_type ) our_set;
+}
 
 ```
 
