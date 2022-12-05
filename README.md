@@ -378,10 +378,10 @@ typedef struct
   unsigned int id;
 } our_type;
 
-// First define comparision and hash functions.
-#define CC_CMPR our_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); } // 0 in the case of val_1 == val_2
-                                                                                    // < 0 in the case of val_1 < val_2
-                                                                                    // > 0 in the case of val_1 > val_2
+// First #define CC_CMPR and CC_HASH as comparision and hash functions.
+// The comparison function should return 0 in the case of val_1 == val_2,
+// < 0 in the case of val_1 < val_2, and > 0 in the case of val_1 > val_2.
+#define CC_CMPR our_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); }
 #define CC_HASH our_type, { return val.id * 2654435761ull; }
 #include "cc.h" // Then re-include cc.h.
 
@@ -421,6 +421,6 @@ An article detailing these and other techinques is in the works.
 
 ### What's next?
 
-The next major version should include `NULL`-terminated strings, ordered maps, and ordered sets.
+The next major version should include `NULL`-terminated dynamic strings, ordered maps, and ordered sets.
 
 ## [API reference](api_reference.md)
