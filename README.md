@@ -42,7 +42,7 @@ int main( void )
 
   map( int, float ) our_map;
   init( &our_map );
-  insert( &our_map, 5, 0.5 );
+  insert( &our_map, 5, 0.5f );
   printf( "%f\n", *get( &our_map, 5 ) );
   cleanup( &our_map );
 }
@@ -104,7 +104,7 @@ int main( void )
   free( our_vec );
 
   int_float_pair *our_map = NULL;
-  map_insert( our_map, 5, 0.5 );
+  map_insert( our_map, 5, 0.5f );
   printf( "%f\n", *map_get( our_map, 5 ) );
   free( our_map );
 }
