@@ -56,7 +56,7 @@ int main( void )
 <td>
 
 ```c
-// Template instantiation paradigm
+// Template-instantiation paradigm
 #include <stdio.h>
 #include "other_container_lib.h"
 
@@ -86,7 +86,7 @@ int main( void )
 <td>
 
 ```c
-// Typed pointer/hidden metadata paradigm
+// Typed-pointer/hidden-metadata paradigm
 #include <stdio.h>
 #include "other_container_lib.h"
 
@@ -114,7 +114,7 @@ int main( void )
 <td>
 
 ```c
-// void pointers paradigm
+// void-pointers paradigm
 #include <stdio.h>
 #include "other_container_lib.h"
 
