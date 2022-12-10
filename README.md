@@ -193,6 +193,7 @@ int main( void )
 
   cleanup( &our_vec );
 }
+
 ```
 
 ### List
@@ -239,6 +240,7 @@ int main( void )
 
   cleanup( &our_list );
 }
+
 ```
 
 ### Map
@@ -290,6 +292,7 @@ int main( void )
 
   cleanup( &our_map );
 }
+
 ```
 
 ### Set
@@ -335,6 +338,7 @@ int main( void )
 
   cleanup( &our_set );
 }
+
 ```
 
 ### Prefixed API
@@ -356,6 +360,7 @@ int main( void )
 
   cc_cleanup( &our_vec );
 }
+
 ```
 
 ### Destructors
@@ -380,6 +385,7 @@ int main( void )
   cleanup( &our_vec );
   // Printed: 5
 }
+
 ```
 
 Destructors are especially useful when creating containers of containers.
@@ -401,6 +407,7 @@ int main( void )
   
   cleanup( &our_list ); // cleanup( &our_vec ) called automatically.
 }
+
 ```
 
 ### Custom comparsion and hash functions
@@ -469,6 +476,7 @@ int main( void )
   push( &our_vec, 10 ); // Printed: our_realloc called
   cleanup( &our_vec );  // Printed: our_free called
 }
+
 ```
 
 ## FAQ
