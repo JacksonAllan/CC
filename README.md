@@ -435,9 +435,40 @@ int main( void )
 
 ### Custom allocation and free functions
 
-...
+By default, **CC.H** uses `realloc` and `free` to manage memory. Overwrite these functions by defining `CC_REALLOC` and `CC_FREE`.
 
 ```c
+#include <stdio.h>
+#include "cc.h"
+
+void *our_realloc( void *ptr, size_t size )
+{
+  printf( "our_realloc called\n" );
+
+  void *new_ptr = realloc( ptr, size );
+  if( !new_ptr )
+    exit( 1 ); // Out of memory, so just abort.
+
+  return new_ptr;
+}
+
+void our_free( void *ptr )
+{
+  printf( "our_free called\n" );
+  free( ptr );
+}
+
+#define CC_REALLOC our_realloc
+#define CC_FREE our_free
+// Now our_realloc and our_free will be used wherever the definitions are visible.
+
+int main( void )
+{
+  vec( int ) our_vec;
+  init( &our_vec );
+  push( &our_vec, 10 ); // Printed: our_realloc called
+  cleanup( &our_vec );  // Printed: our_free called
+}
 ```
 
 ## FAQ
