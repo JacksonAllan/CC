@@ -165,7 +165,7 @@ int main( void )
   // Adding elements to end.
   for( int i = 0; i < 10; ++i )
     if( !push( &our_vec, i ) )
-      return 1; // Out of memory.
+      return 1; // Out of memory, so just abort.
 
   // Inserting an element at an index.
   for( int i = 0; i < 10; ++i )
@@ -282,7 +282,7 @@ int main( void )
     printf( "%d:%d ", *key, *el );
   // Printed: 1:2 2:3 4:5 5:6 7:8 8:9
 
-  // Iteration #3 (elements and keys).
+  // Iteration #3.
   for( short *el = first( &our_map ); el != end( &our_map ); el = next( &our_map, el ) )
     printf( "%d:%d ", *key_for( &our_map, el ), *el );
   // Printed: Same as above.
