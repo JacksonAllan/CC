@@ -165,12 +165,12 @@ int main( void )
   // Adding elements to end.
   for( int i = 0; i < 10; ++i )
     if( !push( &our_vec, i ) )
-      return 1; // Out of memory, so just abort.
+      exit( 1 ); // Out of memory, so just abort.
 
   // Inserting an element at an index.
   for( int i = 0; i < 10; ++i )
     if( !insert( &our_vec, i * 2, i ) )
-      return 1; // Out of memory.
+      exit( 1 ); // Out of memory.
 
   // Retrieving and erasing elements.
   for( int i = 0; i < size( &our_vec ); )
@@ -211,12 +211,12 @@ int main( void )
   // Adding elements to end.
   for( int i = 0; i < 10; ++i )
     if( !push( &our_list, i ) )
-      return 1; // Out of memory.
+      exit( 1 ); // Out of memory.
 
   // Inserting an element before another element.
   for( int *el = first( &our_list ); el != end( &our_list ); el = next( &our_list, el ) )
     if( !insert( &our_list, el, *el ) )
-      return 1; // Out of memory.
+      exit( 1 ); // Out of memory.
 
   // Erasing elements.
   for( int *el = first( &our_list ); el != end( &our_list ); )
@@ -257,7 +257,7 @@ int main( void )
   // Inserting elements.
   for( int i = 0; i < 10; ++i )
     if( !insert( &our_map, i, i + 1 ) )
-      return 1; // Out of memory.
+      exit( 1 ); // Out of memory.
 
   // Erasing elements.
   for( int i = 0; i < 10; i += 3 )
@@ -296,6 +296,44 @@ int main( void )
 A `set` is a [Robin Hood hash table](https://www.sebastiansylvan.com/post/robin-hood-hashing-should-be-your-default-hash-table-implementation) for elements without a separate key.
 
 ```c
+#include <stdio.h>
+#include "cc.h"
+
+int main( void )
+{
+  set( int ) our_set;
+  init( &our_set );
+
+  // Inserting elements.
+  for( int i = 0; i < 10; ++i )
+    if( !insert( &our_set, i ) )
+      exit( 1 ); // Out of memory.
+
+  // Erasing elements.
+  for( int i = 0; i < 10; i += 3 )
+    erase( &our_set, i );
+
+  // Retrieving elements.
+  for( int i = 0; i < 10; ++i )
+  {
+    int *el = get( &our_set, i );
+    if( el )
+      printf( "%d ", *el );
+  }
+  // Printed: 1 2 4 5 7 8
+
+  // Iteration #1.
+  for_each( &our_set, el )
+    printf( "%d ", *el );
+  // Printed: 1 2 4 5 7 8
+
+  // Iteration #2.
+  for( int *el = first( &our_set ); el != end( &our_set ); el = next( &our_set, el ) )
+    printf( "%d ", *el );
+  // Printed: Same as above.
+
+  cleanup( &our_set );
+}
 ```
 
 ### Prefixed API
