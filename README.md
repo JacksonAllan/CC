@@ -251,6 +251,7 @@ A `map` is an unordered container associating elements with keys, implemented as
 
 int main( void )
 {
+  // Declare a map with int keys and short elements.
   map( int, short ) our_map;
   init( &our_map );
 
