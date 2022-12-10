@@ -300,7 +300,7 @@ A `set` is a [Robin Hood hash table](https://www.sebastiansylvan.com/post/robin-
 
 ### Prefixed API
 
-**CC.H** macro names like `get` and `init` may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only prefixed API.
+**CC.H** macro names may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only prefixed API.
 
 ```c
 #define CC_NO_SHORT_NAMES
@@ -321,14 +321,14 @@ int main( void )
 
 ### Destructors
 
-**CC.H** supports per-type destructors with the signature `void ( type val )`. Once defined, the destructor is automatically called whenever an element (or key) of the specified type is removed from a container.
+**CC.H** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element (or key) of the associated type is removed from a container.
 
 ```c
 #include <stdio.h>
 #include "cc.h"
 
 #define CC_DTOR int, { printf( "%d ", val ); } // First #define CC_DTOR as <type>, { <function body> }.
-#include "cc.h"                                 // Then re-include cc.h
+#include "cc.h"                                // Then re-include cc.h
 
 int main( void )
 {
@@ -366,7 +366,7 @@ int main( void )
 
 ### Custom comparsion and hash functions
 
-**CC.H** includes default comparison and hash functions for fundamental integer types and `NULL`-terminated strings (`char *`). Hence, these types can be used as `map` keys and `set` elements "out of the box".
+**CC.H** includes default comparison and hash functions for fundamental integer types and `NULL`-terminated strings (`char *`). Hence, these types can be used as `map` keys and `set` elements straight away.
 
 To use other types or overwrite the default functions for the aforementioned types, define custom comparison and hash functions with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )`, respectively.
 
