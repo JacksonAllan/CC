@@ -46,7 +46,7 @@
 					height: 100px;
 					background: linear-gradient(-45deg, #628c6b, #475269, #684069);
 					background-size: 600% 400%;
-					animation: gradientBackground 10s ease infinite;
+					animation: gradientBackground 20s ease infinite;
 					color: white;
 					text-align: center;
 				}
