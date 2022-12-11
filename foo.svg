@@ -54,7 +54,6 @@
 				h1 {
 					font-size: 50px;
 					line-height: 1.3;
-					text-transform: uppercase;
 					animation: ease-in-out 1s infinite alternate;
 				}
 			</style>
