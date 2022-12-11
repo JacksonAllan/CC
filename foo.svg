@@ -47,7 +47,6 @@
 					background: linear-gradient(-45deg, #fc5c7d, #6a82fb, #05dfd7);
 					background-size: 600% 400%;
 					animation: gradientBackground 10s ease infinite;
-					border-radius: 10px;
 					color: white;
 					text-align: center;
 				}
