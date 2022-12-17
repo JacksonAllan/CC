@@ -131,14 +131,14 @@ el_ty *erase( vec( el_ty ) *cntr, size_t i )
 ```
 
 Erases the element at index `i`, calling the element type's destructor if it exists.  
-Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there is no subsequent element.
+Returns a pointer-iterator to the element after the erased element, or an `end` pointer-iterator if there is no subsequent element.
 
 ```c
 el_ty *erase_n( vec( el_ty ) *cntr, size_t i, size_t n )
 ```
 
-Erases n elements beginning at index `i`, calling the element type's destructor, if it exists, for each erased element.  
-Returns a pointer-iterator to the element after the erased elements, or an end pointer/iterator if there is no subsequent element.
+Erases `n` elements beginning at index `i`, calling the element type's destructor, if it exists, for each erased element.  
+Returns a pointer-iterator to the element after the erased elements, or an `end` pointer-iterator if there is no subsequent element.
 
 ```c
 el_ty *end( vec( el_ty ) *cntr )
