@@ -429,7 +429,7 @@ typedef struct
 // First #define CC_CMPR and CC_HASH as comparision and hash functions.
 // The comparison function should return 0 in the case of val_1 == val_2,
 // < 0 in the case of val_1 < val_2, and > 0 in the case of val_1 > val_2.
-#define CC_CMPR our_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); }
+#define CC_CMPR our_type, { return ( val_1.id > val_2.id ) - ( val_1.id < val_2.id ); }
 #define CC_HASH our_type, { return val.id * 2654435761ull; }
 #include "cc.h" // Then re-include cc.h.
 
