@@ -55,9 +55,7 @@ Creates a loop iterating over all elements from first to last.
 This macro declares a pointer-iterator (`el_ty *`) named `i_name`.  
 It is equivalent to `for( el_ty *i_name = first( cntr ); i_name != end( cntr ); i_name = next( cntr, i_name ) )` and should be followed by the loop body.
 
-### Vector
-
-(a dynamic array that stores elements in contiguous memory)
+### Vector (a dynamic array that stores elements in contiguous memory)
 
 ```c
 vec( el_ty ) cntr
@@ -408,31 +406,41 @@ It should be followed by the body of the loop.
 
 ### Set (Robin Hood hash table for elements without a separate key)
 
-    set( el_ty ) cntr
+```c
+set( el_ty ) cntr
+```
 
-      Declares an uninitialized map named cntr.
-      el_ty must be a type, or alias for a type, for which comparison and hash functions have been defined.
-      This requirement is enforced internally such that neglecting it causes a compiler error.
-      For types with in-built comparison and hash functions, and for details on how to declare new comparison and
-      hash functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
+Declares an uninitialized map named cntr.
+el_ty must be a type, or alias for a type, for which comparison and hash functions have been defined.
+This requirement is enforced internally such that neglecting it causes a compiler error.
+For types with in-built comparison and hash functions, and for details on how to declare new comparison and
+hash functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
 
-    size_t cap( set( el_ty ) *cntr )
+```c
+size_t cap( set( el_ty ) *cntr )
+```
 
       Returns the current capacity, i.e. bucket count.
       Note that the number of elements a set can support without rehashing is not its capacity but its capacity
       multiplied by the max load factor associated with its key type.
 
-    bool reserve( set( el_ty ) *cntr, size_t n )
+```c
+bool reserve( set( el_ty ) *cntr, size_t n )
+```
 
       Ensures that the capacity is large enough to support n elements without rehashing.
       Returns true, or false if unsuccessful due to memory allocation failure.
 
-    bool shrink( set( el_ty ) *cntr )
+```c
+bool shrink( set( el_ty ) *cntr )
+```
 
       Shrinks the capacity to best accommodate the current size.
       Returns true, or false if unsuccessful due to memory allocation failure.
 
-    el_ty *insert( set( el_ty ) *cntr, el_ty el )
+```c
+el_ty *insert( set( el_ty ) *cntr, el_ty el )
+```
 
       Inserts element el.
       If the element already exists, the existing element is replaced.
@@ -440,11 +448,15 @@ It should be followed by the body of the loop.
       Note that if adding one element would violate the set's max load factor, failure can occur even if it
       already contains el.
 
-    el_ty *get( set( el_ty ) *cntr, el_ty el )
+```c
+el_ty *get( set( el_ty ) *cntr, el_ty el )
+```
 
       Returns a pointer-iterator to element el, or NULL if no such element exists.
 
-    el_ty *get_or_insert( set( el_ty ) *cntr, el_ty el )
+```c
+el_ty *get_or_insert( set( el_ty ) *cntr, el_ty el )
+```
 
       Inserts element el if it does not already exist.
       Returns a pointer-iterator to the new element if it was inserted, or a pointer-iterator to the existing
@@ -453,42 +465,58 @@ It should be followed by the body of the loop.
       the element.
       Determine whether an element was inserted by comparing the set's size before and after the call.
 
-    bool erase( set( el_ty ) *cntr, el_ty el )
+```c
+bool erase( set( el_ty ) *cntr, el_ty el )
+```
 
       Erases the element el, if it exists.
       Returns true if an element was erased, or false if no such element exists.
 
-    el_ty *first( set( el_ty ) *cntr )
+```c
+el_ty *first( set( el_ty ) *cntr )
+```
 
       Returns a pointer-iterator to the first element, or an end pointer-iterator if the set is empty.
 
-    el_ty *last( set( el_ty ) *cntr )
+```c
+el_ty *last( set( el_ty ) *cntr )
+```
 
       Returns a pointer-iterator to the last element, or an r_end pointer-iterator if the set is empty.
 
-    el_ty *r_end( set( el_ty ) *cntr )
+```c
+el_ty *r_end( set( el_ty ) *cntr )
+```
 
       Returns an r_end (reverse end) pointer-iterator for the set.
 
-    el_ty *end( set( el_ty ) *cntr )
+```c
+el_ty *end( set( el_ty ) *cntr )
+```
 
       Returns an end pointer-iterator for the set.
 
-    el_ty *next( set( el_ty ) *cntr, el_ty *i )
+```c
+el_ty *next( set( el_ty ) *cntr, el_ty *i )
+```
 
       Returns a pointer-iterator to the element after the one pointed to by i.
       If i points to the last element, the pointer-iterator returned is an end pointer-iterator.
       If i points to r_end, then the pointer-iterator returned points to the first element, or is an end
       pointer-iterator if the set is empty.
 
-    el_ty *prev( set( el_ty ) *cntr, el_ty *i )
+```c
+el_ty *prev( set( el_ty ) *cntr, el_ty *i )
+```
 
       Returns a pointer-iterator to the element before the one pointed to by i.
       If i points to the first element, the return value is an r_end pointer-iterator.
       If i points to end, then the pointer-iterator returned points to the last element, or is an r_end
       pointer-iterator if the set is empty.
 
-    r_for_each( set( el_ty ) *cntr, i_name )
+```c
+r_for_each( set( el_ty ) *cntr, i_name )
+```
 
       Creates a loop iterating over all elements from last to first.
       This macro declares an el_ty * pointer-iterator named i_name.
@@ -500,7 +528,7 @@ It should be followed by the body of the loop.
     - Set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
       reallocation.
 
-  Destructor, comparison, and hash functions and custom max load factors:
+### Destructor, comparison, and hash functions and custom max load factors
 
     This part of the API allows the user to define custom destructor, comparison, and hash functions and max load
     factors for a type.
@@ -509,28 +537,36 @@ It should be followed by the body of the loop.
     Once the max load factor is defined, any map using the type for its key and any set using the type for its
     elements will use the defined load factor to determine when rehashing is necessary.
 
-    #define CC_DTOR ty, { function body }
-    #include "cc.h"
+```c
+#define CC_DTOR ty, { function body }
+#include "cc.h"
+```
 
       Defines a destructor for type ty.
       The signature of the function is void ( ty val ).
 
-    #define CC_CMPR ty, { function body }
-    #include "cc.h"
+```c
+#define CC_CMPR ty, { function body }
+#include "cc.h"
+```
 
       Defines a comparison function for type ty.
       The signature of the function is int ( ty val_1, ty val_2 ).
       The function should return 0 if val_1 and val_2 are equal, a negative integer if val_1 is less than val_2,
       and a positive integer if val_1 is more than val_2.
 
-    #define CC_HASH ty, { function body }
-    #include "cc.h"
+```c
+#define CC_HASH ty, { function body }
+#include "cc.h"
+```
 
       Defines a hash function for type ty.
       The signature of the function is size_t ( ty val ).
       The function should return the hash of val.
 
-    #define CC_LOAD ty, max_load_factor
+```c
+#define CC_LOAD ty, max_load_factor
+```
 
       Defines the max load factor for type ty.
       max_load_factor should be a float or double between 0.0 and 1.0.
@@ -538,12 +574,14 @@ It should be followed by the body of the loop.
     
     Trivial example:
 
-      typedef struct { int x; } my_type;
-      #define CC_DTOR my_type, { printf( "!%d\n", val.x ); }
-      #define CC_CMPR my_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); }
-      #define CC_HASH my_type, { return val.x * 2654435761ull; }
-      #define CC_LOAD my_type, 0.5
-      #include "cc.h"
+```c
+typedef struct { int x; } my_type;
+#define CC_DTOR my_type, { printf( "!%d\n", val.x ); }
+#define CC_CMPR my_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); }
+#define CC_HASH my_type, { return val.x * 2654435761ull; }
+#define CC_LOAD my_type, 0.5
+#include "cc.h"
+```
 
     Notes:
     - These functions are inline and have static scope, so you need to either redefine them in each translation unit
