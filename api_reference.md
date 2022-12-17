@@ -53,7 +53,9 @@ Creates a loop iterating over all elements from first to last.
 This macro declares a pointer-iterator (`el_ty *`) named `i_name`.  
 It is equivalent to `for( el_ty *i_name = first( cntr ); i_name != end( cntr ); i_name = next( cntr, i_name ) )` and should be followed by the loop body.
 
-## Vector (a dynamic array that stores elements in contiguous memory)
+## Vector
+
+A `vec` is a dynamic array that stores elements in contiguous memory.
 
 ```c
 vec( el_ty ) cntr
@@ -169,7 +171,9 @@ Returns a pointer-iterator to the element after the element pointed to by `i`, o
 > **Note**
 > Vector pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
 
-## List (a doubly-linked list with sentinels)
+## List
+
+A `list` is a doubly linked list with sentinels.
 
 ```c
 list( el_ty ) cntr
@@ -258,7 +262,9 @@ It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr );
 > **Note**
 > List pointer-iterators (including r_end and end) are not invalidated by any API calls besides init and cleanup, unless the they point to erased elements.
 
-### Map (an unordered container associating elements with keys, implemented as a Robin Hood hash table)
+### Map
+
+A `map` is an unordered container associating elements with keys, implemented as a Robin Hood hash table.
 
 ```c
 map( key_ty, el_ty ) cntr
@@ -400,7 +406,9 @@ It should be followed by the body of the loop.
 > **Note**
 > Map pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory reallocation.
 
-## Set (Robin Hood hash table for elements without a separate key)
+## Set
+
+A `set` is a Robin Hood hash table for elements without a separate key.
 
 ```c
 set( el_ty ) cntr
