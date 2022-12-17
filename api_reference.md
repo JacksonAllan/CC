@@ -4,16 +4,10 @@
 > API macros may evaluate their first argument - the pointer to the container - multiple times, so never use expressions with side effects (e.g. `&our_containers[ ++i ]` ) for that argument. In GCC and Clang, attempting to do so will cause a compiler warning. All other arguments are only evaluated once.
 
 > **Note**
-> If `CC_NO_SHORT_NAMES` was declared, all API macros are prefixed with `cc_`.
-
-> **Note**
-> Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original. Hence, only create a duplicate via assignment (including through function parameters and return values) if you have finished with the original.
-
-> **Note**
-> An iterator is a pointer to an element in the container or to the associated `end` (or `r_end`, if the container supports it). In the documentation below, these pointers are called "pointer-iterators".
-
-> **Note**
-> In the documentation below, `el_ty` is the container's element type and `key_ty` is the container's key type (where applicable).
+> * If `CC_NO_SHORT_NAMES` was declared, all API macros are prefixed with `cc_`.
+> * Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original. Hence, only create a duplicate via assignment (including through function parameters and return values) if you have finished with the original.
+> * An iterator is a pointer to an element in the container or to the associated `end` (or `r_end`, if the container supports it). In the documentation below, these pointers are called "pointer-iterators".
+> * In the documentation below, `el_ty` is the container's element type and `key_ty` is the container's key type (where applicable).
 
 ## All containers
 
