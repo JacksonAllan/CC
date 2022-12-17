@@ -63,7 +63,7 @@ It is equivalent to `for( el_ty *i_name = first( cntr ); i_name != end( cntr ); 
 vec( el_ty ) cntr
 ```
 
-Declares an uninitialized vector named cntr.
+Declares an uninitialized vector named `cntr`.
 
 ```c
 size_t cap( vec( el_ty ) *cntr )
@@ -263,123 +263,150 @@ It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr );
     - List pointer-iterators (including r_end and end) are not invalidated by any API calls besides init and
       cleanup, unless the they point to erased elements.
 
-  Map (an unordered container associating elements with keys, implemented as a Robin Hood hash table):
+### Map (an unordered container associating elements with keys, implemented as a Robin Hood hash table)
 
-    map( key_ty, el_ty ) cntr
+```c
+map( key_ty, el_ty ) cntr
+```
 
-      Declares an uninitialized map named cntr.
-      key_ty must be a type, or alias for a type, for which comparison and hash functions have been defined.
-      This requirement is enforced internally such that neglecting it causes a compiler error.
-      For types with in-built comparison and hash functions, and for details on how to declare new comparison and
-      hash functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
+Declares an uninitialized map named `cntr`.
+`key_ty` must be a type, or alias for a type, for which comparison and hash functions have been defined.  
+This requirement is enforced internally such that neglecting it causes a compiler error.  
+For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
 
-    size_t cap( map( key_ty, el_ty ) *cntr )
+```c
+size_t cap( map( key_ty, el_ty ) *cntr )
+```
 
-      Returns the current capacity, i.e. bucket count.
-      Note that the number of elements a map can support without rehashing is not its capacity but its capacity
-      multiplied by the max load factor associated with its key type.
+Returns the current capacity, i.e. bucket count.
+Note that the number of elements a map can support without rehashing is not its capacity but its capacity multiplied by the max load factor associated with its key type.
 
-    bool reserve( map( key_ty, el_ty ) *cntr, size_t n )
+```c
+bool reserve( map( key_ty, el_ty ) *cntr, size_t n )
+```
 
-      Ensures that the capacity is large enough to support n elements without rehashing.
-      Returns true, or false if unsuccessful due to memory allocation failure.
+Ensures that the capacity is large enough to support `n` elements without rehashing.  
+Returns `true`, or `false` if unsuccessful due to memory allocation failure.
 
-    bool shrink( map( key_ty, el_ty ) *cntr )
+```c
+bool shrink( map( key_ty, el_ty ) *cntr )
+```
 
-      Shrinks the capacity to best accommodate the current size.
-      Returns true, or false if unsuccessful due to memory allocation failure.
+Shrinks the capacity to best accommodate the current size.  
+Returns `true`, or `false` if unsuccessful due to memory allocation failure.
 
-    el_ty *insert( map( key_ty, el_ty ) *cntr, key_ty key, el_ty el )
+```c
+el_ty *insert( map( key_ty, el_ty ) *cntr, key_ty key, el_ty el )
+```
 
-      Inserts element el with the specified key.
-      If an element with the same key already exists, the existing element is replaced.
-      Returns a pointer-iterator to the new element, or NULL in the case of memory allocation failure.
-      If adding one element would violate the map's max load factor, failure can occur even if it already
-      contains the key.
+Inserts element `el` with the specified key.  
+If an element with the same key already exists, the existing element is replaced.  
+Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.  
+If adding one element would violate the map's max load factor, failure can occur even if it already contains the key.
 
-    el_ty *get( map( key_ty, el_ty ) *cntr, key_ty key )
+```c
+el_ty *get( map( key_ty, el_ty ) *cntr, key_ty key )
+```
 
-      Returns a pointer-iterator to the element with the specified key, or NULL if no such element exists.
+Returns a pointer-iterator to the element with the specified key, or `NULL` if no such element exists.
 
-    el_ty *get_or_insert( map( key_ty, el_ty ) *cntr, key_ty key, el_ty el )
+```c
+el_ty *get_or_insert( map( key_ty, el_ty ) *cntr, key_ty key, el_ty el )
+```
 
-      Inserts element el if no element with the specified key already exist.
-      Returns a pointer-iterator to the new element if it was inserted, or a pointer-iterator to the existing
-      element with the same key, or NULL in the case of memory allocation failure.
-      If adding one element would violate the map's max load factor, failure can occur even if it already contains
-      the key.
-      Determine whether an element was inserted by comparing the map's size before and after the call.
+Inserts element `el` if no element with the specified key already exist.  
+Returns a pointer-iterator to the new element if it was inserted, or a pointer-iterator to the existing element with the same key, or `NULL` in the case of memory allocation failure.  
+If adding one element would violate the map's max load factor, failure can occur even if it already contains the key.  
+Determine whether an element was inserted by comparing the map's size before and after the call.
 
-    const key_ty *key_for( map( key_ty, el_ty ) *cntr, el_ty *i )
+```c
+const key_ty *key_for( map( key_ty, el_ty ) *cntr, el_ty *i )
+```
 
-      Returns a const pointer to the key for the element pointed to by pointer-iterator i.
+Returns a const pointer to the key for the element pointed to by pointer-iterator `i`.
 
-    bool erase( map( key_ty, el_ty ) *cntr, key_ty key )
+```c
+bool erase( map( key_ty, el_ty ) *cntr, key_ty key )
+```
 
-      Erases the element with the specified key, if it exists.
-      Returns true if an element was erased, or false if no such element exists.
+Erases the element with the specified key, if it exists.
+Returns `true` if an element was erased, or `false` if no such element exists.
 
-    void erase_itr( map( key_ty, el_ty ) *cntr, el_ty *i )
+void erase_itr( map( key_ty, el_ty ) *cntr, el_ty *i )
 
-      Erases the element pointed to by pointer-iterator i.
+```c
+Erases the element pointed to by pointer-iterator `i`.
+```
 
-    el_ty *first( map( key_ty, el_ty ) *cntr )
+```c
+el_ty *first( map( key_ty, el_ty ) *cntr )
+```
 
-      Returns a pointer-iterator to the first element, or an end pointer-iterator if the map is empty.
+Returns a pointer-iterator to the first element, or an `end` pointer-iterator if the map is empty.
 
-    el_ty *last( map( key_ty, el_ty ) *cntr )
+```c
+el_ty *last( map( key_ty, el_ty ) *cntr )
+```
 
-      Returns a pointer-iterator to the last element, or an r_end pointer-iterator if the map is empty.
+Returns a pointer-iterator to the last element, or an `r_end` pointer-iterator if the map is empty.
 
-    el_ty *r_end( map( key_ty, el_ty ) *cntr )
+```c
+el_ty *r_end( map( key_ty, el_ty ) *cntr )
+```
 
-      Returns an r_end (reverse end) pointer-iterator for the map.
+Returns an `r_end` (reverse end) pointer-iterator for the map.
 
-    el_ty *end( map( key_ty, el_ty ) *cntr )
+```c
+el_ty *end( map( key_ty, el_ty ) *cntr )
+```
 
-      Returns an end pointer-iterator for the map.
+Returns an `end` pointer-iterator for the map.
 
-    el_ty *next( map( key_ty, el_ty ) *cntr, el_ty *i )
+```c
+el_ty *next( map( key_ty, el_ty ) *cntr, el_ty *i )
+```
 
-      Returns a pointer-iterator to the element after the one pointed to by i.
-      If i points to the last element, the value returned is an end pointer-iterator.
-      If i points to r_end, the value returned points to the first element, or is an end pointer-iterator if the
-      map is empty.
+Returns a pointer-iterator to the element after the one pointed to by `i`.  
+If `i` points to the last element, the value returned is an `end` pointer-iterator.  
+If `i` points to `r_end`, the value returned points to the first element, or is an `end` pointer-iterator if the map is empty.
 
-    el_ty *prev( map( key_ty, el_ty ) *cntr, el_ty *i )
+```c
+el_ty *prev( map( key_ty, el_ty ) *cntr, el_ty *i )
+```
 
-      Returns a pointer-iterator to the element before the one pointed to by i.
-      If i points to the first element, the value returned is an r_end pointer-iterator.
-      If i points to end, then the value returned points to the last element, or is an r_end pointer-iterator if
-      the map is empty.
+Returns a pointer-iterator to the element before the one pointed to by `i`.  
+If `i` points to the first element, the value returned is an `r_end` pointer-iterator.  
+If `i` points to `end`, then the value returned points to the last element, or is an `r_end` pointer-iterator if the map is empty.
 
-    for_each( map( key_ty, el_ty ) *cntr, key_ptr_name, el_i_name )
+```c
+for_each( map( key_ty, el_ty ) *cntr, key_ptr_name, el_i_name )
+```
 
-      Creates a loop iterating over all elements from first to last, with easy access to the corresponding keys.
-      This macro declares a pointer to the key (const key_ty *) named key_ptr_name and a pointer-iterator
-      (el_ty *) named el_i_name.
-      It should be followed by the body of the loop.
+Creates a loop iterating over all elements from first to last, with easy access to the corresponding keys.  
+This macro declares a pointer to the key (`const key_ty *`) named `key_ptr_name` and a pointer-iterator (`el_ty *`) named `el_i_name`.  
+It should be followed by the body of the loop.
 
-    r_for_each( map( key_ty, el_ty ) *cntr, i_name )
+```c
+r_for_each( map( key_ty, el_ty ) *cntr, i_name )
+```
 
-      Creates a loop iterating over all elements from last to first.
-      This macro declares an el_ty * pointer-iterator named i_name.
-      It is equivalent to
-        for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )
-      and should be followed by the body of the loop.
+Creates a loop iterating over all elements from last to first.  
+This macro declares an `el_ty *` pointer-iterator named `i_name`.  
+It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )` and should be followed by the body of the loop.
 
-    r_for_each( map( key_ty, el_ty ) *cntr, key_ptr_name, i_name )
+```c
+r_for_each( map( key_ty, el_ty ) *cntr, key_ptr_name, i_name )
+```
 
-      Creates a loop iterating over all elements from last to first, with easy access to the corresponding keys.
-      This macro declares a pointer to the key (const key_ty *) named key_ptr_name and a pointer-iterator
-      (el_ty *) named el_i_name.
-      It should be followed by the body of the loop.
+Creates a loop iterating over all elements from last to first, with easy access to the corresponding keys.  
+This macro declares a pointer to the key (`const key_ty *`) named `key_ptr_name` and a pointer-iterator (`el_ty *`) named el_i_name.  
+It should be followed by the body of the loop.
 
     Notes:
     - Map pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
       reallocation.
 
-  Set (Robin Hood hash table for elements without a separate key):
+### Set (Robin Hood hash table for elements without a separate key)
 
     set( el_ty ) cntr
 
