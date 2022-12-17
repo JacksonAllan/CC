@@ -495,12 +495,12 @@ An article detailing these and other techinques is in the works.
 
 **CC.H** has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivallent **CC.H** and C++ STL containers and then check that they remain in-sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
 
-### How does it affect compile times?
+### How does it affect compile speed?
     
-...
+The compiler has to do a lot of extra work deducing types, processing macros, and inlining functions at compile time. `unit_tests.c`, as an example of a program that uses **CC.H** extensively, compiles in about 4.5 seconds in MingW with `O3` in my development environment, whereas a roughly equivalent program using C++'s STL containers compiles in about 3.1 seconds. So take this point into consideration for large projects if compile speed is important.  
 
 ### What's next?
 
-The next major version should include `NULL`-terminated dynamic strings, ordered maps, and ordered sets.
+Future versions should include `NULL`-terminated dynamic strings, ordered maps, and ordered sets, as well as performance benchmarks.
 
 ## [API reference](api_reference.md)
