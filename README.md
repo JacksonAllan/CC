@@ -394,6 +394,8 @@ int main( void )
 Destructors are especially useful when creating containers of containers.
 
 ```c
+#include "cc.h"
+
 #define CC_DTOR vec( int ), { cleanup( &val ); }
 #include "cc.h"
 
