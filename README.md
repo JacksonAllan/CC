@@ -412,7 +412,7 @@ int main( void )
 
 ```
 
-### Custom comparsion and hash functions
+### Custom comparison and hash functions
 
 **CC.H** includes default comparison and hash functions for fundamental integer types and `NULL`-terminated strings (`char *`). Hence, these types can be used as `map` keys and `set` elements straight away.
 
@@ -489,11 +489,11 @@ int main( void )
 
 Destructor, comparison, and hash functions are also deduced via a novel technique for user-extendable `_Generic` macros.
 
-An article detailing these and other techinques is in the works.
+An article detailing these and other techniques  is in the works.
 
 ### How is it tested?
 
-**CC.H** has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivallent **CC.H** and C++ STL containers and then check that they remain in-sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
+**CC.H** has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivalent **CC.H** and C++ STL containers and then check that they remain in-sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
 
 ### How does it affect compile speed?
     
