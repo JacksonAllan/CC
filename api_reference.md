@@ -11,7 +11,7 @@
 
 * In the documentation below, `el_ty` is the container's element type and `key_ty` is the container's key type (where applicable).
 
-### All containers
+## All containers
 
 The following macros behave the same way for all containers:
 
