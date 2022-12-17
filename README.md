@@ -503,4 +503,4 @@ The compiler must do extra work deducing types, processing macros, and inlining 
 
 Future versions should include `NULL`-terminated dynamic strings, ordered maps, and ordered sets, as well as performance benchmarks.
 
-## [API reference](api_reference.md)
+## [API Reference](api_reference.md)
