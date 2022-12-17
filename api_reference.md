@@ -255,9 +255,8 @@ Creates a loop iterating over all elements from last to first.
 This macro declares an `el_ty *` pointer-iterator named `i_name`.  
 It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )` and should be followed by the body of the loop.
 
-    Notes:
-    - List pointer-iterators (including r_end and end) are not invalidated by any API calls besides init and
-      cleanup, unless the they point to erased elements.
+> **Note**
+> List pointer-iterators (including r_end and end) are not invalidated by any API calls besides init and cleanup, unless the they point to erased elements.
 
 ### Map (an unordered container associating elements with keys, implemented as a Robin Hood hash table)
 
@@ -398,9 +397,8 @@ Creates a loop iterating over all elements from last to first, with easy access 
 This macro declares a pointer to the key (`const key_ty *`) named `key_ptr_name` and a pointer-iterator (`el_ty *`) named el_i_name.  
 It should be followed by the body of the loop.
 
-    Notes:
-    - Map pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
-      reallocation.
+> **Note**
+> Map pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory reallocation.
 
 ## Set (Robin Hood hash table for elements without a separate key)
 
@@ -513,9 +511,8 @@ Creates a loop iterating over all elements from last to first.
 This macro declares an `el_ty *` pointer-iterator named `i_name`.  
 It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )` and should be followed by the body of the loop.
 
-    Notes:
-    - Set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
-      reallocation.
+> **Note**
+> Set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory reallocation.
 
 ## Destructor, comparison, and hash functions and custom max load factors
 
@@ -569,7 +566,7 @@ typedef struct { int x; } my_type;
 ```
 
 > **Note**
-> * These functions are inline and have static scope, so you need to either redefine them in each translation unit from which they should be called or (preferably) define them in a shared header. For structs or unions, a sensible place to define them would be immediately after the definition of the struct or union.  
-> * Only one destructor, comparison, or hash function or max load factor should be defined by the user for each type.  
-> * #including cc.h in these cases does not #include the full header, so you still need to #include it separately at the top of your files.  
+> * These functions are inline and have static scope, so you need to either redefine them in each translation unit from which they should be called or (preferably) define them in a shared header. For structs or unions, a sensible place to define them would be immediately after the definition of the struct or union.
+> * Only one destructor, comparison, or hash function or max load factor should be defined by the user for each type.
+> * #including cc.h in these cases does not #include the full header, so you still need to #include it separately at the top of your files.
 > * In-built comparison and hash functions are already defined for the following types: char, unsigned char, signed char, unsigned short, short, unsigned int, int, unsigned long, long, unsigned long long, long long, size_t, and char * (a NULL-terminated string). If the user defines a comparsion or hash function for one of these types, it will overwrite the in-built function.
