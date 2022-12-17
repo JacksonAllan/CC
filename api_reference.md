@@ -55,7 +55,9 @@ Creates a loop iterating over all elements from first to last.
 This macro declares a pointer-iterator (`el_ty *`) named `i_name`.  
 It is equivalent to `for( el_ty* i_name = first( cntr ); i_name != end( cntr ); i_name = next( cntr, i_name ) )` and should be followed by the loop body.
 
-<b>Vector</b> (a dynamic array that stores elements in contiguous memory):
+### Vector
+
+(a dynamic array that stores elements in contiguous memory)
 
 ```c
 vec( el_ty ) cntr
