@@ -11,7 +11,7 @@
 
 * In the documentation below, `el_ty` is the container's element type and `key_ty` is the container's key type (where applicable).
 
-### All containers:
+### All containers
 
 The following macros behave the same way for all containers:
 
@@ -194,24 +194,28 @@ el_ty *push( list( el_ty ) *cntr, el_ty el )
 
 Inserts `el` at the end of the list.  
 Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.  
-This call is synonymous with insert( cntr, end( cntr ), el ).
+This call is synonymous with `insert( cntr, end( cntr ), el )`.
 
-    el_ty *erase( list( el_ty ) *cntr, el_ty *i )
+```c
+el_ty *erase( list( el_ty ) *cntr, el_ty *i )
+```
 
-      Erases element pointed to by pointer-iterator i, calling the element type's destructor if it exists.
-      Returns a pointer-iterator to the element after i, or an end pointer-iterator if i was the last element.
+Erases element pointed to by pointer-iterator `i`, calling the element type's destructor if it exists.  
+Returns a pointer-iterator to the element after `i`, or an end pointer-iterator if `i` was the last element.
 
-    bool splice( list( el_ty ) *cntr, el_ty *i, list( el_ty ) src, el_ty *src_i )
+```c
+bool splice( list( el_ty ) *cntr, el_ty *i, list( el_ty ) src, el_ty *src_i )
+```
 
-      Removes element pointed to by pointer-iterator src_i from src and inserts it before the element pointed
-      to by pointer-iterator i in cntr.
-      Returns true, or false if unsuccessful.
-      This call only allocates memory, and therefore can only fail, if the list has not had any element inserted,
-      pushed, or spliced to it since it was initialized.
+Removes element pointed to by pointer-iterator `src_i` from `src` and inserts it before the element pointed to by pointer-iterator `i` in `cntr`.  
+Returns `true`, or `false` if unsuccessful.  
+This call only allocates memory, and therefore can only fail, if the list has not had any element inserted, pushed, or spliced to it since it was initialized.
 
-    el_ty *first( list( el_ty ) *cntr )
+```c
+el_ty *first( list( el_ty ) *cntr )
+```
 
-      Returns a pointer-iterator to the first element, or an end pointer-iterator if the list is empty.
+Returns a pointer-iterator to the first element, or an end pointer-iterator if the list is empty.
 
     el_ty *last( list( el_ty ) *cntr )
 
