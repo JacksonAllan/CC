@@ -55,7 +55,7 @@ Creates a loop iterating over all elements from first to last.
 This macro declares a pointer-iterator (`el_ty *`) named `i_name`.  
 It is equivalent to `for( el_ty *i_name = first( cntr ); i_name != end( cntr ); i_name = next( cntr, i_name ) )` and should be followed by the loop body.
 
-### Vector (a dynamic array that stores elements in contiguous memory)
+## Vector (a dynamic array that stores elements in contiguous memory)
 
 ```c
 vec( el_ty ) cntr
@@ -171,7 +171,7 @@ Returns a pointer-iterator to the element after the element pointed to by `i`, o
 > **Note**
 > Vector pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
 
-### List (a doubly-linked list with sentinels):
+## List (a doubly-linked list with sentinels)
 
 ```c
 list( el_ty ) cntr
@@ -404,175 +404,162 @@ It should be followed by the body of the loop.
     - Map pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
       reallocation.
 
-### Set (Robin Hood hash table for elements without a separate key)
+## Set (Robin Hood hash table for elements without a separate key)
 
 ```c
 set( el_ty ) cntr
 ```
 
-Declares an uninitialized map named cntr.
-el_ty must be a type, or alias for a type, for which comparison and hash functions have been defined.
-This requirement is enforced internally such that neglecting it causes a compiler error.
-For types with in-built comparison and hash functions, and for details on how to declare new comparison and
-hash functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
+Declares an uninitialized map named `cntr`.  
+`el_ty` must be a type, or alias for a type, for which comparison and hash functions have been defined.  
+This requirement is enforced internally such that neglecting it causes a compiler error.  
+For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
 
 ```c
 size_t cap( set( el_ty ) *cntr )
 ```
 
-      Returns the current capacity, i.e. bucket count.
-      Note that the number of elements a set can support without rehashing is not its capacity but its capacity
-      multiplied by the max load factor associated with its key type.
+Returns the current capacity, i.e. bucket count.  
+Note that the number of elements a set can support without rehashing is not its capacity but its capacity multiplied by the max load factor associated with its key type.
 
 ```c
 bool reserve( set( el_ty ) *cntr, size_t n )
 ```
 
-      Ensures that the capacity is large enough to support n elements without rehashing.
-      Returns true, or false if unsuccessful due to memory allocation failure.
+Ensures that the capacity is large enough to support `n` elements without rehashing.  
+Returns `true`, or `false` if unsuccessful due to memory allocation failure.
 
 ```c
 bool shrink( set( el_ty ) *cntr )
 ```
 
-      Shrinks the capacity to best accommodate the current size.
-      Returns true, or false if unsuccessful due to memory allocation failure.
+Shrinks the capacity to best accommodate the current size.  
+Returns `true`, or `false` if unsuccessful due to memory allocation failure.
 
 ```c
 el_ty *insert( set( el_ty ) *cntr, el_ty el )
 ```
 
-      Inserts element el.
-      If the element already exists, the existing element is replaced.
-      Returns a pointer-iterator to the new element, or NULL in the case of memory allocation failure.
-      Note that if adding one element would violate the set's max load factor, failure can occur even if it
-      already contains el.
+Inserts element `el`.  
+If the element already exists, the existing element is replaced.  
+Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.  
+Note that if adding one element would violate the set's max load factor, failure can occur even if it already contains `el`.
 
 ```c
 el_ty *get( set( el_ty ) *cntr, el_ty el )
 ```
 
-      Returns a pointer-iterator to element el, or NULL if no such element exists.
+Returns a pointer-iterator to element `el`, or `NULL` if no such element exists.
 
 ```c
 el_ty *get_or_insert( set( el_ty ) *cntr, el_ty el )
 ```
 
-      Inserts element el if it does not already exist.
-      Returns a pointer-iterator to the new element if it was inserted, or a pointer-iterator to the existing
-      element, or NULL in the case of memory allocation failure.
-      If adding one element would violate the set's max load factor, failure can occur even if it already contains
-      the element.
-      Determine whether an element was inserted by comparing the set's size before and after the call.
+Inserts element `el` if it does not already exist.  
+Returns a pointer-iterator to the new element if it was inserted, or a pointer-iterator to the existing element, or `NULL` in the case of memory allocation failure.  
+If adding one element would violate the set's max load factor, failure can occur even if it already contains the element.  
+Determine whether an element was inserted by comparing the set's size before and after the call.
 
 ```c
 bool erase( set( el_ty ) *cntr, el_ty el )
 ```
 
-      Erases the element el, if it exists.
-      Returns true if an element was erased, or false if no such element exists.
+Erases the element `el`, if it exists.  
+Returns `true` if an element was erased, or `false` if no such element exists.
 
 ```c
 el_ty *first( set( el_ty ) *cntr )
 ```
 
-      Returns a pointer-iterator to the first element, or an end pointer-iterator if the set is empty.
+Returns a pointer-iterator to the first element, or an `end` pointer-iterator if the set is empty.
 
 ```c
 el_ty *last( set( el_ty ) *cntr )
 ```
 
-      Returns a pointer-iterator to the last element, or an r_end pointer-iterator if the set is empty.
+Returns a pointer-iterator to the last element, or an `r_end` pointer-iterator if the set is empty.
 
 ```c
 el_ty *r_end( set( el_ty ) *cntr )
 ```
 
-      Returns an r_end (reverse end) pointer-iterator for the set.
+Returns an `r_end` (reverse end) pointer-iterator for the set.
 
 ```c
 el_ty *end( set( el_ty ) *cntr )
 ```
 
-      Returns an end pointer-iterator for the set.
+Returns an `end` pointer-iterator for the set.
 
 ```c
 el_ty *next( set( el_ty ) *cntr, el_ty *i )
 ```
 
-      Returns a pointer-iterator to the element after the one pointed to by i.
-      If i points to the last element, the pointer-iterator returned is an end pointer-iterator.
-      If i points to r_end, then the pointer-iterator returned points to the first element, or is an end
-      pointer-iterator if the set is empty.
+Returns a pointer-iterator to the element after the one pointed to by `i`.  
+If `i` points to the last element, the pointer-iterator returned is an `end` pointer-iterator.  
+If `i` points to `r_end`, then the pointer-iterator returned points to the first element, or is an `end` pointer-iterator if the set is empty.
 
 ```c
 el_ty *prev( set( el_ty ) *cntr, el_ty *i )
 ```
 
-      Returns a pointer-iterator to the element before the one pointed to by i.
-      If i points to the first element, the return value is an r_end pointer-iterator.
-      If i points to end, then the pointer-iterator returned points to the last element, or is an r_end
-      pointer-iterator if the set is empty.
+Returns a pointer-iterator to the element before the one pointed to by `i`.  
+If `i` points to the first element, the return value is an `r_end` pointer-iterator.  
+If `i` points to `end`, then the pointer-iterator returned points to the last element, or is an `r_end` pointer-iterator if the set is empty.
 
 ```c
 r_for_each( set( el_ty ) *cntr, i_name )
 ```
 
-      Creates a loop iterating over all elements from last to first.
-      This macro declares an el_ty * pointer-iterator named i_name.
-      It is equivalent to
-        for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) ).
-      and should be followed by the body of the loop.
+Creates a loop iterating over all elements from last to first.  
+This macro declares an `el_ty *` pointer-iterator named `i_name`.  
+It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )` and should be followed by the body of the loop.
 
     Notes:
     - Set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
       reallocation.
 
-### Destructor, comparison, and hash functions and custom max load factors
+## Destructor, comparison, and hash functions and custom max load factors
 
-    This part of the API allows the user to define custom destructor, comparison, and hash functions and max load
-    factors for a type.
-    Once these functions are defined, any container using that type for its elements or keys will call them
-    automatically.
-    Once the max load factor is defined, any map using the type for its key and any set using the type for its
-    elements will use the defined load factor to determine when rehashing is necessary.
+This part of the API allows the user to define custom destructor, comparison, and hash functions and max load factors for a type.  
+Once these functions are defined, any container using that type for its elements or keys will call them automatically.  
+Once the max load factor is defined, any map using the type for its key and any set using the type for its elements will use the defined load factor to determine when rehashing is necessary.
 
 ```c
 #define CC_DTOR ty, { function body }
 #include "cc.h"
 ```
 
-      Defines a destructor for type ty.
-      The signature of the function is void ( ty val ).
+Defines a destructor for type `ty`.  
+The signature of the function is `void ( ty val )`.
 
 ```c
 #define CC_CMPR ty, { function body }
 #include "cc.h"
 ```
 
-      Defines a comparison function for type ty.
-      The signature of the function is int ( ty val_1, ty val_2 ).
-      The function should return 0 if val_1 and val_2 are equal, a negative integer if val_1 is less than val_2,
-      and a positive integer if val_1 is more than val_2.
+Defines a comparison function for type `ty`.  
+The signature of the function is `int ( ty val_1, ty val_2 )`.  
+The function should return `0` if `val_1` and `val_2` are equal, a negative integer if `val_1` is less than `val_2`, and a positive integer if `val_1` is more than `val_2`.
 
 ```c
 #define CC_HASH ty, { function body }
 #include "cc.h"
 ```
 
-      Defines a hash function for type ty.
-      The signature of the function is size_t ( ty val ).
-      The function should return the hash of val.
+Defines a hash function for type `ty`.  
+The signature of the function is `size_t ( ty val )`.  
+The function should return the hash of `val`.
 
 ```c
 #define CC_LOAD ty, max_load_factor
 ```
 
-      Defines the max load factor for type ty.
-      max_load_factor should be a float or double between 0.0 and 1.0.
-      The default max load factor is 0.8.
-    
-    Trivial example:
+Defines the max load factor for type `ty`.  
+`max_load_factor` should be a `float` or `double` between `0.0` and `1.0`.  
+The default max load factor is `0.8`.
+
+Trivial example:
 
 ```c
 typedef struct { int x; } my_type;
