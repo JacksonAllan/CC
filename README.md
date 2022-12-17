@@ -151,7 +151,7 @@ Just download `cc.h` and place it in your project's directory or your shared hea
 
 ### Vector
 
-A `vec` is dynamic array that stores elements in contiguous memory.
+A `vec` is a dynamic array that stores elements in contiguous memory.
 
 ```c
 #include <stdio.h>
@@ -493,11 +493,11 @@ An article detailing these and other techniques  is in the works.
 
 ### How is it tested?
 
-**CC.H** has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivalent **CC.H** and C++ STL containers and then check that they remain in-sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
+**CC.H** has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivalent **CC.H** and C++ STL containers and then check that they remain in sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
 
 ### How does it affect compile speed?
     
-The compiler must do extra work deducing types, processing macros, and inlining functions at compile time. `unit_tests.c`, as an example of a program that uses **CC.H** extensively, compiles in about 4.5 seconds in MingW with `O3` in my development environment, whereas a roughly equivalent program using C++'s STL containers compiles in about 3.1 seconds. So take this point into consideration for large projects if compile speed is important.  
+The compiler must do extra work deducing types, processing macros, and inlining functions at compile time. `unit_tests.c`, as an example of a program that uses **CC.H** extensively, compiles in about 4.5 seconds in MingW with `O3` in my development environment, whereas a roughly equivalent program using C++'s STL containers compiles in about 3.1 seconds. So consider this point if your project is large and compile speed is important.  
 
 ### What's next?
 
