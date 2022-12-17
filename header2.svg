@@ -1,4 +1,4 @@
-<svg fill="none" viewBox="0 0 1940 160" width="1940" height="160" xmlns="http://www.w3.org/2000/svg">
+<svg fill="none" viewBox="0 0 1280 100" width="1280" height="100" xmlns="http://www.w3.org/2000/svg">
 	<foreignObject width="100%" height="100%">
 		<div xmlns="http://www.w3.org/1999/xhtml">
 			<style>
@@ -43,7 +43,7 @@
 					justify-content: center;
 					margin: 0;
 					width: 100%;
-					height: 160px;
+					height: 100px;
 					background: linear-gradient(-45deg, #628c6b, #475269, #684069);
 					background-size: 600% 400%;
 					animation: gradientBackground 20s ease infinite;
@@ -52,7 +52,7 @@
 				}
 
 				h1 {
-					font-size: 100px;
+					font-size: 50px;
 					line-height: 1.3;
 					animation: ease-in-out 1s infinite alternate;
 				}
