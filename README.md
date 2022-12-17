@@ -198,7 +198,7 @@ int main( void )
 
 ### List
 
-A `list` is a doubly-linked list with sentinels.
+A `list` is a doubly linked list with sentinels.
 
 ```c
 #include <stdio.h>
@@ -483,7 +483,7 @@ int main( void )
 
 ## FAQ
 
-### How does does it work?
+### How does it work?
 
 **CC.H** associates type information with a container by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )`. The pointer points to the container's metadata and contents. API macros use `sizeof`, `typeof`, and `_Generic` tricks to deduce the container, element, and key types from this pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it.
 
