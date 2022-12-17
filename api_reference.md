@@ -574,11 +574,10 @@ typedef struct { int x; } my_type;
 #include "cc.h"
 ```
 
-    Notes:
-    - These functions are inline and have static scope, so you need to either redefine them in each translation unit
-      from which they should be called or (preferably) define them in a shared header. For structs or unions, a sensible
-      place to define them would be immediately after the definition of the struct or union.
-    - Only one destructor, comparison, or hash function or max load factor should be defined by the user for each type.
+> **Note**
+> These functions are inline and have static scope, so you need to either redefine them in each translation unit from which they should be called or (preferably) define them in a shared header. For structs or unions, a sensible place to define them would be immediately after the definition of the struct or union.  
+> **Note**
+> Only one destructor, comparison, or hash function or max load factor should be defined by the user for each type.  
     - #including cc.h in these cases does not #include the full header, so you still need to #include it separately
       at the top of your files.
     - In-built comparison and hash functions are already defined for the following types: char, unsigned char, signed
