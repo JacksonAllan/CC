@@ -17,7 +17,7 @@ The following macros behave the same way for all containers:
 void init( <any container type> *cntr )
 ```
 
-Initializes the container for use.  
+Initializes `cntr` for use.  
 This call cannot fail (it does not allocate memory).
 
 ```c
