@@ -53,7 +53,7 @@ for_each( <any container type> *cntr, i_name )
 
 Creates a loop iterating over all elements from first to last.  
 This macro declares a pointer-iterator (`el_ty *`) named `i_name`.  
-It is equivalent to `for( el_ty* i_name = first( cntr ); i_name != end( cntr ); i_name = next( cntr, i_name ) )` and should be followed by the loop body.
+It is equivalent to `for( el_ty *i_name = first( cntr ); i_name != end( cntr ); i_name = next( cntr, i_name ) )` and should be followed by the loop body.
 
 ### Vector
 
@@ -201,7 +201,7 @@ el_ty *erase( list( el_ty ) *cntr, el_ty *i )
 ```
 
 Erases element pointed to by pointer-iterator `i`, calling the element type's destructor if it exists.  
-Returns a pointer-iterator to the element after `i`, or an end pointer-iterator if `i` was the last element.
+Returns a pointer-iterator to the element after `i`, or an `end` pointer-iterator if `i` was the last element.
 
 ```c
 bool splice( list( el_ty ) *cntr, el_ty *i, list( el_ty ) src, el_ty *src_i )
@@ -217,39 +217,47 @@ el_ty *first( list( el_ty ) *cntr )
 
 Returns a pointer-iterator to the first element, or an end pointer-iterator if the list is empty.
 
-    el_ty *last( list( el_ty ) *cntr )
+```c
+el_ty *last( list( el_ty ) *cntr )
+```
 
-      Returns a pointer-iterator to the last element, or an r_end pointer-iterator if the list is empty.
+Returns a pointer-iterator to the last element, or an `r_end` pointer-iterator if the list is empty.
 
-    el_ty *r_end( list( el_ty ) *cntr )
+```c
+el_ty *r_end( list( el_ty ) *cntr )
+```
 
-      Returns an r_end (reverse end) pointer-iterator for the list. r_end acts as a sentinel node.
+Returns an `r_end` (reverse end) pointer-iterator for the list. `r_end` acts as a sentinel node.
 
-    el_ty *end( list( el_ty ) *cntr )
+```c
+el_ty *end( list( el_ty ) *cntr )
+```
 
-      Returns an end pointer-iterator for the list. End acts as a sentinel node.
+Returns an `end` pointer-iterator for the list. `end` acts as a sentinel node.
 
-    el_ty *next( list( el_ty ) *cntr, el_ty *i )
+```c
+el_ty *next( list( el_ty ) *cntr, el_ty *i )
+```
 
-      Returns a pointer-iterator to the element after the one pointed to by i.
-      If i points to the last element, the return value is an end pointer-iterator.
-      If i points to r_end, the return value is a pointer-iterator to the first element, or an end
-      pointer-iterator if the list is empty.
+Returns a pointer-iterator to the element after the one pointed to by `i`.  
+If `i` points to the last element, the return value is an `end` pointer-iterator.  
+If `i` points to `r_end`, the return value is a pointer-iterator to the first element, or an `end` pointer-iterator if the list is empty.
 
-    el_ty *prev( list( el_ty ) *cntr, el_ty *i )
+```c
+el_ty *prev( list( el_ty ) *cntr, el_ty *i )
+```
 
-      Returns a pointer-iterator to the element before the one pointed to by i.
-      If i points to the first element, the return value is an r_end pointer-iterator.
-      If i points to end, then the return value is a pointer-iterator to the last element, or  an r_end
-      pointer-iterator if the list is empty.
+Returns a pointer-iterator to the element before the one pointed to by `i`.  
+If `i` points to the first element, the return value is an `r_end` pointer-iterator.  
+If `i` points to `end`, then the return value is a pointer-iterator to the last element, or an `r_end` pointer-iterator if the list is empty.
 
-    r_for_each( list( el_ty ) *cntr, i_name )
+```c
+r_for_each( list( el_ty ) *cntr, i_name )
+```
 
-      Creates a loop iterating over all elements from last to first.
-      This macro declares an el_ty* pointer-iterator named i_name.
-      It is equivalent to
-        for( el_ty* i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )
-      and should be followed by the body of the loop.
+Creates a loop iterating over all elements from last to first.  
+This macro declares an `el_ty *` pointer-iterator named `i_name`.  
+It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )` and should be followed by the body of the loop.
 
     Notes:
     - List pointer-iterators (including r_end and end) are not invalidated by any API calls besides init and
@@ -355,7 +363,7 @@ Returns a pointer-iterator to the first element, or an end pointer-iterator if t
     r_for_each( map( key_ty, el_ty ) *cntr, i_name )
 
       Creates a loop iterating over all elements from last to first.
-      This macro declares an el_ty* pointer-iterator named i_name.
+      This macro declares an el_ty * pointer-iterator named i_name.
       It is equivalent to
         for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )
       and should be followed by the body of the loop.
@@ -456,9 +464,9 @@ Returns a pointer-iterator to the first element, or an end pointer-iterator if t
     r_for_each( set( el_ty ) *cntr, i_name )
 
       Creates a loop iterating over all elements from last to first.
-      This macro declares an el_ty* pointer-iterator named i_name.
+      This macro declares an el_ty * pointer-iterator named i_name.
       It is equivalent to
-        for( el_ty* i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) ).
+        for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) ).
       and should be followed by the body of the loop.
 
     Notes:
