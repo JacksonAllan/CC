@@ -1,4 +1,4 @@
-<img src="./header2.svg" alt="CC.H: Convenient Containers" width="1940" height="160">
+<img src="./header2.svg" alt="CC.H: Convenient Containers" width="1280" height="100">
 
 **CC.H** is a usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, and **unordered sets**.
 
