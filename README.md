@@ -407,7 +407,7 @@ int main( void )
   if( !push( &our_list, our_vec ) )
     return 1; // Out of memory.
   
-  cleanup( &our_list ); // cleanup( &our_vec ) called automatically.
+  cleanup( &our_list ); // our_vec is cleaned-up automatically.
 }
 
 ```
