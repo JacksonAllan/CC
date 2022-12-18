@@ -332,7 +332,7 @@ Returns a `const` pointer to the key for the element pointed to by pointer-itera
 bool erase( map( key_ty, el_ty ) *cntr, key_ty key )
 ```
 
-Erases the element with the specified key, if it exists.
+Erases the element with the specified key, if it exists.  
 Returns `true` if an element was erased, or `false` if no such element exists.
 
 ```c
