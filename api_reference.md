@@ -37,13 +37,13 @@ Returns the number of elements.
 void clear( <any container type> *cntr )
 ```
 
-Erases all elements, calling the element and key types' destructors where applicable.
+Erases all elements, calling the element and key types' destructors if they exist.
 
 ```c
 void cleanup( <any container type> *cntr )
 ```
 
-Erases all elements (calling the element and key types' destructors where applicable), frees any other memory associated with the container, and initializes the container for reuse.
+Erases all elements (calling the element and key types' destructors if they exist), frees any other memory associated with the container, and initializes the container for reuse.
 
 ```c
 for_each( <any container type> *cntr, i_name )
@@ -209,7 +209,7 @@ bool splice( list( el_ty ) *cntr, el_ty *i, list( el_ty ) src, el_ty *src_i )
 
 Removes element pointed to by pointer-iterator `src_i` from `src` and inserts it before the element pointed to by pointer-iterator `i` in `cntr`.  
 Returns `true`, or `false` if unsuccessful.  
-This call only allocates memory, and therefore can only fail, if the list has not had any element inserted, pushed, or spliced to it since it was initialized.
+This call only allocates memory, and therefore can only fail, if the list has not had any element inserted, pushed, or spliced into it since it was initialized.
 
 ```c
 el_ty *first( list( el_ty ) *cntr )
