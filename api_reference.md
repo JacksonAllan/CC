@@ -406,7 +406,7 @@ This macro declares a pointer to the key (`const key_ty *`) named `key_ptr_name`
 It should be followed by the body of the loop.
 
 > **Note**
-> Map pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory reallocation.
+> Map pointer-iterators (including `r_end` and `end`) may be invalidated by any API calls that cause memory reallocation.
 
 ## Set
 
