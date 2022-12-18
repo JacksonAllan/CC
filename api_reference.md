@@ -326,7 +326,7 @@ Determine whether an element was inserted by comparing the map's size before and
 const key_ty *key_for( map( key_ty, el_ty ) *cntr, el_ty *i )
 ```
 
-Returns a const pointer to the key for the element pointed to by pointer-iterator `i`.
+Returns a `const` pointer to the key for the element pointed to by pointer-iterator `i`.
 
 ```c
 bool erase( map( key_ty, el_ty ) *cntr, key_ty key )
@@ -335,11 +335,11 @@ bool erase( map( key_ty, el_ty ) *cntr, key_ty key )
 Erases the element with the specified key, if it exists.
 Returns `true` if an element was erased, or `false` if no such element exists.
 
-void erase_itr( map( key_ty, el_ty ) *cntr, el_ty *i )
-
 ```c
-Erases the element pointed to by pointer-iterator `i`.
+void erase_itr( map( key_ty, el_ty ) *cntr, el_ty *i )
 ```
+
+Erases the element pointed to by pointer-iterator `i`.
 
 ```c
 el_ty *first( map( key_ty, el_ty ) *cntr )
