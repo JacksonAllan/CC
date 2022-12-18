@@ -281,7 +281,7 @@ For types with in-built comparison and hash functions, and for details on how to
 size_t cap( map( key_ty, el_ty ) *cntr )
 ```
 
-Returns the current capacity, i.e. bucket count.
+Returns the current capacity, i.e. bucket count.  
 Note that the number of elements a map can support without rehashing is not its capacity but its capacity multiplied by the max load factor associated with its key type.
 
 ```c
