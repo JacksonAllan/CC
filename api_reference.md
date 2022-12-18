@@ -275,7 +275,7 @@ map( key_ty, el_ty ) cntr
 Declares an uninitialized map named `cntr`.  
 `key_ty` must be a type, or alias for a type, for which comparison and hash functions have been defined.  
 This requirement is enforced internally such that neglecting it causes a compiler error.  
-For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
+For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see _Destructor, comparison, and hash functions and custom max load factors_ below.
 
 ```c
 size_t cap( map( key_ty, el_ty ) *cntr )
@@ -419,7 +419,7 @@ set( el_ty ) cntr
 Declares an uninitialized map named `cntr`.  
 `el_ty` must be a type, or alias for a type, for which comparison and hash functions have been defined.  
 This requirement is enforced internally such that neglecting it causes a compiler error.  
-For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
+For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see _Destructor, comparison, and hash functions and custom max load factors_ below.
 
 ```c
 size_t cap( set( el_ty ) *cntr )
