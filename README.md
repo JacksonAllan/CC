@@ -1,6 +1,6 @@
-<img src="./header2.svg" alt="CC.H: Convenient Containers">
+<img src="./header2.svg" alt="CC: Convenient Containers">
 
-<u>**CC**</u> is a usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, and **unordered sets**.
+**CC** is a usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, and **unordered sets**.
 
 Its features include:
 
@@ -19,7 +19,7 @@ It is distributed under the MIT license.
 
 Traditionally, C container libraries require users to define types for every container/element type combination and to specify the container type and (often) the element type (whether by casting, type-specific function names, or some other mechanism) at every API call. This causes verbosity and syntax noise.
 
-In contrast, **CC.H** requires no type definitions and provides an API agnostic to container and element types. The result is simpler, more readable code. The following table compares **CC.H** usage to other container library paradigms:
+In contrast, **CC** requires no type definitions and provides an API agnostic to container and element types. The result is simpler, more readable code. The following table compares **CC** usage to other container library paradigms:
 
 <table>
 <tr>
@@ -28,7 +28,7 @@ In contrast, **CC.H** requires no type definitions and provides an API agnostic 
 <td>
 
 ```c
-// CC.H
+// CC
 #include <stdio.h>
 #include "cc.h"
 
@@ -343,7 +343,7 @@ int main( void )
 
 ### Prefixed API
 
-**CC.H** macro names may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only prefixed API.
+**CC** macro names may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only prefixed API.
 
 ```c
 #define CC_NO_SHORT_NAMES
@@ -365,7 +365,7 @@ int main( void )
 
 ### Destructors
 
-**CC.H** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element (or key) of the associated type is removed from a container.
+**CC** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element (or key) of the associated type is removed from a container.
 
 ```c
 #include <stdio.h>
@@ -414,7 +414,7 @@ int main( void )
 
 ### Custom comparison and hash functions
 
-**CC.H** includes default comparison and hash functions for fundamental integer types and `NULL`-terminated strings (`char *`). Hence, these types can be used as `map` keys and `set` elements straight away.
+**CC** includes default comparison and hash functions for fundamental integer types and `NULL`-terminated strings (`char *`). Hence, these types can be used as `map` keys and `set` elements straight away.
 
 To use other types or overwrite the default functions for the aforementioned types, define custom comparison and hash functions with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )`, respectively.
 
@@ -444,7 +444,7 @@ int main( void )
 
 ### Custom allocation and free functions
 
-By default, **CC.H** uses `realloc` and `free` to manage memory. Overwrite these functions by defining `CC_REALLOC` and `CC_FREE`.
+By default, **CC** uses `realloc` and `free` to manage memory. Overwrite these functions by defining `CC_REALLOC` and `CC_FREE`.
 
 ```c
 #include <stdio.h>
@@ -485,7 +485,7 @@ int main( void )
 
 ### How does it work?
 
-**CC.H** associates type information with a container by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )`. The pointer points to the container's metadata and contents. API macros use `sizeof`, `typeof`, and `_Generic` tricks to deduce the container, element, and key types from this pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it.
+**CC** associates type information with a container by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )`. The pointer points to the container's metadata and contents. API macros use `sizeof`, `typeof`, and `_Generic` tricks to deduce the container, element, and key types from this pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it.
 
 Destructor, comparison, and hash functions are also deduced via a novel technique for user-extendable `_Generic` macros.
 
@@ -493,11 +493,11 @@ An article detailing these and other techniques  is in the works.
 
 ### How is it tested?
 
-**CC.H** has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivalent **CC.H** and C++ STL containers and then check that they remain in sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
+**CC** has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivalent **CC** and C++ STL containers and then check that they remain in sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
 
 ### Does it affect compile speed?
     
-Yes. The compiler must do extra work deducing types, processing macros, and inlining functions at compile time. `unit_tests.c`, as an example of a program that uses **CC.H** extensively, compiles in 4.5 seconds in MingW with `O3` in my development environment, whereas a roughly equivalent program using C++'s STL containers compiles in 3.1 seconds. So consider this point if your project is large and compile speed is important.  
+Yes. The compiler must do extra work deducing types, processing macros, and inlining functions at compile time. `unit_tests.c`, as an example of a program that uses **CC** extensively, compiles in 4.5 seconds in MingW with `O3` in my development environment, whereas a roughly equivalent program using C++'s STL containers compiles in 3.1 seconds. So consider this point if your project is large and compile speed is important.  
 
 ### What's next?
 
