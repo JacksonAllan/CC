@@ -182,7 +182,7 @@ list( el_ty ) cntr
 Declares an uninitialized list named `cntr`.
 
 ```c
-    el_ty *insert( list( el_ty ) *cntr, el_ty *i, el_ty el )
+el_ty *insert( list( el_ty ) *cntr, el_ty *i, el_ty el )
 ```
 
 Inserts `el` before pointer-iterator `i`.  
