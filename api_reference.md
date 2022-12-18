@@ -262,7 +262,7 @@ This macro declares an `el_ty *` pointer-iterator named `i_name`.
 It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )` and should be followed by the body of the loop.
 
 > **Note**
-> List pointer-iterators (including `r_end` and `end`) are not invalidated by any API calls besides `init` and `cleanup`, unless the they point to erased elements.
+> List pointer-iterators (including `r_end` and `end`) are not invalidated by any API calls besides `init` and `cleanup`, unless they point to erased elements.
 
 ### Map
 
