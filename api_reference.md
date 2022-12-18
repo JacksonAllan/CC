@@ -522,7 +522,7 @@ This macro declares an `el_ty *` pointer-iterator named `i_name`.
 It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )` and should be followed by the body of the loop.
 
 > **Note**
-> Set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory reallocation.
+> Set pointer-iterators (including `r_end` and `end`) may be invalidated by any API calls that cause memory reallocation.
 
 ## Destructor, comparison, and hash functions and custom max load factors
 
