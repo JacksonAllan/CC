@@ -215,7 +215,7 @@ This call only allocates memory, and therefore can only fail, if the list has no
 el_ty *first( list( el_ty ) *cntr )
 ```
 
-Returns a pointer-iterator to the first element, or an end pointer-iterator if the list is empty.
+Returns a pointer-iterator to the first element, or an `end` pointer-iterator if the list is empty.
 
 ```c
 el_ty *last( list( el_ty ) *cntr )
