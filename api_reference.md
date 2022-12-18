@@ -272,7 +272,7 @@ A `map` is an unordered container associating elements with keys, implemented as
 map( key_ty, el_ty ) cntr
 ```
 
-Declares an uninitialized map named `cntr`.
+Declares an uninitialized map named `cntr`.  
 `key_ty` must be a type, or alias for a type, for which comparison and hash functions have been defined.  
 This requirement is enforced internally such that neglecting it causes a compiler error.  
 For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
