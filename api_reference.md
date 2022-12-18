@@ -382,11 +382,11 @@ If `i` points to the first element, the value returned is an `r_end` pointer-ite
 If `i` points to `end`, then the value returned points to the last element, or is an `r_end` pointer-iterator if the map is empty.
 
 ```c
-for_each( map( key_ty, el_ty ) *cntr, key_ptr_name, el_i_name )
+for_each( map( key_ty, el_ty ) *cntr, key_ptr_name, i_name )
 ```
 
 Creates a loop iterating over all elements from first to last, with easy access to the corresponding keys.  
-This macro declares a pointer to the key (`const key_ty *`) named `key_ptr_name` and a pointer-iterator (`el_ty *`) named `el_i_name`.  
+This macro declares a pointer to the key (`const key_ty *`) named `key_ptr_name` and a pointer-iterator (`el_ty *`) named `i_name`.  
 It should be followed by the body of the loop.
 
 ```c
@@ -402,7 +402,7 @@ r_for_each( map( key_ty, el_ty ) *cntr, key_ptr_name, i_name )
 ```
 
 Creates a loop iterating over all elements from last to first, with easy access to the corresponding keys.  
-This macro declares a pointer to the key (`const key_ty *`) named `key_ptr_name` and a pointer-iterator (`el_ty *`) named el_i_name.  
+This macro declares a pointer to the key (`const key_ty *`) named `key_ptr_name` and a pointer-iterator (`el_ty *`) named `i_name`.  
 It should be followed by the body of the loop.
 
 > **Note**
