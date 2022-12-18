@@ -227,13 +227,15 @@ Returns a pointer-iterator to the last element, or an `r_end` pointer-iterator i
 el_ty *r_end( list( el_ty ) *cntr )
 ```
 
-Returns an `r_end` (reverse end) pointer-iterator for the list. `r_end` acts as a sentinel node.
+Returns an `r_end` (reverse end) pointer-iterator for the list.  
+`r_end` acts as a sentinel node.
 
 ```c
 el_ty *end( list( el_ty ) *cntr )
 ```
 
-Returns an `end` pointer-iterator for the list. `end` acts as a sentinel node.
+Returns an `end` pointer-iterator for the list.  
+`end` acts as a sentinel node.
 
 ```c
 el_ty *next( list( el_ty ) *cntr, el_ty *i )
