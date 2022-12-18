@@ -169,7 +169,7 @@ el_ty *next( vec( el_ty ) *cntr, el_ty *i )
 Returns a pointer-iterator to the element after the element pointed to by `i`, or an `end` pointer-iterator if `i` points to the last element.
 
 > **Note**
-> Vector pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
+> Vector pointer-iterators (including `end`) are invalidated by any API calls that cause memory reallocation.
 
 ## List
 
