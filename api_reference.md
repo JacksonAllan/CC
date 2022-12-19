@@ -123,7 +123,7 @@ Returns a pointer-iterator to the new element, or `NULL` in the case of memory a
 el_ty *insert_n( vec( el_ty ) *cntr, size_t i, el_ty *els, size_t n )
 ```
 
-Inserts `n` elements from array els at index `i`.  
+Inserts `n` elements from array `els` at index `i`.  
 Returns a pointer-iterator to the first new element, or `NULL` in the case of memory allocation failure.
 
 ```c
