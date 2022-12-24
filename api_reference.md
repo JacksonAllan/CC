@@ -9,6 +9,29 @@
 > * An iterator is a pointer to an element in the container or to the associated `end` (or `r_end`, if the container supports it). In the documentation below, these pointers are called "pointer-iterators".
 > * In the documentation below, `el_ty` is the container's element type and `key_ty` is the container's key type (where applicable).
 
+## Options
+
+```c
+#define CC_NO_SHORT_NAMES
+```
+
+By default, CC.H exposes API macros without the "cc_" prefix.  
+Define this flag before including the library to withhold the unprefixed names.
+
+```c
+#define CC_REALLOC my_realloc
+```
+
+Causes API macros to use a custom `realloc` function rather than the one in the standard library.
+This definition affects all calls to API macros where it is visible.
+
+```c
+#define CC_FREE my_free
+```
+
+Causes API macros to use a custom `free` function rather than the one in the standard library.
+This definition affects all calls to API macros where it is visible.
+
 ## All containers
 
 The following macros behave the same way for all containers:
