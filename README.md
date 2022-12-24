@@ -495,7 +495,7 @@ An article detailing these and other techniques  is in the works.
 
 **CC** has been tested under GCC, MingW, and Clang. `unit_tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests_against_stl/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivalent **CC** and C++ STL containers and then check that they remain in sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
 
-### Does it affect compile speed?
+### Does it affect build times?
     
 Yes. The compiler must do extra work deducing types, processing macros, and inlining functions at compile time. `unit_tests.c`, as an example of a program that uses **CC** extensively, compiles in 4.5 seconds in MingW with `O3` in my development environment, whereas a roughly equivalent program using C++'s STL containers compiles in 3.1 seconds. So consider this point if your project is large and compile speed is important.  
 
