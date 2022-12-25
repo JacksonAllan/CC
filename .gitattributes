@@ -1,0 +1,4 @@
+# Ensure Github recognizes the project's language as C and not C++
+*.h linguist-language=C
+*.c linguist-language=C
+*.cpp linguist-language=C
