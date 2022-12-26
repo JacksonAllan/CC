@@ -22,14 +22,14 @@ Define this flag before including the library to withhold the unprefixed names.
 #define CC_REALLOC my_realloc
 ```
 
-Causes API macros to use a custom `realloc` function rather than the one in the standard library.
+Causes API macros to use a custom `realloc` function rather than the one in the standard library.  
 This definition affects all calls to API macros where it is visible.
 
 ```c
 #define CC_FREE my_free
 ```
 
-Causes API macros to use a custom `free` function rather than the one in the standard library.
+Causes API macros to use a custom `free` function rather than the one in the standard library.  
 This definition affects all calls to API macros where it is visible.
 
 ## All containers
