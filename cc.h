@@ -25,7 +25,7 @@ Tested with GCC, MingW, and Clang.
   The following can be #defined before #including the library in any file:
 
     #define CC_NO_SHORT_NAMES
-      By default, CC.H exposes API macros without the "cc_" prefix.
+      By default, CC exposes API macros without the "cc_" prefix.
       Define this flag to withhold the unprefixed names.
 
   The following can be #defined anywhere and affect all calls to API macros where the definition is visible:
