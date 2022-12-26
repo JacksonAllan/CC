@@ -374,7 +374,7 @@ int main( void )
 #include "cc.h"
 
 #define CC_DTOR int, { printf( "%d ", val ); } // First #define CC_DTOR as <type>, { <function body> }.
-#include "cc.h"                                // Then re-include cc.h
+#include "cc.h"                                // Then re-include cc.h.
 
 int main( void )
 {
