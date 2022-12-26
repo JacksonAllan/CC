@@ -145,7 +145,7 @@ int main( void )
 
 ## Installation
 
-Just [download](cc.h) `cc.h` and place it in your project's directory or your shared header directory.
+Just [download](cc.h?raw=1) `cc.h` and place it in your project's directory or your shared header directory.
 
 ## Examples
 
