@@ -345,7 +345,7 @@ int main( void )
 
 ### Prefixed API
 
-**CC** macro names may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only prefixed API.
+**CC** macro names may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only the prefixed API.
 
 ```c
 #define CC_NO_SHORT_NAMES
