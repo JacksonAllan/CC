@@ -15,7 +15,7 @@
 #define CC_NO_SHORT_NAMES
 ```
 
-By default, *CC* exposes API macros without the "cc_" prefix.  
+By default, **CC** exposes API macros without the "cc_" prefix.  
 Define this flag before including the library to withhold the unprefixed names.
 
 ```c
