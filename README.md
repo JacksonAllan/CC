@@ -358,7 +358,7 @@ int main( void )
   cc_init( &our_vec );
   
   if( !cc_push( &our_vec, 5 ) )
-    return 1; // Out of memory.
+    exit( 1 ); // Out of memory.
 
   cc_cleanup( &our_vec );
 }
@@ -382,7 +382,7 @@ int main( void )
   init( &our_vec );
   
   if( !push( &our_vec, 5 ) )
-    return 1; // Out of memory.
+    exit( 1 ); // Out of memory.
   
   cleanup( &our_vec );
   // Printed: 5
@@ -407,7 +407,7 @@ int main( void )
   init( &our_vec );
   
   if( !push( &our_list, our_vec ) )
-    return 1; // Out of memory.
+    exit( 1 ); // Out of memory.
   
   cleanup( &our_list ); // our_vec is cleaned-up automatically.
 }
