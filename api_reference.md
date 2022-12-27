@@ -1,7 +1,7 @@
 # CC API Reference
 
 > **Warning**
-> API macros may evaluate their first argument - the pointer to the container - multiple times, so never use expressions with side effects (e.g. `&our_containers[ ++i ]` ) for that argument. In GCC and Clang, attempting to do so will cause a compiler warning. All other arguments are only evaluated once.
+> API macros may evaluate their first argument—the pointer to the container—multiple times, so never use expressions with side effects (e.g. `&our_containers[ ++i ]` ) for that argument. In GCC and Clang, attempting to do so will cause a compiler warning. All other arguments are only evaluated once.
 
 > **Note**
 > * If `CC_NO_SHORT_NAMES` was declared, all API macros are prefixed with `cc_`.
