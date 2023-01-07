@@ -1,6 +1,4 @@
-<picture>
-<img src="./header.svg" alt="CC: Convenient Containers">
-</picture>
+<picture><img src="./header.svg" alt="CC: Convenient Containers"></picture>
 
 **CC** is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, and **unordered sets**.
 
