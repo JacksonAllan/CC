@@ -1,6 +1,6 @@
 <picture><img src="./header.svg" alt="CC: Convenient Containers"></picture>
 
-Convenient Containers (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, and **unordered sets**.
+**Convenient Containers** (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, and **unordered sets**.
 
 Its features include:
 
