@@ -1,4 +1,4 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.0.0 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.0.1 -------------------------------------------
 
 This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, and unordered sets).
 
@@ -14,7 +14,7 @@ Features:
 
 Requires C23, or C11 and compiler support for __typeof__, or C++11.
 
-Tested with GCC, MingW, and Clang.
+Tested with GCC, MinGW, and Clang.
 
 #including the library:
 
@@ -514,27 +514,32 @@ API:
       char * (a NULL-terminated string). Defining a comparsion or hash function for one of these types will overwrite
       the in-built function.
 
+Version history:
+
+  27/01/2023 1.0.1: Minor corrections to code comments.
+  26/12/2022 1.0.0: Initial release.
+
 License (MIT):
 
-Copyright (c) 2022 Jackson L. Allan
+  Copyright (c) 2022-2023 Jackson L. Allan
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
 */
 
 #if !defined( CC_DTOR ) && !defined( CC_CMPR ) && !defined( CC_HASH )/*-----------------------------------------------*/
@@ -891,7 +896,7 @@ static inline void *cc_memcpy_and_return_ptr( void *dest, void *src, size_t size
 // Without this call, we would be unable to access the new elements/success-or-failure pointer stored in the
 // cc_allocing_fn_result_ty after restoring the correct container handle.
 // Note that outside the function, a temporary container handle is created from the new handle in the
-// cc_allocing_fn_result_ty so that the later (void*) is properly converted to the correct handle type.
+// cc_allocing_fn_result_ty so that the later (void *) is properly converted to the correct handle type.
 // This new, correctly typed handle is then memcpy-ed over the user-supplied handle inside the function.
 #define CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr )                                              \
 cc_memcpy_and_return_ptr(                                                                     \
@@ -1235,7 +1240,8 @@ static inline void *cc_vec_next( void *i, size_t el_size )
 
 // List is implemented a doubly linked list with sentinel nodes.
 
-// List header.
+// Node header.
+// It does not need to be aligned to alignof( max_align_t ) because no memory is allocated after the header.
 typedef struct cc_listnode_hdr_ty
 {
   alignas( max_align_t )
@@ -1243,11 +1249,10 @@ typedef struct cc_listnode_hdr_ty
   struct cc_listnode_hdr_ty *next;
 } cc_listnode_hdr_ty;
 
-// Node header.
-// It does not need to be aligned to alignof( max_align_t ) because no memory is allocated after the header.
+// List header.
 typedef struct
 {
-  size_t        size;
+  size_t size;
   cc_listnode_hdr_ty  r_end;
   cc_listnode_hdr_ty  end;
 } cc_list_hdr_ty;
@@ -3043,8 +3048,6 @@ CC_CAT( CC_R3_, d3 )( m, arg )                 \
 // Hence, it is up to the user to make sure they are not doing that if they are compiling for C++.
 
 #ifdef __cplusplus
-
-// TODO: Reformat
 
 #define CC_EL_DTOR_SLOT( n, arg ) std::is_same<arg, cc_dtor_##n##_ty>::value ? cc_dtor_##n##_fn :
 #define CC_EL_DTOR( cntr )                              \
