@@ -29,7 +29,7 @@ void print_double( double val ) { printf( "%f", val ); }
 void print_string( char *val )  { printf( "%s", val ); }
 ```
 
-The type of the (unevaluated) *controlling expression* determines which expression from the *association list* is selected and included at compile-time.
+The type of the (unevaluated) *controlling expression* determines which expression from the *association list* is selected and included at compile time.
 In most cases, `_Generic` lives inside a macro and acts as a primitive means of function overloading.
 
 However, several aspects of `_Generic` severely limit its usefulness.
@@ -428,7 +428,7 @@ static inline size_t CAT_3( hash_, HASH_COUNT, _fn )( CAT_3( hash_, HASH_COUNT, 
 `_Generic` disallows multiple expressions associated with the same type.
 Hence, the above solutions prevent the library user from supplying custom functions for types with support built into the library.
 This causes inconvenience (for example, users of our hash macro may prefer a faster or more uniformly distributed hash function for a particular type based on the patterns in their data).
-To allow the built-in functions to be overwritten, we can place them inside a second `_Generic` expression embedded in the `default` path of the primary one.
+To allow the built-in functions to be overwritten, we can place them inside a second `_Generic` expression nested in the `default` path of the primary one.
 Thus, the built-in function for a given type will not be selected if a user-supplied function for that type short-circuits the macro first.
 
 ```c
