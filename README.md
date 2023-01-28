@@ -491,7 +491,7 @@ int main( void )
 
 Destructor, comparison, and hash functions are also deduced via a novel technique for user-extendable `_Generic` macros.
 
-An article detailing these and other techniques  is in the works.
+[Articles](articles) detailing these and other techniques are in the works.
 
 ### How is it tested?
 
