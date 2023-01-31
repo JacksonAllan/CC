@@ -235,7 +235,7 @@ int main( void )
 
 ## The Counter-Based Extendible `_Generic` Macro
 
-While the previous solution hides the slotted interface from the library user, it still requires the library programmer to include as many slots as users could conceivably need in a giant macro that the processor must parse upon every invocation.
+While the previous solution hides the slotted interface from the library user, it still requires the library programmer to include as many slots as users could conceivably need in a giant macro that the preprocessor must parse upon every invocation.
 A superior, albeit more complex, approach is to use more preprocessor magic to _generate_ the necessary slots (up to some inordinately high limit) instead of _omitting_ the empty ones.[<sup>[1]</sup>](#footnote_1)
 To do this, we can create an octal counter inspired by the [Boost preprocessor counter](https://www.boost.org/doc/libs/1_66_0/boost/preprocessor/slot/detail/counter.hpp).
 Here is an implementation that uses a three-digit counter to support up to 511 type and function pairs:
