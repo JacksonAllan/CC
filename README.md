@@ -19,9 +19,9 @@ Try it online [here](https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAa
 
 ## Rationale
 
-Traditionally, C container libraries require users to define types for every container/element type combination and to specify the container type and (often) the element type (whether by casting, type-specific function names, or some other mechanism) at every API call. This causes verbosity and syntax noise.
+Traditionally, C container libraries require users to define types for every container/content type combination and to specify the container type and (often) the content types (whether by casting, type-specific function names, or some other mechanism) at every API call. This causes verbosity and syntax noise.
 
-In contrast, **CC** requires no type definitions and provides an API agnostic to container and element types. The result is simpler, more readable code. The following table compares **CC** usage to other container library paradigms:
+In contrast, **CC** requires no type definitions and provides an API agnostic to container and content types. The result is simpler, more readable code. The following table compares **CC** usage to other container library paradigms:
 
 <table>
 <tr>
