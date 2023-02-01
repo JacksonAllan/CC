@@ -95,7 +95,7 @@ int main( void )
 typedef struct
 {
   int key;
-  float el;
+  float element;
 } int_float_pair;
 
 int main( void )
