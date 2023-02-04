@@ -19,14 +19,14 @@ By default, **CC** exposes API macros without the `cc_` prefix.
 Define this flag before including the library to withhold the unprefixed names.
 
 ```c
-#define CC_REALLOC my_realloc
+#define CC_REALLOC our_realloc
 ```
 
 Causes API macros to use a custom `realloc` function rather than the one in the standard library.  
 This definition affects all calls to API macros where it is visible.
 
 ```c
-#define CC_FREE my_free
+#define CC_FREE our_free
 ```
 
 Causes API macros to use a custom `free` function rather than the one in the standard library.  
@@ -590,11 +590,11 @@ The default max load factor is `0.8`.
 Trivial example:
 
 ```c
-typedef struct { int x; } my_type;
-#define CC_DTOR my_type, { printf( "!%d\n", val.x ); }
-#define CC_CMPR my_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); }
-#define CC_HASH my_type, { return val.x * 2654435761ull; }
-#define CC_LOAD my_type, 0.5
+typedef struct { int x; } our_type;
+#define CC_DTOR our_type, { printf( "!%d\n", val.x ); }
+#define CC_CMPR our_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); }
+#define CC_HASH our_type, { return val.x * 2654435761ull; }
+#define CC_LOAD our_type, 0.5
 #include "cc.h"
 ```
 
