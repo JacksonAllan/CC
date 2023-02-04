@@ -487,3 +487,7 @@ Future articles in this series will explore other ways that we can harness `_Gen
 <a name="footnote_1"></a><sup>1. Credit for the preprocessor counter idea is [owed](https://www.reddit.com/r/Cprog/comments/xqg5s4/comment/iqd1lz6/?utm_source=reddit&utm_medium=web2x&context=3) to Reddit user Jinren.</sup>
 
 ## [Discussion](https://github.com/JacksonAllan/CC/discussions/1)
+
+Comments on this article belong [here](https://github.com/JacksonAllan/CC/discussions/1).
+
+The article was also discussed on [Reddit](https://www.reddit.com/r/C_Programming/comments/10nedmg/better_c_generics_the_extendible_generic/).
