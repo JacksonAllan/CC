@@ -1,4 +1,4 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.0.1 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.0.2 -------------------------------------------
 
 This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, and unordered sets).
 
@@ -30,10 +30,10 @@ Tested with GCC, MinGW, and Clang.
 
   The following can be #defined anywhere and affect all calls to API macros where the definition is visible:
   
-    #define CC_REALLOC my_realloc
+    #define CC_REALLOC our_realloc
       Causes API macros to use a custom realloc function rather than the one in the standard library.
 
-    #define CC_FREE my_free
+    #define CC_FREE our_free
       Causes API macros to use a custom free function rather than the one in the standard library.
 
 API:
@@ -495,11 +495,11 @@ API:
     
     Trivial example:
 
-      typedef struct { int x; } my_type;
-      #define CC_DTOR my_type, { printf( "!%d\n", val.x ); }
-      #define CC_CMPR my_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); }
-      #define CC_HASH my_type, { return val.x * 2654435761ull; }
-      #define CC_LOAD my_type, 0.5
+      typedef struct { int x; } our_type;
+      #define CC_DTOR our_type, { printf( "!%d\n", val.x ); }
+      #define CC_CMPR our_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); }
+      #define CC_HASH our_type, { return val.x * 2654435761ull; }
+      #define CC_LOAD our_type, 0.5
       #include "cc.h"
 
     Notes:
@@ -516,7 +516,10 @@ API:
 
 Version history:
 
-  27/01/2023 1.0.1: Minor corrections to code comments.
+  04/02/2023 1.0.2: Fixed bug preventing custom hash table load factors from taking effect when CC_LOAD is defined in
+                    isolation of CC_HASH, CC_CMPR, or CC_DTOR.
+                    Made minor adjustment to code comments and documentation so that they are more consistent.
+  27/01/2023 1.0.1: Made minor corrections to code comments.
   26/12/2022 1.0.0: Initial release.
 
 License (MIT):
@@ -608,7 +611,7 @@ License (MIT):
 // If the expression could have side effects, the compiler will not able able to resolve a comparision of it with itself
 // at compile time, which we can check using __builtin_constant_p.
 // The warning itself is generated via a division by zero.
-// This macro may produce false positives (e.g. for &my_containers[ my_func() ] where my_func is a pure function that
+// This macro may produce false positives (e.g. for &our_containers[ our_func() ] where our_func is a pure function that
 // always returns the same value), but that is a reasonable price to pay for more macro safety.
 
 #ifdef __GNUC__
@@ -1241,7 +1244,6 @@ static inline void *cc_vec_next( void *i, size_t el_size )
 // List is implemented a doubly linked list with sentinel nodes.
 
 // Node header.
-// It does not need to be aligned to alignof( max_align_t ) because no memory is allocated after the header.
 typedef struct cc_listnode_hdr_ty
 {
   alignas( max_align_t )
@@ -1250,6 +1252,7 @@ typedef struct cc_listnode_hdr_ty
 } cc_listnode_hdr_ty;
 
 // List header.
+// It does not need to be aligned to alignof( max_align_t ) because no memory is allocated after the header.
 typedef struct
 {
   size_t size;
