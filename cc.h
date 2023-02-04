@@ -542,7 +542,7 @@ License (MIT):
   SOFTWARE.
 */
 
-#if !defined( CC_DTOR ) && !defined( CC_CMPR ) && !defined( CC_HASH )/*-----------------------------------------------*/
+#if !defined( CC_DTOR ) && !defined( CC_CMPR ) && !defined( CC_HASH ) && !defined( CC_LOAD )/*------------------------*/
 /*                                                                                                                    */
 /*                                                REGULAR HEADER MODE                                                 */
 /*                                                                                                                    */
