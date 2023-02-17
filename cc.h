@@ -3104,6 +3104,8 @@ std::is_same<CC_TYPEOF_XP(**arg), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( arg ), cc_cmp
     cc_cmpr_size_t                                                                                         : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * )>::value             ? \
     cc_cmpr_c_string                                                                                       : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * )>::value       ? \
+    cc_cmpr_c_string                                                                                       : \
   (int (*)( void *, void *))NULL                                                                             \
 )                                                                                                            \
 
@@ -3142,6 +3144,8 @@ std::is_same<                                                \
     cc_hash_size_t                                                                                         : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * )>::value             ? \
     cc_hash_c_string                                                                                       : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * )>::value       ? \
+    cc_hash_c_string                                                                                       : \
   (size_t (*)( void *))NULL                                                                                  \
 )                                                                                                            \
 
@@ -3161,6 +3165,7 @@ std::is_same<                                                \
   std::is_same<ty, signed long long>::value   ? true : \
   std::is_same<ty, size_t>::value             ? true : \
   std::is_same<ty, char *>::value             ? true : \
+  std::is_same<ty, const char *>::value       ? true : \
   CC_FOR_EACH_CMPR( CC_HAS_CMPR_SLOT, ty )             \
   false                                                \
 )                                                      \
@@ -3181,6 +3186,7 @@ std::is_same<                                                \
   std::is_same<ty, signed long long>::value   ? true : \
   std::is_same<ty, size_t>::value             ? true : \
   std::is_same<ty, char *>::value             ? true : \
+  std::is_same<ty, const char *>::value       ? true : \
   CC_FOR_EACH_HASH( CC_HAS_HASH_SLOT, ty )             \
   false                                                \
 )                                                      \
@@ -3231,6 +3237,7 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_cmpr_long_long,          \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_cmpr_size_t,             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_cmpr_c_string,           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * ):       cc_cmpr_c_string,           \
     default: (int (*)( void *, void *))NULL                                                    \
   )                                                                                            \
 )                                                                                              \
@@ -3253,6 +3260,7 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_hash_long_long,          \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_hash_size_t,             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_hash_c_string,           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * ):       cc_hash_c_string,           \
     default: (size_t (*)( void *))NULL                                                         \
   )                                                                                            \
 )                                                                                              \
@@ -3275,6 +3283,7 @@ _Generic( (ty){ 0 },                    \
     long long:          true,           \
     cc_maybe_size_t:    true,           \
     char *:             true,           \
+    const char *:       true,           \
     default:            false           \
   )                                     \
 )                                       \
@@ -3297,6 +3306,7 @@ _Generic( (ty){ 0 },                    \
     long long:          true,           \
     cc_maybe_size_t:    true,           \
     char *:             true,           \
+    const char *:       true,           \
     default:            false           \
   )                                     \
 )                                       \
@@ -3478,14 +3488,14 @@ static inline size_t cc_hash_size_t( void *void_val )
 
 static inline int cc_cmpr_c_string( void *void_val_1, void *void_val_2 )
 {
-  return strcmp( *(char **)void_val_1, *(char **)void_val_2 );
+  return strcmp( *(const char **)void_val_1, *(const char **)void_val_2 );
 }
 
 #if SIZE_MAX == 0xFFFFFFFF // 32-bit size_t.
 
 static inline size_t cc_hash_c_string( void *void_val )
 {
-    char *val = *(char **)void_val;
+    const char *val = *(const char **)void_val;
     size_t hash = 0x01000193;
     while( *val )
       hash = ( (unsigned char)*val++ ^ hash ) * 0x811c9dc5;
@@ -3497,7 +3507,7 @@ static inline size_t cc_hash_c_string( void *void_val )
 
 static inline size_t cc_hash_c_string( void *void_val )
 {
-    char *val = *(char **)void_val;
+    const char *val = *(const char **)void_val;
     size_t hash = 0xcbf29ce484222325;
     while( *val )
       hash = ( (unsigned char)*val++ ^ hash ) * 0x100000001b3;
@@ -3509,7 +3519,7 @@ static inline size_t cc_hash_c_string( void *void_val )
 
 static inline size_t cc_hash_c_string( void *void_val )
 {
-    char *val = *(char **)void_val;
+    const char *val = *(const char **)void_val;
     size_t hash = 0;
     while( *val )
         hash = hash * 131 + (unsigned char)*val++;
