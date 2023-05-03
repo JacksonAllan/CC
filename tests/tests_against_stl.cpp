@@ -1,5 +1,5 @@
 /*
-tests_against_stl.cpp - v. 1.0.0 - 2022
+tests_against_stl.cpp - v. 1.0.3
 
 This file tests CC containers against equivalent C++ STL containers.
 Primarily, it checks that a CC container and its equivalent STL container end up in the same state after a random
@@ -10,7 +10,7 @@ for every new node.
 
 License (MIT):
 
-Copyright (c) 2022 Jackson L. Allan
+Copyright (c) 2022-2023 Jackson L. Allan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
