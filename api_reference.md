@@ -568,7 +568,7 @@ The signature of the function is `void ( ty val )`.
 
 Defines a comparison function for type `ty`.  
 The signature of the function is `int ( ty val_1, ty val_2 )`.  
-The function should return `0` if `val_1` and `val_2` are equal, a negative integer if `val_1` is less than `val_2`, and a positive integer if `val_1` is more than `val_2`.
+The function should return `0` if `val_1` and `val_2` are equal, a negative integer if `val_1` is less than `val_2`, and a positive integer if `val_1` is greater than `val_2`.
 
 ```c
 #define CC_HASH ty, { function body }
