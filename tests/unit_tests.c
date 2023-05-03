@@ -1,5 +1,5 @@
 /*
-unit_tests.c - v. 1.0.0 - 2022
+unit_tests.c - v1.0.3
 
 This file tests CC containers.
 It aims to cover the full API and to check corner cases, particularly transitions between placeholder containers and
@@ -7,7 +7,7 @@ non-placeholder containers.
 
 License (MIT):
 
-Copyright (c) 2022 Jackson L. Allan
+Copyright (c) 2022-2023 Jackson L. Allan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +28,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#define TEST_VEC
+#define TEST_LIST
+#define TEST_MAP
+#define TEST_SET
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
+//#define inline inline __attribute__((always_inline))
 #include "../cc.h"
 
 // Assert macro that is not disabled by NDEBUG.
@@ -100,12 +106,13 @@ void check_dtors_arr()
 
 typedef struct { int val; } custom_ty;
 #define CC_DTOR custom_ty, { dtor_called[ val.val ] = true; }
-#define CC_CMPR custom_ty, { return ( val_1.val > val_2.val ) - ( val_1.val < val_2.val ); }
+#define CC_CMPR custom_ty, { return val_1.val < val_2.val ? -1 : val_1.val > val_2.val; }
 #define CC_HASH custom_ty, { return val.val * 2654435761ull; }
 #define CC_LOAD custom_ty, 0.7
 #include "../cc.h"
 
 // Vector tests.
+#ifdef TEST_VEC
 
 #define VEC_CHECK                                                              \
 ALWAYS_ASSERT( size( &our_vec ) == sizeof( expected ) / sizeof( *expected ) ); \
@@ -618,7 +625,10 @@ void test_vec_dtors( void )
   check_dtors_arr();
 }
 
+#endif
+
 // List tests.
+#ifdef TEST_LIST
 
 #define LIST_CHECK                                                              \
 ALWAYS_ASSERT( size( &our_list ) == sizeof( expected ) / sizeof( *expected ) ); \
@@ -994,7 +1004,10 @@ void test_list_dtors( void )
   check_dtors_arr();
 }
 
+#endif
+
 // Map tests.
+#ifdef TEST_MAP
 
 void test_map_reserve( void )
 {
@@ -1002,7 +1015,7 @@ void test_map_reserve( void )
   init( &our_map );
 
   // Reserve zero with placeholder.
-  UNTIL_SUCCESS( reserve( &our_map , 0 ) );
+  UNTIL_SUCCESS( reserve( &our_map, 0 ) );
   ALWAYS_ASSERT( (void *)our_map  == (void *)&cc_map_placeholder );
 
   // Reserve up from placeholder.
@@ -1495,7 +1508,10 @@ void test_map_default_integer_types( void )
   TEST_MAP_DEFAULT_INTEGER_TYPE( size_t );
 }
 
+#endif
+
 // Set tests.
+#ifdef TEST_SET
 
 void test_set_reserve( void )
 {
@@ -1971,6 +1987,8 @@ void test_set_default_integer_types( void )
   TEST_SET_DEFAULT_INTEGER_TYPE( size_t );
 }
 
+#endif
+
 int main( void )
 {
   srand( time( NULL ) );
@@ -1978,6 +1996,7 @@ int main( void )
   // Repeat 1000 times since realloc failures are random.
   for( int i = 0; i < 1000; ++i )
   {
+    #ifdef TEST_VEC
     // vec, init, size, cap, get tested implicitly.
     test_vec_reserve();
     test_vec_resize();
@@ -1993,7 +2012,9 @@ int main( void )
     test_vec_iteration();
     test_vec_init_clone();
     test_vec_dtors();
+    #endif
 
+    #ifdef TEST_LIST
     // list, init, size tested implicitly.
     test_list_insert();
     test_list_push();
@@ -2004,7 +2025,9 @@ int main( void )
     test_list_iteration();
     test_list_init_clone();
     test_list_dtors();
+    #endif
 
+    #ifdef TEST_MAP
     // map, init, cap, size tested implicitly.
     test_map_reserve();
     test_map_shrink();
@@ -2019,11 +2042,13 @@ int main( void )
     test_map_dtors();
     test_map_strings();
     test_map_default_integer_types();
+    #endif
 
+    #ifdef TEST_SET
     // set, init, cap, size tested implicitly.
     test_set_reserve();
     test_set_shrink();
-    test_map_insert();
+    test_set_insert();
     test_set_get_or_insert();
     test_set_get();
     test_set_erase();
@@ -2035,6 +2060,7 @@ int main( void )
     test_set_dtors();
     test_set_strings();
     test_set_default_integer_types();
+    #endif
   }
 
   ALWAYS_ASSERT( oustanding_allocs == 0 );
