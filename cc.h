@@ -1,4 +1,4 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.0.2 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.0.3 -------------------------------------------
 
 This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, and unordered sets).
 
@@ -252,8 +252,9 @@ API:
     map( key_ty, el_ty ) cntr
 
       Declares an uninitialized map named cntr.
-      key_ty must be a type, or alias for a type, for which comparison and hash functions have been defined.
-      This requirement is enforced internally such that neglecting it causes a compiler error.
+      key_ty must be a type - or alias for a type - for which comparison and hash functions have been defined and whose
+      size is < 4,294,967,295 bytes (~4.3GB) and alignment is <= 256.
+      These requirements are enforced internally such that neglecting them causes a compiler error.
       For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash
       functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
 
@@ -368,8 +369,9 @@ API:
     set( el_ty ) cntr
 
       Declares an uninitialized set named cntr.
-      el_ty must be a type, or alias for a type, for which comparison and hash functions have been defined.
-      This requirement is enforced internally such that neglecting it causes a compiler error.
+      el_ty must be a type - or alias for a type - for which comparison and hash functions have been defined and whose
+      size is < 4,294,967,295 bytes (~4.3GB) and alignment is <= 256.
+      These requirements are enforced internally such that neglecting them causes a compiler error.
       For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash
       functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
 
@@ -478,7 +480,7 @@ API:
       Defines a comparison function for type ty.
       The signature of the function is int ( ty val_1, ty val_2 ).
       The function should return 0 if val_1 and val_2 are equal, a negative integer if val_1 is less than val_2, and a
-      positive integer if val_1 is more than val_2.
+      positive integer if val_1 is greater than val_2.
 
     #define CC_HASH ty, { function body }
     #include "cc.h"
@@ -497,7 +499,7 @@ API:
 
       typedef struct { int x; } our_type;
       #define CC_DTOR our_type, { printf( "!%d\n", val.x ); }
-      #define CC_CMPR our_type, { return ( val_1.x > val_2.x ) - ( val_1.x < val_2.x ); }
+      #define CC_CMPR our_type, { return val_1.x < val_2.x ? -1 : val_1.x > val_2.x; }
       #define CC_HASH our_type, { return val.x * 2654435761ull; }
       #define CC_LOAD our_type, 0.5
       #include "cc.h"
@@ -516,6 +518,17 @@ API:
 
 Version history:
 
+  04/05/2023 1.0.3: Completed refractor that reduces compile speed by approximately 53% in C with GCC.
+                    This was achieved by:
+                    - Reducing the number of _Generic expressions in API calls by extracting multiple key-related data
+                      from a single expression).
+                    - Reducing the work done inside _Generic expressions (this seemed to be a bottleneck).
+                    - Changing the API macro function-selection mechanism so that only the function itself varies based
+                      on container type (all parallel functions now use the same parameter interface) and each macro
+                      contains only one argument list (unused arguments are discaded).
+                    Also introduced performance improvements into maps and sets, changed the default integer hash
+                    functions to more robust ones, and corrected a bug that could cause map and set probe-length
+                    integers to be unaligned for small elements and keys.
   04/02/2023 1.0.2: Fixed bug preventing custom hash table load factors from taking effect when CC_LOAD is defined in
                     isolation of CC_HASH, CC_CMPR, or CC_DTOR.
                     Made minor adjustment to code comments and documentation so that they are more consistent.
@@ -592,6 +605,7 @@ License (MIT):
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -605,6 +619,68 @@ License (MIT):
 
 // _Static_assert alternative that can be used inside an expression.
 #define CC_STATIC_ASSERT( xp ) (void)sizeof( char[ (xp) ? 1 : -1 ] )
+
+// CC_MAKE_LVAL_COPY macro for making an addressable temporary copy of a variable or expression.
+// The copy is valid until at least the end of full expression surrounding the macro call.
+// In C, this is accomplished using a compound literal.
+// In C++, we use rvalue reference magic.
+// This is used to pass a pointers to elements and keys (which the user may have provided as rvalues) into container
+// functions.
+#ifdef __cplusplus
+template<class ty> ty& cc_unmove( ty&& var ) { return var; }
+#define CC_MAKE_LVAL_COPY( ty, xp ) cc_unmove( (ty)( xp ) )
+#else
+#define CC_MAKE_LVAL_COPY( ty, xp ) *( ty[ 1 ] ){ xp }
+#endif
+
+// Macro used primarily for silencing unused-expression warnings for macros that return cast pointers.
+// This issued seems to affect Clang in particular.
+// GCC, on the other hand, seems to accept that pointer casts may be redundant.
+#ifdef __cplusplus
+template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (ty_1)xp; }
+#define CC_CAST_MAYBE_UNUSED( ty, xp ) cc_maybe_unused<ty>( xp )
+#else
+#define CC_CAST_MAYBE_UNUSED( ty, xp ) ( ( ty ){ 0 } = ( (ty)( xp ) ) )
+#endif
+
+// Ensures inlining if possible.
+// TODO: Adding MSVC attribute once that compiler supports typeof (C23).
+#ifdef __GNUC__
+#define CC_ALWAYS_INLINE __attribute__((always_inline))
+#else
+#define CC_ALWAYS_INLINE
+#endif
+
+// CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2 is the same as above, except that it selects the type to which to cast based on
+// a condition.
+// This is necessary because some API macros (e.g. cc_erase) return either a pointer-iterator or a bool depending on the
+// container type.
+
+#ifdef __cplusplus
+
+template<bool cond, class ty_1, class ty_2, class xp_ty, typename std::enable_if<cond, bool>::type = true> \
+ty_1 cc_if_then_cast_ty_1_else_cast_ty_2( xp_ty xp ){ return (ty_1)xp; }                                   \
+
+template<bool cond, class ty_1, class ty_2, class xp_ty, typename std::enable_if<!cond, bool>::type = true> \
+ty_2 cc_if_then_cast_ty_1_else_cast_ty_2( xp_ty xp ){ return (ty_2)xp; }                                    \
+
+#define CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2( cond, ty_1, ty_2, xp ) \
+cc_if_then_cast_ty_1_else_cast_ty_2<cond, ty_1, ty_2>( xp )         \
+
+#else
+
+#define CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2( cond, ty_1, ty_2, xp ) \
+CC_CAST_MAYBE_UNUSED(                                               \
+  CC_TYPEOF_XP(                                                     \
+    _Generic( (char (*)[ 1 + (bool)( cond ) ]){ 0 },                \
+        char (*)[ 1 ]: (ty_2){ 0 },                                 \
+        char (*)[ 2 ]: (ty_1){ 0 }                                  \
+    )                                                               \
+  ),                                                                \
+  ( xp )                                                            \
+)                                                                   \
+
+#endif
 
 // In GCC and Clang, we can generate a warning if the user passes an expression that may have side effects as the first
 // argument of API macros.
@@ -625,13 +701,6 @@ License (MIT):
 #define CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ) (void)0
 #endif
 
-// CC_SELECT_ON_NUM_ARGS macro for overloading API macros based on number of arguments.
-#define CC_CAT_( a, b ) a##b
-#define CC_CAT( a, b ) CC_CAT_( a, b )
-#define CC_N_ARGS_( _1, _2, _3, _4, _5, _6, n, ... ) n
-#define CC_N_ARGS( ... ) CC_N_ARGS_( __VA_ARGS__, _6, _5, _4, _3, _2, _1, x )
-#define CC_SELECT_ON_NUM_ARGS( func, ... ) CC_CAT( func, CC_N_ARGS( __VA_ARGS__ ) )( __VA_ARGS__ )
-
 // Typeof for expressions and abstract declarations.
 #ifdef __cplusplus
 #define CC_TYPEOF_XP( xp ) std::decay<std::remove_reference<decltype( xp )>::type>::type
@@ -642,6 +711,22 @@ License (MIT):
 #define CC_TYPEOF_TY( ty ) __typeof__( ty )
 #endif
 
+// CC_SELECT_ON_NUM_ARGS macro for overloading API macros based on number of arguments.
+#define CC_CAT_2_( a, b ) a##b
+#define CC_CAT_2( a, b ) CC_CAT_2_( a, b )
+#define CC_N_ARGS_( _1, _2, _3, _4, _5, _6, n, ... ) n
+#define CC_N_ARGS( ... ) CC_N_ARGS_( __VA_ARGS__, _6, _5, _4, _3, _2, _1, x )
+#define CC_SELECT_ON_NUM_ARGS( func, ... ) CC_CAT_2( func, CC_N_ARGS( __VA_ARGS__ ) )( __VA_ARGS__ )
+
+// If the user has defined CC_REALLOC and CC_FREE, then CC_GET_REALLOC and CC_GET_FREE are replaced with those macros.
+// Otherwise, they are replaced by realloc and free from the standard library.
+#define CC_ARG_2_( _1, _2, ... ) _2
+#define CC_ARG_2( ... ) CC_ARG_2_( __VA_ARGS__ )
+#define CC_REALLOC_COMMA ,
+#define CC_REALLOC_FN CC_ARG_2( CC_CAT_2( CC_REALLOC, _COMMA ) realloc, CC_REALLOC, )
+#define CC_FREE_COMMA ,
+#define CC_FREE_FN CC_ARG_2( CC_CAT_2( CC_FREE, _COMMA ) free, CC_FREE, )
+
 // Macro used with CC_STATIC_ASSERT to provide type safety in cc_init_clone and cc_splice calls.
 #ifdef __cplusplus
 #define CC_IS_SAME_TY( a, b ) std::is_same<CC_TYPEOF_XP( a ), CC_TYPEOF_XP( b )>::value
@@ -649,14 +734,17 @@ License (MIT):
 #define CC_IS_SAME_TY( a, b ) _Generic( (a), CC_TYPEOF_XP( b ): true, default: false )
 #endif
 
-// Macro used primarily for silencing unused-expression warnings for macros that return cast pointers.
-// This issued seems to affect Clang in particular.
-// GCC, on the other hand, seems to accept that pointer casts may be redundant.
+// Macro for handling unused parameters in most container functions that plug directly into API macros.
+// These functions must provide a standardized signature across containers.
+// The compiler should optimize away unused parameters anyway, but we can nevertheless mark them as redundant.
 #ifdef __cplusplus
-template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (ty_1)xp; }
-#define CC_CAST_MAYBE_UNUSED( ty, xp ) cc_maybe_unused<ty>( xp )
+#define CC_UNUSED( ty, name ) ty
 #else
-#define CC_CAST_MAYBE_UNUSED( ty, xp ) ( ( ty ){ 0 } = ( (ty)( xp ) ) )
+#ifdef __GNUC__
+#define CC_UNUSED( ty, name ) __attribute__((unused)) ty name
+#else
+#define CC_UNUSED( ty, name ) ty name
+#endif
 #endif
 
 // Some functions that must return true/false must return the value in the form of a pointer.
@@ -666,6 +754,18 @@ template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (
 // the sake of code readability.
 static max_align_t cc_dummy_true;
 static void *cc_dummy_true_ptr = &cc_dummy_true;
+
+// Default max load factor for maps and sets.
+#define CC_DEFAULT_LOAD 0.75
+
+// Types for comparison, hash, destructor, realloc, and free functions.
+// These are only for internal use as user-provided comparison, hash, and destructor functions have different signatures
+// (see above documentation).
+typedef bool ( *cc_cmpr_fnptr_ty )( void *, void * );
+typedef size_t ( *cc_hash_fnptr_ty )( void * );
+typedef void ( *cc_dtor_fnptr_ty )( void * );
+typedef void *( *cc_realloc_fnptr_ty )( void *, size_t );
+typedef void ( *cc_free_fnptr_ty )( void * );
 
 // Container ids to identify container type at compile-time.
 #define CC_VEC  1
@@ -682,37 +782,46 @@ static void *cc_dummy_true_ptr = &cc_dummy_true;
 // That is a pointer to an array of function pointers whose signature is el_ty ( key_ty * ).
 #define CC_MAKE_CNTR_TY( el_ty, key_ty, cntr_id ) CC_TYPEOF_TY( CC_MAKE_BASE_FNPTR_TY( el_ty, key_ty )(*)[ cntr_id ] )
 
-// Dummy type used as key type in containers that don't use keys.
-// This greatly reduces the complexity of API macros.
-typedef struct{ char nothing; } cc_dummy_ty;
-
 // API macros for declaring containers.
+// The key type is the type used to look up elements, even in non-associative containers.
+// This simplifies API macros by eliminating the need to treat non-associative containers as special cases.
 
-#define cc_vec( el_ty )         CC_MAKE_CNTR_TY( el_ty, cc_dummy_ty, CC_VEC )
+#define cc_vec( el_ty )         CC_MAKE_CNTR_TY( el_ty, size_t, CC_VEC ) // Vector key type is size_t.
 
-#define cc_list( el_ty )        CC_MAKE_CNTR_TY( el_ty, cc_dummy_ty, CC_LIST )
+#define cc_list( el_ty )        CC_MAKE_CNTR_TY( el_ty, void *, CC_LIST ) // List key is a pointer-iterator.
 
-#define cc_map( key_ty, el_ty ) CC_MAKE_CNTR_TY(                                                           \
-                                  el_ty,                                                                   \
-                                  key_ty,                                                                  \
-                                  /* Compiler error if key type lacks compare and hash functions. */       \
-                                  CC_MAP * ( ( CC_HAS_CMPR( key_ty ) && CC_HAS_HASH( key_ty ) ) ? 1 : -1 ) \
-                                )                                                                          \
+#define cc_map( key_ty, el_ty ) CC_MAKE_CNTR_TY(                                                       \
+                                  el_ty,                                                               \
+                                  key_ty,                                                              \
+                                  CC_MAP * ( (                                                         \
+                                    /* Compiler error if key type lacks compare and hash functions. */ \
+                                    CC_HAS_CMPR( key_ty ) && CC_HAS_HASH( key_ty ) &&                  \
+                                    /* Compiler error if bucket layout constraints are violated. */    \
+                                    CC_SATISFIES_LAYOUT_CONSTRAINTS( key_ty, el_ty )                   \
+                                  ) ? 1 : -1 )                                                         \
+                                )                                                                      \
 
-#define cc_set( el_ty )         CC_MAKE_CNTR_TY(                                                                   \
-                                  /* As set simply wraps map, we use el_ty as both the element and key types. */   \
-                                  /* This allows minimal changes to map macros and functions to make sets work. */ \
-                                  el_ty,                                                                           \
-                                  el_ty,                                                                           \
-                                  /* Compiler error if el type lacks compare and hash functions. */                \
-                                  CC_SET * ( ( CC_HAS_CMPR( el_ty ) && CC_HAS_HASH( el_ty ) ) ? 1 : -1 )           \
-                                )                                                                                  \
+#define cc_set( el_ty )         CC_MAKE_CNTR_TY(                                                                 \
+                                  /* As set simply wraps map, we use el_ty as both the element and key types. */ \
+                                  /* This allows minimal changes to map function arguments to make sets work. */ \
+                                  el_ty,                                                                         \
+                                  el_ty,                                                                         \
+                                  CC_SET * ( (                                                                   \
+                                    /* Compiler error if key type lacks compare and hash functions. */           \
+                                    CC_HAS_CMPR( el_ty ) && CC_HAS_HASH( el_ty ) &&                              \
+                                    /* Compiler error if bucket layout constraints are violated. */              \
+                                    CC_SATISFIES_LAYOUT_CONSTRAINTS( el_ty, el_ty )                              \
+                                  ) ? 1 : -1 )                                                                   \
+                                )                                                                                \
 
 // Retrieves a container's id (CC_VEC, CC_LIST, etc.) from its handle.
 #define CC_CNTR_ID( cntr ) ( sizeof( *cntr ) / sizeof( **cntr ) )
 
 // Retrieves a container's element type from its handle.
 #define CC_EL_TY( cntr ) CC_TYPEOF_XP( (**cntr)( NULL ) )
+
+// Easy access to a container's element and key sizes.
+#define CC_EL_SIZE( cntr )  sizeof( CC_EL_TY( cntr ) )
 
 // CC_KEY_TY macros for retrieving a container's key type from its handle (i.e. from the argument of the base function
 // pointer).
@@ -729,7 +838,6 @@ key_ty cc_key_ty( el_ty (*)( key_ty * ) )
 
 #else // For C, we need to use _Generic trickery to match the base function pointer type with a key type previously
       // coupled with a compare function.
-      // Returns cc_dummy_t if no compare function for type has been defined.
 
 #define CC_KEY_TY_SLOT( n, arg ) CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( arg ), cc_cmpr_##n##_ty ): ( cc_cmpr_##n##_ty ){ 0 },
 #define CC_KEY_TY( cntr )                                                                         \
@@ -750,108 +858,138 @@ CC_TYPEOF_XP(                                                                   
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          ( long long ){ 0 },          \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    ( size_t ){ 0 },             \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             ( char * ){ 0 },             \
-      default: (cc_dummy_ty){ 0 }                                                                 \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), void * ):             ( void * ){ 0 },             \
+      default: (char){ 0 } /* Nothing */                                                          \
     )                                                                                             \
   )                                                                                               \
 )                                                                                                 \
 
 #endif
 
-// Macros to provide easy access to a container's element and key sizes.
-#define CC_EL_SIZE( cntr )  sizeof( CC_EL_TY( cntr ) )
-#define CC_KEY_SIZE( cntr ) sizeof( CC_KEY_TY( cntr ) )
+// Probe length type for maps and sets (Robin Hood hash tables).
+// An unsigned char would probably be fine, but we use unsigned int just in case.
+// A probe length of 0 denotes an empty bucket, whereas a probe length of 1 denotes an element in its home bucket.
+// This optimization allows us to eliminate separate checks for empty buckets.
+typedef unsigned int cc_probelen_ty;
 
-// Macro to round up a number to a multiple of a factor.
-// This is used to determine bucket size and offsets in sets and maps.
-#define CC_ROUND_UP( n, factor ) ( ( ( (n) + (factor) - 1 ) / (factor) ) * (factor) )
+// The functions associated with some containers require extra information about how elements and/or keys and other data
+// are laid out in memory.
+// Specifically, maps and sets need information about their bucket layouts, which depend on their element and/or key
+// types (a future implementation of ordered maps and sets will require similar data).
+// This data is formed by extracting the key size and alignment and passing it, along with the element size and
+// alignment and the container type id, into the cc_layout function, which returns a uint64_t describing the layout.
+// The key size and alignment are inferred via a _Generic macro that looks up the key type based on the default
+// and user-supplied comparison functions, since all containers that require layout information also require a
+// comparison function.
+// Although this mechanism is convoluted, it has proven to compile much faster than other approaches (e.g. calculating
+// the layout inside the _Generic macro).
+// The compiler should optimize the entire mechanism into compile-time constants.
 
-// If the user has defined CC_REALLOC and CC_FREE, then CC_GET_REALLOC and CC_GET_FREE are replaced with those macros.
-// Otherwise, they are replaced by realloc and free from the standard library.
-#define CC_ARG_2_( _1, _2, ... ) _2
-#define CC_ARG_2( ... ) CC_ARG_2_( __VA_ARGS__ )
-#define CC_REALLOC_COMMA ,
-#define CC_GET_REALLOC CC_ARG_2( CC_CAT( CC_REALLOC, _COMMA ) realloc, CC_REALLOC, )
-#define CC_FREE_COMMA ,
-#define CC_GET_FREE CC_ARG_2( CC_CAT( CC_FREE, _COMMA ) free, CC_FREE, )
+// The layout for a map bucket is:
+//   +------------+----+------------+----+------------+----+
+//   |     #1     | #2 |     #3     | #4 |     #5     | #6 |
+//   +------------+----+------------+----+------------+----+
+//   #1 Element.
+//   #2 Element padding to key_ty alignment.
+//   #3 Key.
+//   #4 Key padding to cc_probelen_ty alignment.
+//   #5 Probe length.
+//   #6 Padding to largest of el_ty, key_ty, and cc_probelen_ty alignments.
 
-// Default max load factor for maps and sets.
-#define CC_DEFAULT_LOAD 0.8
+// The layout for a set bucket is:
+//   +------------+----+------------+----+
+//   |     #1     | #2 |     #3     | #4 |
+//   +------------+----+------------+----+
+//   #1 Element (el_ty and key_ty are the same).
+//   #2 Padding to cc_probelen_ty alignment.
+//   #3 Probe length.
+//   #4 Padding to the larger of el_ty and cc_probelen_ty alignments.
 
-// Swaps a block of memory (used for Robin-Hooding in maps and sets).
-static inline void cc_memswap( void *a, void *b, size_t size )
+// The layout data passed into a container function is a uint64_t composed of a uint32_t denoting the key size, a
+// uint8_t denoting the padding after the element, a uint8_t denoting the padding after the key, and a uint8_t
+// denoting the padding after the probe length.
+// The reason that a uint64_t, rather than a struct, is used is that GCC seems to have trouble properly optimizing the
+// passing of the struct - even if only 8 bytes - into some container functions (specifically cc_map_insert), apparently
+// because it declines to pass by register.
+
+// Macro for ensuring valid layout on container declaration.
+// Since the key size occupies four bytes and the padding values each occupy one byte, the key size must be <=
+// UINT32_MAX (about 4.3GB) and the alignment of the element and key must be <= UINT8_MAX + 1 (i.e. 256).
+// It unlikely that these constraints would be violated in practice, but we can check anyway.
+#define CC_SATISFIES_LAYOUT_CONSTRAINTS( key_ty, el_ty )                                                      \
+( sizeof( key_ty ) <= UINT32_MAX && alignof( el_ty ) <= UINT8_MAX + 1 && alignof( key_ty ) <= UINT8_MAX + 1 ) \
+
+// Macros and functions for constructing a layout.
+
+#define CC_PADDING( size, align ) ( ( ~(size) + 1 ) & ( (align) - 1 ) )
+#define CC_MAX( a, b ) ( (a) > (b) ? (a) : (b) )
+
+#define CC_MAP_EL_PADDING( el_size, key_align ) \
+CC_PADDING( el_size, key_align )                \
+
+#define CC_MAP_KEY_PADDING( el_size, key_size, key_align )                                            \
+CC_PADDING( el_size + CC_MAP_EL_PADDING( el_size, key_align ) + key_size, alignof( cc_probelen_ty ) ) \
+
+#define CC_MAP_PROBELEN_PADDING( el_size, el_align, key_size, key_align )        \
+CC_PADDING(                                                                      \
+  el_size + CC_MAP_EL_PADDING( el_size, key_align ) + key_size +                 \
+  CC_MAP_KEY_PADDING( el_size, key_size, key_align ) + sizeof( cc_probelen_ty ), \
+  CC_MAX( key_align, CC_MAX( el_align, alignof( cc_probelen_ty ) ) )             \
+)                                                                                \
+
+#define CC_SET_EL_PADDING( el_size )             \
+CC_PADDING( el_size, alignof( cc_probelen_ty ) ) \
+
+#define CC_SET_PROBELEN_PADDING( el_size, el_align )                 \
+CC_PADDING(                                                          \
+  el_size + CC_SET_EL_PADDING( el_size ) + sizeof( cc_probelen_ty ), \
+  CC_MAX( el_align, alignof( cc_probelen_ty ) )                      \
+)                                                                    \
+
+// Struct for conveying key-related information from _Generic macro into below function.
+typedef struct
 {
-  for( size_t i = 0; i < size; ++i )
-  {
-    char temp = ( (char *)a )[ i ];
-    ( (char *)a )[ i ] = ( (char *)b )[ i ];
-    ( (char *)b )[ i ] = temp;
-  }
+  uint64_t size;
+  uint64_t align;
+} cc_key_details_ty;
+
+// Function for creating the uint64_t layout descriptor.
+// This function must be inlined in order for layout calculations to be optimized into a compile-time constant.
+static inline CC_ALWAYS_INLINE uint64_t cc_layout(
+  size_t cntr_id,
+  uint64_t el_size,
+  uint64_t el_align,
+  cc_key_details_ty key_details
+)
+{
+  if( cntr_id == CC_MAP )
+    return
+      key_details.size                                                                        |
+      CC_MAP_EL_PADDING( el_size, key_details.align )                                   << 32 |
+      CC_MAP_KEY_PADDING( el_size, key_details.size, key_details.align )                << 40 |
+      CC_MAP_PROBELEN_PADDING( el_size, el_align, key_details.size, key_details.align ) << 48;
+
+  if( cntr_id == CC_SET )
+    return
+      el_size                                            |
+      (uint64_t)0                                  << 32 |
+      CC_SET_EL_PADDING( el_size )                 << 40 |
+      CC_SET_PROBELEN_PADDING( el_size, el_align ) << 48;
+
+  return 0; // Other container types don't require layout data.
 }
 
-// CC_MAKE_LVAL_COPY macro for making an addressable temporary copy of a variable or expression.
-// The copy is valid until at least the end of full expression surrounding the macro call.
-// In C, this is accomplished using a compound literal.
-// In C++, we use rvalue reference magic.
-// This is used, for example, to pass a pointer to an element (which the user may have provided as an rvalue) into an
-// insert function.
-#ifdef __cplusplus
-template<class ty> ty& cc_unmove( ty&& var ) { return var; }
-#define CC_MAKE_LVAL_COPY( ty, xp ) cc_unmove( ty( xp ) )
-#else
-#define CC_MAKE_LVAL_COPY( ty, xp ) *( ty[ 1 ] ){ xp }
-#endif
+// Macros for extracting data from uint64_t layout descriptor.
 
-// CC_IF_THEN_XP_ELSE_DUMMY macro for allowing an expression only if a condition is true.
-// If not true, then the macro returns a dummy value of a specified type.
-// This macros allows API macros to have arguments whose type depends on the container id where the different container
-// types are incompatible.
-// Without it, those macros could not compile.
-// In other words, this macro achieves SFINAE-like functionality.
-#ifdef __cplusplus
+#define CC_KEY_SIZE( layout ) (uint32_t)( layout )
 
-template<bool cond, class ty, class xp_ty, typename std::enable_if<cond, bool>::type = true>
-xp_ty cc_if_then_xp_else_dummy( xp_ty xp ){ return xp; }
+#define CC_KEY_OFFSET( el_size, layout ) ( (el_size) + (uint8_t)( layout >> 32 ) )
 
-template<bool cond, class ty, class xp_ty, typename std::enable_if<!cond, bool>::type = true>
-ty cc_if_then_xp_else_dummy( xp_ty xp ){ return ty(); }
+#define CC_PROBELEN_OFFSET( el_size, layout )                                           \
+( CC_KEY_OFFSET( el_size, layout ) + (uint32_t)( layout ) + (uint8_t)( layout >> 40 ) ) \
 
-#define CC_IF_THEN_XP_ELSE_DUMMY( cond, xp, ty ) ( cc_if_then_xp_else_dummy<cond, ty>( xp ) )
-
-#else
-
-#define CC_IF_THEN_XP_ELSE_DUMMY( cond, xp, dummy_type ) \
-_Generic( (char (*)[ 1 + (bool)( cond ) ]){ 0 },         \
-  char (*)[ 1 ]: (dummy_type){ 0 },                      \
-  char (*)[ 2 ]: xp                                      \
-)                                                        \
-
-#endif
-
-// CC_IF_THEN_PTR_TO_BOOL_ELSE_PTR macro for casting a pointer to bool only if a condition is true.
-// It is necessary because some API macros (e.g. cc_erase) should return a bool to the user for certain containers and a
-// pointer to an element for others.
-// With this macro, all the corresponding internal functions can return pointers, and the pointer is cast to bool at the
-// highest level if dictated by the container id.
-#ifdef __cplusplus
-
-template<bool cond, class ptr_ty, typename std::enable_if<cond, bool>::type = true> \
-bool cc_if_then_ptr_to_bool_else_ptr( ptr_ty ptr ){ return ptr; }                   \
-
-template<bool cond, class ptr_ty, typename std::enable_if<!cond, bool>::type = true> \
-ptr_ty cc_if_then_ptr_to_bool_else_ptr( ptr_ty ptr ){ return ptr; }                  \
-
-#define CC_IF_THEN_PTR_TO_BOOL_ELSE_PTR( cond, ptr ) \
-cc_if_then_ptr_to_bool_else_ptr<cond>( ptr )         \
-
-#else
-
-#define CC_IF_THEN_PTR_TO_BOOL_ELSE_PTR( cond, ptr ) \
-_Generic( (char (*)[ 1 + (bool)( cond ) ]){ 0 },     \
-    char (*)[ 1 ]: ptr,                              \
-    char (*)[ 2 ]: CC_CAST_MAYBE_UNUSED( bool, ptr ) \
-)                                                    \
-
-#endif
+#define CC_BUCKET_SIZE( el_size, layout )                                                        \
+( CC_PROBELEN_OFFSET( el_size, layout ) + sizeof( cc_probelen_ty ) + (uint8_t)( layout >> 48 ) ) \
 
 // Return type for all functions that could reallocate a container's memory.
 // It contains a new container handle (the pointer may have changed to due reallocation) and an additional pointer whose
@@ -925,13 +1063,7 @@ typedef struct
 // In the case of vectors, the placeholder allows us to avoid checking for a NULL container handle inside functions.
 static const cc_vec_hdr_ty cc_vec_placeholder = { 0, 0 };
 
-#define CC_VEC_INIT( cntr )                         \
-(                                                   \
-  cntr = (CC_TYPEOF_XP( cntr ))&cc_vec_placeholder, \
-  (void)0                                           \
-)                                                   \
-
-// Provides easy access to a vector's header.
+// Easy header access function for internal use.
 static inline cc_vec_hdr_ty *cc_vec_hdr( void *cntr )
 {
   return (cc_vec_hdr_ty *)cntr;
@@ -952,22 +1084,31 @@ static inline bool cc_vec_is_placeholder( void *cntr )
   return cc_vec_hdr( cntr )->cap == 0;
 }
 
-// Returns a pointer-iterator to the element at index i.
-static inline void *cc_vec_get( void *cntr, size_t i, size_t el_size )
+// Returns a pointer-iterator to the element at a specified index.
+static inline void *cc_vec_get(
+  void *cntr,
+  void *key, /* Pointer to size_t index */
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( cc_cmpr_fnptr_ty, cmpr )
+)
 {
-  return (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * i;
+  return (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * *(size_t *)key;
 }
 
-#define CC_VEC_GET( cntr, i ) cc_vec_get( cntr, i, CC_EL_SIZE( cntr ) )
-
 // Ensures that the capacity is large enough to support n elements without reallocation.
-// Returns a cc_allocing_fn_result_ty containing the new handle and a pointer that evaluates to true if the operation was
-// successful.
+// Returns a cc_allocing_fn_result_ty containing the new handle and a pointer that evaluates to true if the operation
+// was successful.
 static inline cc_allocing_fn_result_ty cc_vec_reserve(
   void *cntr,
   size_t n,
   size_t el_size,
-  void *(*realloc_)( void *, size_t )
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( double, max_load ),
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
 )
 {
   if( cc_vec_cap( cntr ) >= n )
@@ -990,26 +1131,17 @@ static inline cc_allocing_fn_result_ty cc_vec_reserve(
   return cc_make_allocing_fn_result( new_cntr, cc_dummy_true_ptr );
 }
 
-#define CC_VEC_RESERVE( cntr, n )                                 \
-(                                                                 \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                            \
-    cntr,                                                         \
-    cc_vec_reserve( cntr, n, CC_EL_SIZE( cntr ), CC_GET_REALLOC ) \
-  ),                                                              \
-  (bool)CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr )                  \
-)                                                                 \
-
-// Inserts elements at index i.
+// Inserts elements at the specified index.
 // Returns a cc_allocing_fn_result_ty containing the new handle and a pointer-iterator to the newly inserted elements.
 // If the underlying storage needed to be expanded and an allocation failure occurred, or if n is zero, the latter
 // pointer will be NULL.
-static inline cc_allocing_fn_result_ty cc_vec_insert(
+static inline cc_allocing_fn_result_ty cc_vec_insert_n(
   void *cntr,
-  size_t i,
+  size_t index,
   void *els,
   size_t n,
   size_t el_size,
-  void *( *realloc_ )( void *, size_t )
+  cc_realloc_fnptr_ty realloc_
 )
 {
   if( n == 0 )
@@ -1024,61 +1156,115 @@ static inline cc_allocing_fn_result_ty cc_vec_insert(
     while( cap < cc_vec_size( cntr ) + n )
       cap *= 2;
 
-    cc_allocing_fn_result_ty result = cc_vec_reserve( cntr, cap, el_size, realloc_ );
+    cc_allocing_fn_result_ty result = cc_vec_reserve(
+      cntr,
+      cap,
+      el_size,
+      0,        // Dummy.
+      NULL,     // Dummy.
+      0.0,      // Dummy.
+      realloc_,
+      NULL      // Dummy.
+    );
     if( !result.other_ptr )
       return result;
 
     cntr = result.new_cntr;
   }
 
-  void *new_els = cc_vec_get( cntr, i, el_size );
-  memmove( cc_vec_get( cntr, i + n, el_size ), new_els, el_size * ( cc_vec_hdr( cntr )->size - i ) );
+  char *new_els = (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * index;
+  memmove( new_els + n * el_size, new_els, el_size * ( cc_vec_hdr( cntr )->size - index ) );
   memcpy( new_els, els, el_size * n );
   cc_vec_hdr( cntr )->size += n;
 
   return cc_make_allocing_fn_result( cntr, new_els );
 }
 
-#define CC_VEC_INSERT_N( cntr, i, els, n )                               \
-(                                                                        \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                   \
-    cntr,                                                                \
-    cc_vec_insert( cntr, i, els, n, CC_EL_SIZE( cntr ), CC_GET_REALLOC ) \
-  ),                                                                     \
-  CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr )                               \
-)                                                                        \
+static inline cc_allocing_fn_result_ty cc_vec_insert(
+  void *cntr,
+  void *el,
+  void *key, // Pointer to size_t index.
+  CC_UNUSED( bool, replace ),
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( cc_cmpr_fnptr_ty, cmpr ),
+  CC_UNUSED( double, max_load ),
+  CC_UNUSED( cc_dtor_fnptr_ty, el_dtor ),
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  return cc_vec_insert_n( cntr, *(size_t *)key, el, 1, el_size, realloc_ );
+}
 
-#define CC_VEC_INSERT( cntr, i, el ) CC_VEC_INSERT_N( cntr, i, &CC_MAKE_LVAL_COPY( CC_EL_TY( cntr ), el ), 1 )
+static inline cc_allocing_fn_result_ty cc_vec_push_n(
+  void *cntr,
+  void *els,
+  size_t n,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  return cc_vec_insert_n( cntr, cc_vec_size( cntr ), els, n, el_size, realloc_ );
+}
 
-#define CC_VEC_PUSH_N( cntr, els, n ) CC_VEC_INSERT_N( cntr, cc_vec_size( cntr ), els, n )
+static inline cc_allocing_fn_result_ty cc_vec_push(
+  void *cntr,
+  void *el,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  return cc_vec_push_n( cntr, el, 1, el_size, realloc_ );
+}
 
-#define CC_VEC_PUSH( cntr, el ) CC_VEC_PUSH_N( cntr, &CC_MAKE_LVAL_COPY( CC_EL_TY( cntr ), el ), 1 )
-
-// Erases n elements at index i.
+// Erases n elements at the specified index.
 // Returns a pointer-iterator to the element after the erased elements, or an end pointer-iterator if there is no
 // subsequent element.
-static inline void *cc_vec_erase_n( void *cntr, size_t i, size_t n, size_t el_size, void ( *dtor )( void * ) )
+static inline void *cc_vec_erase_n(
+  void *cntr,
+  size_t index,
+  size_t n,
+  size_t el_size,
+  cc_dtor_fnptr_ty el_dtor
+)
 {
   if( n == 0 )
-    return cc_vec_get( cntr, i, el_size );
+    return (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * index;
 
-  if( dtor )
+  if( el_dtor )
     for( size_t j = 0; j < n; ++j )
-      dtor( cc_vec_get( cntr, i + j, el_size )  );
+      el_dtor( (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * ( index + j ) );
 
   memmove(
-    cc_vec_get( cntr, i, el_size ),
-    cc_vec_get( cntr, i + n, el_size ),
-    ( cc_vec_hdr( cntr )->size - n - i ) * el_size
+    (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * index,
+    (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * ( index + n ),
+    ( cc_vec_hdr( cntr )->size - n - index ) * el_size
   );
 
   cc_vec_hdr( cntr )->size -= n;
-  return cc_vec_get( cntr, i, el_size );
+  return (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * index;
 }
 
-#define CC_VEC_ERASE_N( cntr, i, n ) cc_vec_erase_n( cntr, i, n, CC_EL_SIZE( cntr ), CC_EL_DTOR( cntr ) )
-
-#define CC_VEC_ERASE( cntr, i ) CC_VEC_ERASE_N( cntr, i, 1 )
+// Shrinks vector's capacity to its current size.
+// Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer that evaluates to true if the
+// operation was successful and false in the case of allocation failure.
+static inline void *cc_vec_erase(
+  void *cntr,
+  void *key, // Pointer to size_t index.
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( cc_cmpr_fnptr_ty, cmpr ),
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  return cc_vec_erase_n( cntr, *(size_t *)key, 1, el_size, el_dtor );
+}
 
 // Sets the number of elements in the vector.
 // If n is below the current size, then the destructor is called for all erased elements.
@@ -1090,8 +1276,8 @@ static inline cc_allocing_fn_result_ty cc_vec_resize(
   void *cntr,
   size_t n,
   size_t el_size,
-  void ( *dtor )( void * ),
-  void *( *realloc_ )( void *, size_t )
+  cc_dtor_fnptr_ty el_dtor,
+  cc_realloc_fnptr_ty realloc_
 )
 {
   // No resize necessary (also handles placeholder).
@@ -1101,12 +1287,21 @@ static inline cc_allocing_fn_result_ty cc_vec_resize(
   // Downsizing.
   if( n < cc_vec_size( cntr ) )
   {
-    cc_vec_erase_n( cntr, n, cc_vec_size( cntr ) - n, el_size, dtor );
+    cc_vec_erase_n( cntr, n, cc_vec_size( cntr ) - n, el_size, el_dtor );
     return cc_make_allocing_fn_result( cntr, cc_dummy_true_ptr );
   }
 
   // Up-sizing.
-  cc_allocing_fn_result_ty result = cc_vec_reserve( cntr, n, el_size, realloc_ );
+  cc_allocing_fn_result_ty result = cc_vec_reserve(
+    cntr,
+    n,
+    el_size,
+    0,        // Dummy.
+    NULL,     // Dummy.
+    0.0,      // Dummy.
+    realloc_,
+    NULL      // Dummy.
+  );
   if( !result.other_ptr )
     return result;
 
@@ -1115,23 +1310,14 @@ static inline cc_allocing_fn_result_ty cc_vec_resize(
   return result;
 }
 
-#define CC_VEC_RESIZE( cntr, n )                                                     \
-(                                                                                    \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                               \
-    cntr,                                                                            \
-    cc_vec_resize( cntr, n, CC_EL_SIZE( cntr ), CC_EL_DTOR( cntr ), CC_GET_REALLOC ) \
-  ),                                                                                 \
-  (bool)CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr )                                     \
-)                                                                                    \
-
-// Shrinks vector's capacity to its current size.
-// Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer that evaluates to true if the
-// operation was successful and false in the case of allocation failure.
 static inline cc_allocing_fn_result_ty cc_vec_shrink(
   void *cntr,
   size_t el_size,
-  void *( *realloc_ )( void *, size_t ),
-  void ( *free_ )( void * )
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( double, max_load ),
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
 )
 {
   if( cc_vec_size( cntr ) == cc_vec_cap( cntr ) ) // Also handles placeholder.
@@ -1152,20 +1338,17 @@ static inline cc_allocing_fn_result_ty cc_vec_shrink(
   return cc_make_allocing_fn_result( new_cntr, cc_dummy_true_ptr );
 }
 
-#define CC_VEC_SHRINK( cntr )                                              \
-(                                                                          \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                     \
-    cntr,                                                                  \
-    cc_vec_shrink( cntr, CC_EL_SIZE( cntr ), CC_GET_REALLOC, CC_GET_FREE ) \
-  ),                                                                       \
-  (bool)CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr )                           \
-)                                                                          \
-
 // Initializes a shallow copy of the source vector.
 // The capacity of the new vector is the size of the source vector, not its capacity.
 // Returns a the pointer to the copy, or NULL in the case of allocation failure.
 // That return value is cast to bool in the corresponding macro.
-static inline void *cc_vec_init_clone( void *src, size_t el_size, void *( *realloc_ )( void *, size_t ) )
+static inline void *cc_vec_init_clone(
+  void *src,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
 {
   if( cc_vec_size( src ) == 0 )
     return (void *)&cc_vec_placeholder;
@@ -1181,61 +1364,87 @@ static inline void *cc_vec_init_clone( void *src, size_t el_size, void *( *reall
   if( !result.other_ptr )
     return NULL;
 
-  memcpy( cc_vec_get( result.new_cntr, 0, el_size ), cc_vec_get( src, 0, el_size ), el_size * cc_vec_size( src ) );
+  memcpy(
+    (char *)result.new_cntr + sizeof( cc_vec_hdr_ty ),
+    (char *)src + sizeof( cc_vec_hdr_ty ),
+    el_size * cc_vec_size( src )
+  );
+
   return result.new_cntr;
 }
 
-#define CC_VEC_INIT_CLONE( cntr, src )                                                        \
-( cntr = (CC_TYPEOF_XP( cntr ))cc_vec_init_clone( src, CC_EL_SIZE( cntr ), CC_GET_REALLOC ) ) \
-
-// Erases all elements, calling the destructors if necessary, without changing the vector's capacity.
-void cc_vec_clear( void *cntr, size_t el_size, void (*dtor)( void * ) )
+// Erases all elements, calling their destructors if necessary.
+static inline void cc_vec_clear(
+  void *cntr,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
 {
-  cc_vec_erase_n( cntr, 0, cc_vec_size( cntr ), el_size, dtor );
+  cc_vec_erase_n( cntr, 0, cc_vec_size( cntr ), el_size, el_dtor );
 }
 
-#define CC_VEC_CLEAR( cntr ) cc_vec_clear( cntr, CC_EL_SIZE( cntr ), CC_EL_DTOR( cntr ) )
-
 // Clears the vector and frees its memory if it is not a placeholder.
-void cc_vec_cleanup( void *cntr, size_t el_size, void (*dtor)( void * ), void (*free_)( void * ) )
+static inline void cc_vec_cleanup(
+  void *cntr,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_free_fnptr_ty free_
+)
 {
-  cc_vec_clear( cntr, el_size, dtor );
+  cc_vec_clear(
+    cntr,
+    el_size,
+    0,       // Dummy.
+    el_dtor,
+    NULL,    // Dummy.
+    NULL     // Dummy.
+  );
 
   if( !cc_vec_is_placeholder( cntr ) )
     free_( cntr );
 }
 
-#define CC_VEC_CLEANUP( cntr )                                                 \
-(                                                                              \
-  cc_vec_cleanup( cntr, CC_EL_SIZE( cntr ), CC_EL_DTOR( cntr ), CC_GET_FREE ), \
-  CC_VEC_INIT( cntr )                                                          \
-)                                                                              \
+static inline void *cc_vec_end(
+  void *cntr,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * cc_vec_size( cntr );
+}
 
-static inline void *cc_vec_first( void *cntr )
+static inline void *cc_vec_next(
+  CC_UNUSED( void *, cntr ),
+  void *itr,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return (char *)itr + el_size;
+}
+
+static inline void *cc_vec_first(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
 {
   return (char *)cntr + sizeof( cc_vec_hdr_ty );
 }
 
-static inline void *cc_vec_last( void *cntr, size_t el_size )
+static inline void *cc_vec_last(
+  void *cntr,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout )
+)
 {
-  return cc_vec_get( cntr, cc_vec_size( cntr ) - 1, el_size );
+  return (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * ( cc_vec_size( cntr ) - 1 );
 }
-
-#define CC_VEC_LAST( cntr ) cc_vec_last( cntr, CC_EL_SIZE( cntr ) )
-
-static inline void *cc_vec_end( void *cntr, size_t el_size )
-{
-  return cc_vec_get( cntr, cc_vec_size( cntr ), el_size );
-}
-
-#define CC_VEC_END( cntr ) cc_vec_end( cntr, CC_EL_SIZE( cntr ) )
-
-static inline void *cc_vec_next( void *i, size_t el_size )
-{
-  return (char *)i + el_size;
-}
-
-#define CC_VEC_NEXT( cntr, i ) cc_vec_next( i, CC_EL_SIZE( cntr ) )
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /*                                                        List                                                        */
@@ -1277,37 +1486,31 @@ typedef struct
 const static cc_list_hdr_ty cc_list_placeholder = {
   0,
   {
-    (cc_listnode_hdr_ty *)&cc_list_placeholder.r_end /* Circular link */,
+    (cc_listnode_hdr_ty *)&cc_list_placeholder.r_end, // Circular link.
     (cc_listnode_hdr_ty *)&cc_list_placeholder.end
   },
   {
     (cc_listnode_hdr_ty *)&cc_list_placeholder.r_end,
-    (cc_listnode_hdr_ty *)&cc_list_placeholder.end /* Circular link */
+    (cc_listnode_hdr_ty *)&cc_list_placeholder.end    // Circular link.
   }
 };
 
-#define CC_LIST_INIT( cntr )                         \
-(                                                    \
-  cntr = (CC_TYPEOF_XP( cntr ))&cc_list_placeholder, \
-  (void)0                                            \
-)                                                    \
-
-// Provides easy access to list header.
+// Easy access to list header.
 static inline cc_list_hdr_ty *cc_list_hdr( void *cntr )
 {
   return (cc_list_hdr_ty *)cntr;
 }
 
-// Provides easy access to a list node header from a pointer-iterator.
-static inline cc_listnode_hdr_ty *cc_listnode_hdr( void *i )
+// Easy access to a list node header from a pointer-iterator.
+static inline cc_listnode_hdr_ty *cc_listnode_hdr( void *itr )
 {
-  return (cc_listnode_hdr_ty *)( (char *)i - sizeof( cc_listnode_hdr_ty ) );
+  return (cc_listnode_hdr_ty *)( (char *)itr - sizeof( cc_listnode_hdr_ty ) );
 }
 
-// Provides easy access to a pointer-iterator from pointer to a list node header.
-static inline void *cc_list_el( void *i )
+// Easy access to a pointer-iterator from pointer to a list node header.
+static inline void *cc_list_el( void *hdr )
 {
-  return (char *)i + sizeof( cc_listnode_hdr_ty );
+  return (char *)hdr + sizeof( cc_listnode_hdr_ty );
 }
 
 static inline bool cc_list_is_placeholder( void *cntr )
@@ -1315,23 +1518,35 @@ static inline bool cc_list_is_placeholder( void *cntr )
   return cc_list_hdr( cntr )->r_end.prev == &cc_list_hdr( cntr )->r_end;
 }
 
-// Iteration.
+static inline size_t cc_list_size( void *cntr )
+{
+  return cc_list_hdr( cntr )->size;
+}
 
 static inline void *cc_list_r_end( void *cntr )
 {
   return cc_list_el( cc_list_hdr( cntr )->r_end.prev );
 }
 
-static inline void *cc_list_end( void *cntr )
+static inline void *cc_list_end(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
 {
   return cc_list_el( cc_list_hdr( cntr )->end.next );
 }
 
-static inline void *cc_list_prev( void *cntr, void *i )
+static inline void *cc_list_prev(
+  void *cntr,
+  void *itr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
 {
-  cc_listnode_hdr_ty *prev = cc_listnode_hdr( i )->prev;
+  cc_listnode_hdr_ty *prev = cc_listnode_hdr( itr )->prev;
 
-  // If i is r_end, then we need to decrement the iterator once more to ensure that the returned iterator is the r_end
+  // If itr is r_end, then we need to decrement the iterator once more to ensure that the returned iterator is the r_end
   // of the placeholder originally associated with the list.
   if( prev == &cc_list_hdr( cntr )->r_end )
     prev = prev->prev;
@@ -1339,9 +1554,14 @@ static inline void *cc_list_prev( void *cntr, void *i )
   return cc_list_el( prev );
 }
 
-static inline void *cc_list_next( void *cntr, void *i )
+static inline void *cc_list_next(
+  void *cntr,
+  void *itr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
 {
-  cc_listnode_hdr_ty *next = cc_listnode_hdr( i )->next;
+  cc_listnode_hdr_ty *next = cc_listnode_hdr( itr )->next;
 
   // See comment in cc_list_prev above.
   if( next == &cc_list_hdr( cntr )->end )
@@ -1350,24 +1570,40 @@ static inline void *cc_list_next( void *cntr, void *i )
   return cc_list_el( next );
 }
 
-static inline void *cc_list_first( void *cntr )
+static inline void *cc_list_first(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
 {
-  return cc_list_next( cntr, cc_list_el( &cc_list_hdr( cntr )->r_end ) );
+  return cc_list_next(
+    cntr,
+    cc_list_el( &cc_list_hdr( cntr )->r_end ),
+    0, // Dummy.
+    0  // Dummy.
+  );
 }
 
-static inline void *cc_list_last( void *cntr )
+static inline void *cc_list_last(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
 {
-  return cc_list_prev( cntr, cc_list_el( &cc_list_hdr( cntr )->end ) );
-}
-
-static inline size_t cc_list_size( void *cntr )
-{
-  return cc_list_hdr( cntr )->size;
+  return cc_list_prev(
+    cntr,
+    cc_list_el( &cc_list_hdr( cntr )->end ),
+    0,              // Dummy.
+    0 // Dummy.
+  );
 }
 
 // Allocates a header for a list that is currently a placeholder.
 // Returns the new container handle, or NULL in the case of allocation failure.
-static inline void *cc_list_alloc_hdr( void *cntr, void *( *realloc_ )( void *, size_t ) )
+static inline void *cc_list_alloc_hdr(
+  void *cntr,
+  cc_realloc_fnptr_ty realloc_
+)
 {
   cc_list_hdr_ty *new_cntr = (cc_list_hdr_ty *)realloc_( NULL, sizeof( cc_list_hdr_ty ) );
   if( !new_cntr )
@@ -1384,32 +1620,40 @@ static inline void *cc_list_alloc_hdr( void *cntr, void *( *realloc_ )( void *, 
   return new_cntr;
 }
 
-// Attaches a node to the list before the node pointed to be pointer-iterator i.
-static inline void cc_list_attach( void *cntr, void *i, cc_listnode_hdr_ty *node )
+// Attaches a node to the list before the node pointed to by the specified pointer-iterator.
+static inline void cc_list_attach( void *cntr, void *itr, cc_listnode_hdr_ty *node )
 {
   // Handle r_end and end iterators as a special case.
   // We need to convert the iterator from the global placeholder's r_end or end to the local r_end or end.
-  if( i == cc_list_r_end( cntr ) )
-    i = cc_list_el( &cc_list_hdr( cntr )->r_end );
-  else if( i == cc_list_end( cntr ) )
-    i = cc_list_el( &cc_list_hdr( cntr )->end );
+  if( itr == cc_list_r_end( cntr ) )
+    itr = cc_list_el( &cc_list_hdr( cntr )->r_end );
+  else if( itr == cc_list_end( cntr, 0 /* Dummy */, 0 /* Dummy */ ) )
+    itr = cc_list_el( &cc_list_hdr( cntr )->end );
 
   // Link node.
-  node->next = cc_listnode_hdr( i );
+  node->next = cc_listnode_hdr( itr );
   node->prev = node->next->prev;
   node->next->prev = node;
   node->prev->next = node;
 }
 
-// Inserts an element into the list before before the node pointed to be pointer-iterator i.
+// Inserts an element into the list before the node pointed to by a given pointer-iterator.
 // Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer-iterator to the newly inserted
 // element (or NULL in the case of allocation failure).
 static inline cc_allocing_fn_result_ty cc_list_insert(
   void *cntr,
-  void *i,
   void *el,
+  void *key, // Pointer to void pointer-interator.
+  CC_UNUSED( bool, replace ),
   size_t el_size,
-  void *( *realloc_ )( void *, size_t )
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( cc_cmpr_fnptr_ty, cmpr ),
+  CC_UNUSED( double, max_load ),
+  CC_UNUSED( cc_dtor_fnptr_ty, el_dtor ),
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
 )
 {
   if( cc_list_is_placeholder( cntr ) )
@@ -1429,40 +1673,63 @@ static inline cc_allocing_fn_result_ty cc_list_insert(
 
   // Handle r_end and end iterators as a special case.
   // We need to convert the iterator from the associated placeholder's r_end or end to the local r_end or end.
-  if( i == cc_list_r_end( cntr ) )
-    i = cc_list_el( &cc_list_hdr( cntr )->r_end );
-  else if( i == cc_list_end( cntr ) )
-    i = cc_list_el( &cc_list_hdr( cntr )->end );
+  if( *(void **)key == cc_list_r_end( cntr ) )
+    *(void **)key = cc_list_el( &cc_list_hdr( cntr )->r_end );
+  else if( *(void **)key == cc_list_end( cntr, 0 /* Dummy */, 0 /* Dummy */ ) )
+    *(void **)key = cc_list_el( &cc_list_hdr( cntr )->end );
 
-  cc_list_attach( cntr, i, new_node );
+  cc_list_attach( cntr, *(void **)key, new_node );
 
   ++cc_list_hdr( cntr )->size;
 
-  return cc_make_allocing_fn_result( cntr, cc_list_el( new_node ) );
+  return cc_make_allocing_fn_result( cntr, cc_list_el( new_node ) );  
 }
 
-#define CC_LIST_INSERT( cntr, i, el )                                                                         \
-(                                                                                                             \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                                        \
-    cntr,                                                                                                     \
-    cc_list_insert( cntr, i, &CC_MAKE_LVAL_COPY( CC_EL_TY( cntr ), el ), CC_EL_SIZE( cntr ), CC_GET_REALLOC ) \
-  ),                                                                                                          \
-  CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr )                                                                    \
-)                                                                                                             \
-
-#define CC_LIST_PUSH( cntr, el ) CC_LIST_INSERT( cntr, cc_list_end( cntr ), el )
-
-// Erases the element pointed to by pointer-iterator i and returns a pointer-iterator to next element (or end if the
-// element was the last element in the list.)
-static inline void *cc_list_erase( void *cntr, void *i, void ( *dtor )( void * ), void ( *free_ )( void * ) )
+static inline cc_allocing_fn_result_ty cc_list_push(
+  void *cntr,
+  void *el,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
 {
-  cc_listnode_hdr_ty *hdr = cc_listnode_hdr( i );
+  return cc_list_insert(
+    cntr,
+    el,
+    &CC_MAKE_LVAL_COPY( void *, cc_list_end( cntr, 0 /* Dummy */, 0 /* Dummy */ ) ),
+    false,    // Dummy.
+    el_size,
+    0,        // Dummy.
+    NULL,     // Dummy.
+    NULL,     // Dummy.
+    0.0,      // Dummy.
+    NULL,     // Dummy.
+    NULL,     // Dummy.
+    realloc_,
+    NULL      // Dummy.
+  );
+}
+
+// Erases the element pointed to by a given pointer-iterator and returns a pointer-iterator to next element (or end if
+// the element was the last element in the list).
+static inline void *cc_list_erase(
+  void *cntr,
+  void *key, // Pointer to void pointer-interator.
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( cc_cmpr_fnptr_ty, cmpr ),
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_free_fnptr_ty free_
+)
+{
+  cc_listnode_hdr_ty *hdr = cc_listnode_hdr( *(void **)key );
   cc_listnode_hdr_ty *next = hdr->next;
   hdr->prev->next = next;
   next->prev = hdr->prev;
   
-  if( dtor )
-    dtor( i );
+  if( el_dtor )
+    el_dtor( *(void **)key );
 
   free_( hdr );
   --cc_list_hdr( cntr )->size;
@@ -1474,19 +1741,18 @@ static inline void *cc_list_erase( void *cntr, void *i, void ( *dtor )( void * )
   return cc_list_el( next );
 }
 
-#define CC_LIST_ERASE( cntr, i ) cc_list_erase( cntr, i, CC_EL_DTOR( cntr ), CC_GET_FREE )
-
-// Removes the element pointed to by pointer-iterator src_i from the source list and attaches it to the list.
+// Removes the element pointed to by pointer-iterator src_itr from the source list and attaches it to the list before
+// pointer-iterator itr.
 // Although this function never allocates memory for the element/node itself, it must allocate the list's header if the
 // list is currently a placeholder.
 // Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer that evaluates to true if the
 // operation was successful or false in the case of allocation failure.
 static inline cc_allocing_fn_result_ty cc_list_splice(
   void *cntr,
-  void *i,
+  void *itr,
   void *src,
-  void *src_i,
-  void *( *realloc_ )( void *, size_t )
+  void *src_itr,
+  cc_realloc_fnptr_ty realloc_
 )
 {
   if( cc_list_is_placeholder( cntr ) )
@@ -1498,24 +1764,15 @@ static inline cc_allocing_fn_result_ty cc_list_splice(
     cntr = new_cntr;
   }
 
-  cc_listnode_hdr( src_i )->prev->next = cc_listnode_hdr( src_i )->next;
-  cc_listnode_hdr( src_i )->next->prev = cc_listnode_hdr( src_i )->prev;
-  cc_list_attach( cntr, i, cc_listnode_hdr( src_i ) );
+  cc_listnode_hdr( src_itr )->prev->next = cc_listnode_hdr( src_itr )->next;
+  cc_listnode_hdr( src_itr )->next->prev = cc_listnode_hdr( src_itr )->prev;
+  cc_list_attach( cntr, itr, cc_listnode_hdr( src_itr ) );
 
   --cc_list_hdr( src )->size;
   ++cc_list_hdr( cntr )->size;
 
   return cc_make_allocing_fn_result( cntr, cc_dummy_true_ptr );
 }
-
-#define CC_LIST_SPLICE( cntr, i, src, src_i )             \
-(                                                         \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                    \
-    cntr,                                                 \
-    cc_list_splice( cntr, i, src, src_i, CC_GET_REALLOC ) \
-  ),                                                      \
-  CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr )                \
-)                                                         \
 
 // Initializes a shallow copy of the source list.
 // This requires allocating memory for every node, as well as for the list's header unless src is a placeholder.
@@ -1524,22 +1781,46 @@ static inline cc_allocing_fn_result_ty cc_list_splice(
 static inline void *cc_list_init_clone(
   void *src,
   size_t el_size,
-  void *( *realloc_ )( void *, size_t ),
-  void ( *free_ )( void * )
+  CC_UNUSED( uint64_t, layout ),
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
 )
 {
   cc_allocing_fn_result_ty result = { (void *)&cc_list_placeholder, cc_dummy_true_ptr };
-  for( void *i = cc_list_first( src ); i != cc_list_end( src ); i = cc_list_next( src, i ) )
+
+  for(
+    void *i = cc_list_first( src, 0 /* Dummy */, 0 /* Dummy */ );
+    i != cc_list_end( src, 0 /* Dummy */, 0 /* Dummy */ );
+    i = cc_list_next( src, i, 0 /* Dummy */, 0 /* Dummy */ )
+  )
   {
-    result = cc_list_insert( result.new_cntr, cc_list_end( result.new_cntr ), i, el_size, realloc_ );
+    result = cc_list_insert(
+      result.new_cntr,
+      i,
+      &CC_MAKE_LVAL_COPY(
+        void *,
+        cc_list_end( result.new_cntr, 0 /* Dummy */, 0 /* Dummy */ )
+      ),
+      false,    // Dummy.
+      el_size,
+      0,        // Dummy.
+      NULL,     // Dummy.
+      NULL,     // Dummy.
+      0.0,      // Dummy.
+      NULL,     // Dummy.
+      NULL,     // Dummy.
+      realloc_,
+      NULL      // Dummy.
+    );
+
     if( !result.other_ptr )
     {
       // Erase incomplete clone without invoking destructors.
       
-      void *j = cc_list_first( result.new_cntr );
-      while( j != cc_list_end( result.new_cntr ) )
+      void *j = cc_list_first( result.new_cntr, 0 /* Dummy */, 0 /* Dummy */ );
+      while( j != cc_list_end( result.new_cntr, 0 /* Dummy */, 0 /* Dummy */ ) )
       {
-        void *next = cc_list_next( result.new_cntr, j );
+        void *next = cc_list_next( result.new_cntr, j, 0 /* Dummy */, 0 /* Dummy */ );
         free_( cc_listnode_hdr( j ) );
         j = next;
       }
@@ -1554,61 +1835,53 @@ static inline void *cc_list_init_clone(
   return result.new_cntr;
 }
 
-#define CC_LIST_INIT_CLONE( cntr, src )                                                                     \
-( cntr = (CC_TYPEOF_XP( cntr ))cc_list_init_clone( src, CC_EL_SIZE( cntr ), CC_GET_REALLOC, CC_GET_FREE ) ) \
-
 // Erases all elements, calling their destructors if necessary.
-static inline void cc_list_clear( void *cntr, void ( *dtor )( void * ), void ( *free_ )( void * ) )
+static inline void cc_list_clear(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout ),
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_free_fnptr_ty free_
+)
 {
-  while( cc_list_first( cntr ) != cc_list_end( cntr ) )
-    cc_list_erase( cntr, cc_list_first( cntr ), dtor, free_ );
+  while(
+    cc_list_first( cntr, 0 /* Dummy */, 0 /* Dummy */ ) !=
+    cc_list_end( cntr, 0 /* Dummy */, 0 /* Dummy */ )
+  )
+    cc_list_erase(
+      cntr,
+      &CC_MAKE_LVAL_COPY( void *, cc_list_first( cntr, 0 /* Dummy */, 0 /* Dummy */ ) ),
+      0,       // Dummy.
+      0,       // Dummy.
+      NULL,    // Dummy.
+      NULL,    // Dummy.
+      el_dtor,
+      NULL,    // Dummy.
+      free_
+    );
 }
-
-#define CC_LIST_CLEAR( cntr ) cc_list_clear( cntr, CC_EL_DTOR( cntr ), CC_GET_FREE )
 
 // Erases all elements, calling their destructors if necessary, and frees memory for the list's header if it is not
 // a placeholder.
-static inline void cc_list_cleanup( void *cntr, void ( *dtor )( void * ), void ( *free_ )( void * ) )
+static inline void cc_list_cleanup(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout ),
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_free_fnptr_ty free_
+)
 {
-  cc_list_clear( cntr, dtor, free_ );
+  cc_list_clear( cntr, 0 /* Dummy */, 0 /* Dummy */, el_dtor, NULL /* Dummy */, free_ );
+
   if( !cc_list_is_placeholder( cntr ) )
     free_( cntr );
 }
 
-#define CC_LIST_CLEANUP( cntr )                             \
-(                                                           \
-  cc_list_cleanup( cntr, CC_EL_DTOR( cntr ), CC_GET_FREE ), \
-  CC_LIST_INIT( cntr )                                      \
-)                                                           \
-
 /*--------------------------------------------------------------------------------------------------------------------*/
 /*                                                        Map                                                         */
 /*--------------------------------------------------------------------------------------------------------------------*/
-
-// Map is implemented as a Robin Hood (open-addressing) hash table with a power-of-2 capacity.
-
-// Probe length type.
-// An unsigned char would probably be fine, but we use unsigned int just in case.
-// A probe length of 0 denotes an empty bucket, whereas a probe length of 1 denotes an element in its home bucket.
-// This optimization allows us to eliminate separate checks for empty buckets.
-typedef unsigned int cc_probelen_ty;
-
-// Macros for calculating the position of element and probe length inside a bucket, as well as bucket size.
-// The element is at the beginning of bucket.
-
-#define CC_MAP_KEY_OFFSET( cntr ) CC_ROUND_UP( CC_EL_SIZE( cntr ), alignof( CC_KEY_TY( cntr ) ) )
-
-#define CC_MAP_PROBELEN_OFFSET( cntr )                                                    \
-CC_ROUND_UP( CC_MAP_KEY_OFFSET( cntr ) + CC_KEY_SIZE( cntr ), alignof( cc_probelen_ty ) ) \
-
-#define CC_MAP_BUCKET_SIZE( cntr )                             \
-CC_ROUND_UP(                                                   \
-  CC_MAP_PROBELEN_OFFSET( cntr ) + sizeof( cc_probelen_ty ),   \
-  alignof( CC_KEY_TY( cntr ) ) > alignof( CC_EL_TY( cntr ) ) ? \
-    alignof( CC_KEY_TY( cntr ) )                               \
-  :                                                            \
-    alignof( CC_EL_TY( cntr ) )                                \
-)                                                              \
 
 // Map header.
 typedef struct
@@ -1622,35 +1895,13 @@ typedef struct
 // In the case of maps, this placeholder allows us to avoid checking for a NULL handle inside functions.
 static const cc_map_hdr_ty cc_map_placeholder = { 0, 0 };
 
-#define CC_MAP_INIT( cntr )                         \
-(                                                   \
-  cntr = (CC_TYPEOF_XP( cntr ))&cc_map_placeholder, \
-  (void)0                                           \
-)                                                   \
-
-// Provides easy access to map header.
+// Easy header access function for internal use.
 static inline cc_map_hdr_ty *cc_map_hdr( void *cntr )
 {
   return (cc_map_hdr_ty *)cntr;
 }
 
-// Functions for easily accessing element, key, and probe length for the bucket at index i.
-// The element pointer also denotes the beginning of the bucket.
-
-static inline void *cc_map_el( void *cntr, size_t i, size_t bucket_size )
-{
-  return (char *)cntr + sizeof( cc_map_hdr_ty ) + bucket_size * i;
-}
-
-static inline void *cc_map_key( void *cntr, size_t i, size_t bucket_size, size_t key_offset )
-{
-  return (char *)cc_map_el( cntr, i, bucket_size ) + key_offset;
-}
-
-static inline cc_probelen_ty *cc_map_probelen( void *cntr, size_t i, size_t bucket_size, size_t probelen_offset )
-{
-  return (cc_probelen_ty *)( (char *)cc_map_el( cntr, i, bucket_size ) + probelen_offset );
-}
+// Size and capacity.
 
 static inline size_t cc_map_size( void *cntr )
 {
@@ -1667,82 +1918,201 @@ static inline bool cc_map_is_placeholder( void *cntr )
   return cc_map_cap( cntr ) == 0;
 }
 
+// Functions for easily accessing element, key, and probe length for the bucket at index i.
+// The element pointer also denotes the beginning of the bucket.
+
+static inline void *cc_map_el( void *cntr, size_t i, size_t el_size, uint64_t layout )
+{
+  return (char *)cntr + sizeof( cc_map_hdr_ty ) + CC_BUCKET_SIZE( el_size, layout ) * i;
+}
+
+static inline void *cc_map_key( void *cntr, size_t i, size_t el_size, uint64_t layout )
+{
+  return (char *)cc_map_el( cntr, i, el_size, layout ) + CC_KEY_OFFSET( el_size, layout );
+}
+
+static inline cc_probelen_ty *cc_map_probelen( void *cntr, size_t i, size_t el_size, uint64_t layout )
+{
+  return (cc_probelen_ty *)( (char *)cc_map_el( cntr, i, el_size, layout ) + CC_PROBELEN_OFFSET( el_size, layout ) );
+}
+
 // Inserts an element into the map.
 // Assumes that the map has empty slots and therefore that failure cannot occur (hence the "raw" label).
 // If replace is true, then el will replace any existing element with the same key.
 // Returns a pointer-iterator to the newly inserted element, or to the existing element with the same key if replace is
 // false.
-// For the exact mechanics of Robin-Hood hashing, see Sebastian Sylvan's helpful article:
+// For the exact mechanics of Robin Hood hashing, see Sebastian Sylvan's helpful article:
 // www.sebastiansylvan.com/post/robin-hood-hashing-should-be-your-default-hash-table-implementation
+// However, this function includes an optimization not mentioned in descriptions of Robin Hood hashing.
+// Traditionally, when attempting to place the pending element, if we reach a bucket containing an element with a lower
+// probe length then we swap the pending element with that element and continue with the same loop.
+// Here, upon reaching such a bucket (or any empty bucket), we simply identify the next empty bucket and then shift all
+// elements from (and including) the former up to the latter forward one bucket.
+// This approach has two advantages:
+// - Once we have placed the original pending element, key comparison checks for subsequent buckets are superfluous, so
+//   a second, inner loop allows us to skip those checks.
+// - Swapping a placed element with the pending element requires copying via an intermediate buffer, so the traditional
+//   approach copies every shifted element twice.
+//   Conversely, identifying the final empty bucket first and then shifting all elements in all intervening buckets at
+//   once only copies each shifted element once, albeit at the cost of copying padding bytes and possibly shifting
+//   elements that didn't actually need to be shifted.
+// This approach performed marginally faster in benchmarking.
 static inline void *cc_map_insert_raw(
   void *cntr,
   void *el,
   void *key,
+  size_t key_hash,
   bool replace,
-  size_t bucket_size,
   size_t el_size,
-  size_t key_offset,
-  size_t key_size,
-  size_t probelen_offset,
-  int ( *cmpr )( void *, void *),
-  size_t ( *hash )( void *),
-  void ( *key_dtor )( void * ),
-  void ( *el_dtor )( void * )
+  uint64_t layout,
+  cc_cmpr_fnptr_ty cmpr,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor
+)
+{
+  size_t i = key_hash & ( cc_map_hdr( cntr )->cap - 1 );
+  cc_probelen_ty probelen = 1;
+
+  while( true )
+  {
+    if( probelen > *cc_map_probelen( cntr, i, el_size, layout ) )
+    {
+      // Empty bucket, or stealing occupied bucket.
+
+      // Find first empty bucket at or after i.
+      // Since the intervening elements will be shifted, we update their probe lengths at the same time.
+      size_t j = i;
+      while( true )
+      {
+        if( !*cc_map_probelen( cntr, j, el_size, layout ) )
+          break;
+
+        ++*cc_map_probelen( cntr, j, el_size, layout );
+        j = ( j + 1 ) & ( cc_map_hdr( cntr )->cap - 1 );        
+      }
+
+      // Shift all elements [i to j) foward one bucket.
+
+      if( j < i )
+      {
+        memmove(
+          cc_map_el( cntr, 1, el_size, layout ),
+          cc_map_el( cntr, 0, el_size, layout ),
+          j * CC_BUCKET_SIZE( el_size, layout ) 
+        );
+
+        memcpy(
+          cc_map_el( cntr, 0, el_size, layout ),
+          cc_map_el( cntr, cc_map_hdr( cntr )->cap - 1, el_size, layout ),
+          CC_BUCKET_SIZE( el_size, layout )
+        );
+
+        j = cc_map_hdr( cntr )->cap - 1;
+      }
+
+      if( i != j )
+        memmove(
+          cc_map_el( cntr, i + 1, el_size, layout ),
+          cc_map_el( cntr, i, el_size, layout ),
+          ( j - i ) * CC_BUCKET_SIZE( el_size, layout )
+        );
+
+      // Insert new element and key into vacated bucket.
+      memcpy( cc_map_key( cntr, i, el_size, layout ), key, CC_KEY_SIZE( layout ) );
+      memcpy( cc_map_el( cntr, i, el_size, layout ), el, el_size );
+      *cc_map_probelen( cntr, i, el_size, layout ) = probelen;
+
+      ++cc_map_hdr( cntr )->size;
+      return cc_map_el( cntr, i, el_size, layout );
+    }
+    else if(
+      probelen == *cc_map_probelen( cntr, i, el_size, layout ) &&
+      cmpr( cc_map_key( cntr, i, el_size, layout ), key )
+    )
+    {
+      // Same key.
+
+      if( replace )
+      {
+        if( key_dtor )
+          key_dtor( cc_map_key( cntr, i, el_size, layout ) );
+
+        if( el_dtor )
+          el_dtor( cc_map_el( cntr, i, el_size, layout ) );
+
+        memcpy( cc_map_key( cntr, i, el_size, layout ), key, CC_KEY_SIZE( layout ) );
+        memcpy( cc_map_el( cntr, i, el_size, layout ), el, el_size );
+      }
+
+      return cc_map_el( cntr, i, el_size, layout );
+    }
+
+    i = ( i + 1 ) & ( cc_map_hdr( cntr )->cap - 1 );
+    ++probelen;
+  }
+}
+
+// Same as previous function, except for elements with keys known not to already exist in the map.
+// This function is used for rehashing when the map's capacity changes.
+// When we known that the key is new, we can skip certain checks and achieve a small performance improvement.
+static inline void *cc_map_insert_raw_unique(
+  void *cntr,
+  void *el,
+  void *key,
+  size_t el_size,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash
 )
 {
   size_t i = hash( key ) & ( cc_map_hdr( cntr )->cap - 1 );
   cc_probelen_ty probelen = 1;
-  void *placed_original_el = NULL;
 
   while( true )
   {
-    // Empty bucket.
-    if( !*cc_map_probelen( cntr, i, bucket_size, probelen_offset ) )
+    if( probelen > *cc_map_probelen( cntr, i, el_size, layout ) )
     {
-      memcpy( cc_map_key( cntr, i, bucket_size, key_offset ), key, key_size );
-      memcpy( cc_map_el( cntr, i, bucket_size ), el, el_size );
+      // Empty bucket, or stealing occupied bucket.
 
-      *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) = probelen;
-
-      ++cc_map_hdr( cntr )->size;
-
-      return placed_original_el ? placed_original_el : cc_map_el( cntr, i, bucket_size ); 
-    }
-
-    // Existing element with same key.
-    // This case can only occur before any steal occurs.
-    if(
-      probelen == *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) &&
-      cmpr( cc_map_key( cntr, i, bucket_size, key_offset ), key ) == 0
-    )
-    {
-      if( replace )
+      size_t j = i;
+      while( true )
       {
-        if( key_dtor )
-          key_dtor( cc_map_key( cntr, i, bucket_size, key_offset ) );
+        if( !*cc_map_probelen( cntr, j, el_size, layout ) )
+          break;
 
-        if( el_dtor )
-          el_dtor( cc_map_el( cntr, i, bucket_size ) );
-
-        memcpy( cc_map_key( cntr, i, bucket_size, key_offset ), key, key_size );
-        memcpy( cc_map_el( cntr, i, bucket_size ), el, el_size );
+        ++*cc_map_probelen( cntr, j, el_size, layout );
+        j = ( j + 1 ) & ( cc_map_hdr( cntr )->cap - 1 );
       }
 
-      return cc_map_el( cntr, i, bucket_size );
-    }
+      if( j < i )
+      {
+        memmove(
+          cc_map_el( cntr, 1, el_size, layout ),
+          cc_map_el( cntr, 0, el_size, layout ),
+          j * CC_BUCKET_SIZE( el_size, layout )
+        );
 
-    // Stealing bucket.
-    if( probelen > *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) )
-    {
-      cc_memswap( key, cc_map_key( cntr, i, bucket_size, key_offset ), key_size );
-      cc_memswap( el, cc_map_el( cntr, i, bucket_size ), el_size );
+        memcpy(
+          cc_map_el( cntr, 0, el_size, layout ),
+          cc_map_el( cntr, cc_map_hdr( cntr )->cap - 1, el_size, layout ),
+          CC_BUCKET_SIZE( el_size, layout )
+        );
 
-      cc_probelen_ty temp_probelen = *cc_map_probelen( cntr, i, bucket_size, probelen_offset );
-      *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) = probelen;
-      probelen = temp_probelen;
+        j = cc_map_hdr( cntr )->cap - 1;
+      }
 
-      if( !placed_original_el )
-        placed_original_el = cc_map_el( cntr, i, bucket_size );
+      if( i != j )
+        memmove(
+          cc_map_el( cntr, i + 1, el_size, layout ),
+          cc_map_el( cntr, i, el_size, layout ),
+          ( j - i ) * CC_BUCKET_SIZE( el_size, layout )
+        );
+
+      memcpy( cc_map_key( cntr, i, el_size, layout ), key, CC_KEY_SIZE( layout ) );
+      memcpy( cc_map_el( cntr, i, el_size, layout ), el, el_size );
+      *cc_map_probelen( cntr, i, el_size, layout ) = probelen;
+
+      ++cc_map_hdr( cntr )->size;
+      return cc_map_el( cntr, i, el_size, layout );
     }
 
     i = ( i + 1 ) & ( cc_map_hdr( cntr )->cap - 1 );
@@ -1771,42 +2141,33 @@ static inline size_t cc_map_min_cap_for_n_els( size_t n, double max_load )
 static inline void *cc_map_make_rehash(
   void *cntr,
   size_t cap,
-  size_t bucket_size,
   size_t el_size,
-  size_t key_offset,
-  size_t key_size,
-  size_t probelen_offset,
-  int ( *cmpr )( void *, void * ),
-  size_t ( *hash )( void * ),
-  void *( *realloc_ )( void *, size_t )
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_realloc_fnptr_ty realloc_
 )
 {
-  cc_map_hdr_ty *new_cntr = (cc_map_hdr_ty *)realloc_( NULL, sizeof( cc_map_hdr_ty ) + bucket_size * cap );
+  cc_map_hdr_ty *new_cntr = (cc_map_hdr_ty *)realloc_(
+    NULL,
+    sizeof( cc_map_hdr_ty ) + CC_BUCKET_SIZE( el_size, layout ) * cap
+  );
   if( !new_cntr )
     return NULL;
 
   new_cntr->size = 0;
   new_cntr->cap = cap;
   for( size_t i = 0; i < cap; ++i )
-    *cc_map_probelen( new_cntr, i, bucket_size, probelen_offset ) = 0;
+    *cc_map_probelen( new_cntr, i, el_size, layout ) = 0;
 
   for( size_t i = 0; i < cc_map_hdr( cntr )->cap; ++i )
-    if( *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) )
-      cc_map_insert_raw(
+    if( *cc_map_probelen( cntr, i, el_size, layout ) )
+      cc_map_insert_raw_unique(
         new_cntr,
-        cc_map_el( cntr, i, bucket_size ),
-        cc_map_key( cntr, i, bucket_size, key_offset ),
-        false, // No replacements can occur anyway as all keys already in the map are unique.
-        bucket_size,
+        cc_map_el( cntr, i, el_size, layout ),
+        cc_map_key( cntr, i, el_size, layout ),
         el_size,
-        key_offset,
-        key_size,
-        probelen_offset,
-        cmpr,
-        hash,
-        // No need to pass destructors as no elements will be erased.
-        NULL, 
-        NULL
+        layout,
+        hash
       );
 
   return new_cntr;
@@ -1819,16 +2180,12 @@ static inline void *cc_map_make_rehash(
 static inline cc_allocing_fn_result_ty cc_map_reserve(
   void *cntr,
   size_t n,
-  size_t bucket_size,
   size_t el_size,
-  size_t key_offset,
-  size_t key_size,
-  size_t probelen_offset,
-  int ( *cmpr )( void *, void * ),
-  size_t ( *hash )( void * ),
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
   double max_load,
-  void *( *realloc_ )( void *, size_t ),
-  void ( *free_ )( void * )
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
 )
 {
   size_t cap = cc_map_min_cap_for_n_els( n, max_load );
@@ -1839,12 +2196,8 @@ static inline cc_allocing_fn_result_ty cc_map_reserve(
   void *new_cntr = cc_map_make_rehash(
     cntr,
     cap,
-    bucket_size,
     el_size,
-    key_offset,
-    key_size,
-    probelen_offset,
-    cmpr,
+    layout,
     hash,
     realloc_
   );
@@ -1857,33 +2210,11 @@ static inline cc_allocing_fn_result_ty cc_map_reserve(
   return cc_make_allocing_fn_result( new_cntr, cc_dummy_true_ptr );
 }
 
-#define CC_MAP_RESERVE( cntr, n )                \
-(                                                \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(           \
-    cntr,                                        \
-    cc_map_reserve(                              \
-      cntr,                                      \
-      n,                                         \
-      CC_MAP_BUCKET_SIZE( cntr ),                \
-      CC_EL_SIZE( cntr ),                        \
-      CC_MAP_KEY_OFFSET( cntr ),                 \
-      CC_KEY_SIZE( cntr ),                       \
-      CC_MAP_PROBELEN_OFFSET( cntr ),            \
-      CC_KEY_CMPR( cntr ),                       \
-      CC_KEY_HASH( cntr ),                       \
-      CC_KEY_LOAD( cntr ),                       \
-      CC_GET_REALLOC,                            \
-      CC_GET_FREE                                \
-    )                                            \
-  ),                                             \
-  (bool)CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr ) \
-)                                                \
-
 // Inserts an element.
 // If replace is true, then el replaces any existing element with the same key.
 // If the map exceeds its load factor, the underlying storage is expanded and a complete rehash occurs.
-// Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer to the newly inserted element, or
-// to the existing element with the same key if replace is false.
+// Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer to the newly inserted element,
+// or to the existing element with the same key if replace is false.
 // If the underlying storage needed to be expanded and an allocation failure occurred, the latter pointer will be NULL.
 // This function checks to ensure that the map could accommodate an insertion before searching for the existing element.
 // Therefore, failure can occur even if an element with the same key already exists and no reallocation was actually
@@ -1894,18 +2225,15 @@ static inline cc_allocing_fn_result_ty cc_map_insert(
   void *el,
   void *key,
   bool replace,
-  size_t bucket_size,
   size_t el_size,
-  size_t key_offset,
-  size_t key_size,
-  size_t probelen_offset,
-  int (*cmpr)( void *, void * ),
-  size_t (*hash)( void * ),
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_cmpr_fnptr_ty cmpr,
   double max_load,
-  void ( *key_dtor )( void * ),
-  void ( *el_dtor )( void * ),
-  void *( *realloc_ )( void *, size_t ),
-  void ( *free_ )( void * )
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor,
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
 )
 {
   if( cc_map_size( cntr ) + 1 > cc_map_cap( cntr ) * max_load )
@@ -1913,12 +2241,8 @@ static inline cc_allocing_fn_result_ty cc_map_insert(
     cc_allocing_fn_result_ty result = cc_map_reserve(
       cntr,
       cc_map_size( cntr ) + 1,
-      bucket_size,
       el_size,
-      key_offset,
-      key_size,
-      probelen_offset,
-      cmpr,
+      layout,
       hash,
       max_load,
       realloc_,
@@ -1935,56 +2259,28 @@ static inline cc_allocing_fn_result_ty cc_map_insert(
     cntr,
     el,
     key,
+    hash( key ),
     replace,
-    bucket_size,
     el_size,
-    key_offset,
-    key_size,
-    probelen_offset,
+    layout,
+    //hash,
     cmpr,
-    hash,
-    key_dtor,
-    el_dtor
+    el_dtor,
+    key_dtor
   );
 
   return cc_make_allocing_fn_result( cntr, new_el );
 }
 
-#define CC_MAP_INSERT( cntr, key, el, replace )     \
-(                                                   \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(              \
-    cntr,                                           \
-    cc_map_insert(                                  \
-      cntr,                                         \
-      &CC_MAKE_LVAL_COPY( CC_EL_TY( cntr ), el ),   \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( cntr ), key ), \
-      replace,                                      \
-      CC_MAP_BUCKET_SIZE( cntr ),                   \
-      CC_EL_SIZE( cntr ),                           \
-      CC_MAP_KEY_OFFSET( cntr ),                    \
-      CC_KEY_SIZE( cntr ),                          \
-      CC_MAP_PROBELEN_OFFSET( cntr ),               \
-      CC_KEY_CMPR( cntr ),                          \
-      CC_KEY_HASH( cntr ),                          \
-      CC_KEY_LOAD( cntr ),                          \
-      CC_KEY_DTOR( cntr ),                          \
-      CC_EL_DTOR( cntr ),                           \
-      CC_GET_REALLOC,                               \
-      CC_GET_FREE                                   \
-    )                                               \
-  ),                                                \
-  CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr )          \
-)                                                   \
-
 // Returns a pointer-iterator to the element with the specified key, or NULL if no such element exists.
 static inline void *cc_map_get(
   void *cntr,
   void *key,
-  size_t bucket_size,
-  size_t key_offset,
-  size_t probelen_offset,
-  int (*cmpr)( void *, void *),
-  size_t (*hash)( void *) )
+  size_t el_size,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_cmpr_fnptr_ty cmpr
+)
 {
   if( cc_map_size( cntr ) == 0 )
     return NULL;
@@ -1992,13 +2288,13 @@ static inline void *cc_map_get(
   size_t i = hash( key ) & ( cc_map_hdr( cntr )->cap - 1 );
   cc_probelen_ty probelen = 1;
 
-  while( probelen <= *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) )
+  while( probelen <= *cc_map_probelen( cntr, i, el_size, layout ) )
   {
     if(
-      probelen == *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) &&
-      cmpr( cc_map_key( cntr, i, bucket_size, key_offset ), key ) == 0
+      probelen == *cc_map_probelen( cntr, i, el_size, layout ) &&
+      cmpr( cc_map_key( cntr, i, el_size, layout ), key )
     )
-      return cc_map_el( cntr, i, bucket_size );
+      return cc_map_el( cntr, i, el_size, layout );
 
     i = ( i + 1 ) & ( cc_map_hdr( cntr )->cap - 1 );
     ++probelen;
@@ -2007,86 +2303,62 @@ static inline void *cc_map_get(
   return NULL;
 }
 
-#define CC_MAP_GET( cntr, key )                 \
-cc_map_get(                                     \
-  cntr,                                         \
-  &CC_MAKE_LVAL_COPY( CC_KEY_TY( cntr ), key ), \
-  CC_MAP_BUCKET_SIZE( cntr ),                   \
-  CC_MAP_KEY_OFFSET( cntr ),                    \
-  CC_MAP_PROBELEN_OFFSET( cntr ),               \
-  CC_KEY_CMPR( cntr ),                          \
-  CC_KEY_HASH( cntr )                           \
-)                                               \
-
-// Returns a pointer to the key for the element pointed to by pointer-iterator i.
-static inline void *cc_map_key_for( void *i, size_t key_offset )
+// Returns a pointer to the key for the element pointed to by the specified pointer-iterator.
+static inline void *cc_map_key_for(
+  void *itr,
+  size_t el_size,
+  uint64_t layout
+)
 {
-  return (char *)i + key_offset;
+  return (char *)itr + CC_KEY_OFFSET( el_size, layout );
 }
 
-#define CC_MAP_KEY_FOR( cntr, i ) cc_map_key_for( i, CC_MAP_KEY_OFFSET( cntr ) )
-
 // Erases the element pointer to by pointer-iterator itr.
-// For the exact mechanics of erasing elements in a Robin-Hood hash table, see Sebastian Sylvan's:
+// For the exact mechanics of erasing elements in a Robin Hood hash table, see Sebastian Sylvan's:
 // www.sebastiansylvan.com/post/more-on-robin-hood-hashing-2/
 static inline void cc_map_erase_itr(
   void *cntr,
   void *itr,
-  size_t bucket_size,
   size_t el_size,
-  size_t key_offset,
-  size_t key_size,
-  size_t probelen_offset,
-  void ( *key_dtor )( void * ),
-  void ( *el_dtor )( void * )
+  uint64_t layout,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor
 )
 {
-  size_t i = ( (char *)itr - (char *)cc_map_el( cntr, 0, bucket_size ) ) / bucket_size;
-  *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) = 0;
+  size_t i = (size_t)( (char *)itr - (char *)cc_map_el( cntr, 0, el_size, layout ) ) /
+    CC_BUCKET_SIZE( el_size, layout );
+
+  *cc_map_probelen( cntr, i, el_size, layout ) = 0;
   --cc_map_hdr( cntr )->size;
 
   if( key_dtor )
-    key_dtor( cc_map_key( cntr, i, bucket_size, key_offset ) );
+    key_dtor( cc_map_key( cntr, i, el_size, layout ) );
 
   if( el_dtor )
-    el_dtor( cc_map_el( cntr, i, bucket_size ) );
+    el_dtor( cc_map_el( cntr, i, el_size, layout ) );
 
   while( true )
   {
     size_t next = ( i + 1 ) & ( cc_map_hdr( cntr )->cap - 1 );
-    if( *cc_map_probelen( cntr, next, bucket_size, probelen_offset ) <= 1 )
+    if( *cc_map_probelen( cntr, next, el_size, layout ) <= 1 )
       break; // Empty slot or key already in its home bucket, so all done.
     
     //Bump backwards.
 
     memcpy(
-      cc_map_key( cntr, i, bucket_size, key_offset ),
-      cc_map_key( cntr, next, bucket_size, key_offset ),
-      key_size
+      cc_map_key( cntr, i, el_size, layout ),
+      cc_map_key( cntr, next, el_size, layout ),
+      CC_KEY_SIZE( layout )
     );
-    memcpy( cc_map_el( cntr, i, bucket_size ), cc_map_el( cntr, next, bucket_size ), el_size );
+    memcpy( cc_map_el( cntr, i, el_size, layout ), cc_map_el( cntr, next, el_size, layout ), el_size );
 
-    *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) =
-      *cc_map_probelen( cntr, next, bucket_size, probelen_offset ) - 1;
-    *cc_map_probelen( cntr, next, bucket_size, probelen_offset ) = 0;
+    *cc_map_probelen( cntr, i, el_size, layout ) =
+      *cc_map_probelen( cntr, next, el_size, layout ) - 1;
+    *cc_map_probelen( cntr, next, el_size, layout ) = 0;
 
     i = next;
   }
 }
-
-#define CC_MAP_ERASE_ITR( cntr, i ) \
-cc_map_erase_itr(                   \
-  cntr,                             \
-  i,                                \
-  CC_MAP_BUCKET_SIZE( cntr ),       \
-  CC_EL_SIZE( cntr ),               \
-  CC_MAP_KEY_OFFSET( cntr ),        \
-  CC_KEY_SIZE( cntr ),              \
-  CC_MAP_PROBELEN_OFFSET( cntr ),   \
-  CC_KEY_DTOR( cntr ),              \
-  CC_EL_DTOR( cntr )                \
-)                                   \
-
 
 // Erases the element with the specified key, if it exists.
 // Returns a pointer that evaluates to true if an element was erased, or else is NULL.
@@ -2094,15 +2366,13 @@ cc_map_erase_itr(                   \
 static inline void *cc_map_erase(
   void *cntr,
   void *key,
-  size_t bucket_size,
   size_t el_size,
-  size_t key_offset,
-  size_t key_size,
-  size_t probelen_offset,
-  int ( *cmpr )( void *, void *),
-  size_t ( *hash )( void * ),
-  void ( *key_dtor )( void * ),
-  void ( *el_dtor )( void * )
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_cmpr_fnptr_ty cmpr,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor,
+  cc_free_fnptr_ty free_
 )
 {
   if( cc_map_size( cntr ) == 0 )
@@ -2111,23 +2381,20 @@ static inline void *cc_map_erase(
   size_t i = hash( key ) & ( cc_map_hdr( cntr )->cap - 1 );
   cc_probelen_ty probelen = 1;
 
-  while( probelen <= *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) )
+  while( probelen <= *cc_map_probelen( cntr, i, el_size, layout ) )
   {
     if(
-      probelen == *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) &&
-      cmpr( cc_map_key( cntr, i, bucket_size, key_offset ), key ) == 0
+      probelen == *cc_map_probelen( cntr, i, el_size, layout ) &&
+      cmpr( cc_map_key( cntr, i, el_size, layout ), key )
     )
     {
       cc_map_erase_itr(
         cntr,
-        cc_map_el( cntr, i, bucket_size ),
-        bucket_size,
+        cc_map_el( cntr, i, el_size, layout ),
         el_size,
-        key_offset,
-        key_size,
-        probelen_offset,
-        key_dtor,
-        el_dtor
+        layout,
+        el_dtor,
+        key_dtor
       );
 
       return cc_dummy_true_ptr;
@@ -2140,63 +2407,18 @@ static inline void *cc_map_erase(
   return NULL;
 }
 
-#define CC_MAP_ERASE( cntr, key )               \
-cc_map_erase(                                   \
-  cntr,                                         \
-  &CC_MAKE_LVAL_COPY( CC_KEY_TY( cntr ), key ), \
-  CC_MAP_BUCKET_SIZE( cntr ),                   \
-  CC_EL_SIZE( cntr ),                           \
-  CC_MAP_KEY_OFFSET( cntr ),                    \
-  CC_KEY_SIZE( cntr ),                          \
-  CC_MAP_PROBELEN_OFFSET( cntr ),               \
-  CC_KEY_CMPR( cntr ),                          \
-  CC_KEY_HASH( cntr ),                          \
-  CC_KEY_DTOR( cntr ),                          \
-  CC_EL_DTOR( cntr )                            \
-)                                               \
-
-// Initializes a shallow copy of the source map.
-// The capacity of the copy is the same as the capacity of the source map, unless the source map is empty, in which case
-// the copy is a placeholder.
-// Hence, this function does no rehashing.
-// Returns a the pointer to the copy, or NULL in the case of allocation failure.
-// That return value is cast to bool in the corresponding macro.
-static inline void *cc_map_init_clone(
-  void *src,
-  size_t bucket_size,
-  void *( *realloc_ )( void *, size_t )
-)
-{
-  if( cc_map_size( src ) == 0 ) // Also handles placeholder.
-    return (void *)&cc_map_placeholder;
-
-  cc_map_hdr_ty *new_cntr = (cc_map_hdr_ty*)realloc_( NULL, sizeof( cc_map_hdr_ty ) + bucket_size * cc_map_cap( src ) );
-  if( !new_cntr )
-    return NULL;
-
-  memcpy( new_cntr, src, sizeof( cc_map_hdr_ty ) + bucket_size * cc_map_cap( src ) );
-  return new_cntr;
-}
-
-#define CC_MAP_INIT_CLONE( cntr, src )                                                                \
-( cntr = (CC_TYPEOF_XP( cntr ))cc_map_init_clone( src, CC_MAP_BUCKET_SIZE( cntr ), CC_GET_REALLOC ) ) \
-
 // Shrinks map's capacity to the minimum possible without violating the max load factor associated with the key type.
 // If shrinking is necessary, then a complete rehash occurs.
 // Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer that evaluates to true if the
 // operation was successful and false in the case of allocation failure.
 static inline cc_allocing_fn_result_ty cc_map_shrink(
   void *cntr,
-  size_t bucket_size,
   size_t el_size,
-  size_t key_offset,
-  size_t key_size,
-  size_t probelen_offset,
-  int ( *cmpr )( void *, void * ),
-  size_t ( *hash )( void * ),
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
   double max_load,
-  void *( *realloc_ )( void *, size_t ),
-  void ( *free_ )( void * )
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
 )
 {
   size_t cap = cc_map_min_cap_for_n_els( cc_map_size( cntr ), max_load );
@@ -2215,12 +2437,8 @@ static inline cc_allocing_fn_result_ty cc_map_shrink(
   void *new_cntr = cc_map_make_rehash(
     cntr,
     cap,
-    bucket_size,
     el_size,
-    key_offset,
-    key_size,
-    probelen_offset,
-    cmpr,
+    layout,
     hash,
     realloc_
   );
@@ -2233,676 +2451,785 @@ static inline cc_allocing_fn_result_ty cc_map_shrink(
   return cc_make_allocing_fn_result( new_cntr, cc_dummy_true_ptr );
 }
 
-#define CC_MAP_SHRINK( cntr )                    \
-(                                                \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(           \
-    cntr,                                        \
-    cc_map_shrink(                               \
-      cntr,                                      \
-      CC_MAP_BUCKET_SIZE( cntr ),                \
-      CC_EL_SIZE( cntr ),                        \
-      CC_MAP_KEY_OFFSET( cntr ),                 \
-      CC_KEY_SIZE( cntr ),                       \
-      CC_MAP_PROBELEN_OFFSET( cntr ),            \
-      CC_KEY_CMPR( cntr ),                       \
-      CC_KEY_HASH( cntr ),                       \
-      CC_KEY_LOAD( cntr ),                       \
-      CC_GET_REALLOC,                            \
-      CC_GET_FREE                                \
-    )                                            \
-  ),                                             \
-  (bool)CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr ) \
-)                                                \
+// Initializes a shallow copy of the source map.
+// The capacity of the copy is the same as the capacity of the source map, unless the source map is empty, in which case
+// the copy is a placeholder.
+// Hence, this function does no rehashing.
+// Returns a the pointer to the copy, or NULL in the case of allocation failure.
+// That return value is cast to bool in the corresponding macro.
+static inline void *cc_map_init_clone(
+  void *src,
+  size_t el_size,
+  uint64_t layout,
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  if( cc_map_size( src ) == 0 ) // Also handles placeholder.
+    return (void *)&cc_map_placeholder;
+
+  cc_map_hdr_ty *new_cntr = (cc_map_hdr_ty*)realloc_(
+    NULL,
+    sizeof( cc_map_hdr_ty ) + CC_BUCKET_SIZE( el_size, layout ) * cc_map_cap( src )
+  );
+  if( !new_cntr )
+    return NULL;
+
+  memcpy( new_cntr, src, sizeof( cc_map_hdr_ty ) + CC_BUCKET_SIZE( el_size, layout ) * cc_map_cap( src ) );
+  return new_cntr;
+}
 
 // Erases all elements, calling the destructors for the key and element types if necessary, without changing the map's
 // capacity.
 static inline void cc_map_clear(
   void *cntr,
-  size_t bucket_size,
-  size_t key_offset,
-  size_t probelen_offset,
-  void ( *key_dtor )( void * ),
-  void ( *el_dtor )( void * )
+  size_t el_size,
+  uint64_t layout,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
 )
 {
   if( cc_map_size( cntr ) == 0 ) // Also handles placeholder map.
     return;
 
   for( size_t i = 0; i < cc_map_hdr( cntr )->cap; ++i )
-    if( *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) )
+    if( *cc_map_probelen( cntr, i, el_size, layout ) )
     {
       if( key_dtor )
-        key_dtor( cc_map_key( cntr, i, bucket_size, key_offset ) );
+        key_dtor( cc_map_key( cntr, i, el_size, layout ) );
 
       if( el_dtor )
-        el_dtor( cc_map_el( cntr, i, bucket_size ) );
+        el_dtor( cc_map_el( cntr, i, el_size, layout ) );
 
-      *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) = 0;
+      *cc_map_probelen( cntr, i, el_size, layout ) = 0;
     }
 
   cc_map_hdr( cntr )->size = 0;
 }
 
-#define CC_MAP_CLEAR( cntr )      \
-cc_map_clear(                     \
-  cntr,                           \
-  CC_MAP_BUCKET_SIZE( cntr ),     \
-  CC_MAP_KEY_OFFSET( cntr ),      \
-  CC_MAP_PROBELEN_OFFSET( cntr ), \
-  CC_KEY_DTOR( cntr ),            \
-  CC_EL_DTOR( cntr )              \
-)                                 \
-
-// Clears the map and frees its memory if is not placeholder.
+// Clears the map and frees its memory if is not a placeholder.
 static inline void cc_map_cleanup(
   void *cntr,
-  size_t bucket_size,
-  size_t key_offset,
-  size_t probelen_offset,
-  void (*key_dtor)( void * ),
-  void (*el_dtor)( void * ),
-  void (*free_)( void * )
+  size_t el_size,
+  uint64_t layout,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor,
+  cc_free_fnptr_ty free_
 )
 {
-  cc_map_clear( cntr, bucket_size, key_offset, probelen_offset, key_dtor, el_dtor );
+  cc_map_clear( cntr, el_size, layout, key_dtor, el_dtor, NULL /* Dummy */ );
 
   if( !cc_map_is_placeholder( cntr ) )
     free_( cntr );
 }
 
-#define CC_MAP_CLEANUP( cntr )      \
-(                                   \
-  cc_map_cleanup(                   \
-    cntr,                           \
-    CC_MAP_BUCKET_SIZE( cntr ),     \
-    CC_MAP_KEY_OFFSET( cntr ),      \
-    CC_MAP_PROBELEN_OFFSET( cntr ), \
-    CC_KEY_DTOR( cntr ),            \
-    CC_EL_DTOR( cntr ),             \
-    CC_GET_FREE                     \
-  ),                                \
-  CC_MAP_INIT( cntr )               \
-)                                   \
-
 // For maps, the container handle doubles up as r_end.
-static inline void *cc_map_r_end( void *cntr )
+static inline void *cc_map_r_end(
+  void *cntr
+)
 {
   return cntr;
 }
 
 // Returns a pointer-iterator to the end of the bucket array.
-static inline void *cc_map_end( void *cntr, size_t bucket_size )
+static inline void *cc_map_end(
+  void *cntr,
+  size_t el_size,
+  uint64_t layout
+)
 {
-  return cc_map_el( cntr, cc_map_hdr( cntr )->cap, bucket_size );
+  return cc_map_el( cntr, cc_map_hdr( cntr )->cap, el_size, layout );
 }
-
-#define CC_MAP_END( cntr ) cc_map_end( cntr, CC_MAP_BUCKET_SIZE( cntr ) )
 
 // Returns a pointer-iterator to the first element, or end if the map is empty.
-static inline void *cc_map_first( void *cntr, size_t bucket_size, size_t probelen_offset )
+static inline void *cc_map_first(
+  void *cntr,
+  size_t el_size,
+  uint64_t layout
+)
 {
   for( size_t i = 0; i < cc_map_hdr( cntr )->cap; ++i )
-    if( *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) )
-      return cc_map_el( cntr, i, bucket_size );
+    if( *cc_map_probelen( cntr, i, el_size, layout ) )
+      return cc_map_el( cntr, i, el_size, layout );
 
-  return cc_map_end( cntr, bucket_size );
+  return cc_map_end( cntr, 0 /* Dummy */, layout );
 }
 
-#define CC_MAP_FIRST( cntr ) cc_map_first( cntr, CC_MAP_BUCKET_SIZE( cntr ), CC_MAP_PROBELEN_OFFSET( cntr ) )
-
 // Returns a pointer-iterator to the last element, or r_end if the map is empty.
-static inline void *cc_map_last( void *cntr, size_t bucket_size, size_t probelen_offset )
+static inline void *cc_map_last(
+  void *cntr,
+  size_t el_size,
+  uint64_t layout
+)
 {
   for( size_t i = cc_map_hdr( cntr )->cap; i-- > 0; )
-    if( *cc_map_probelen( cntr, i, bucket_size, probelen_offset ) )
-      return cc_map_el( cntr, i, bucket_size );
+    if( *cc_map_probelen( cntr, i, el_size, layout ) )
+      return cc_map_el( cntr, i, el_size, layout );
 
   return cc_map_r_end( cntr );
 }
 
-#define CC_MAP_LAST( cntr ) cc_map_last( cntr, CC_MAP_BUCKET_SIZE( cntr ), CC_MAP_PROBELEN_OFFSET( cntr ) )
-
-static inline void *cc_map_next( void *cntr, void *i, size_t bucket_size, size_t probelen_offset )
+static inline void *cc_map_prev(
+  void *cntr,
+  void *itr,
+  size_t el_size,
+  uint64_t layout
+)
 {
-  size_t j = ( (char *)i - (char *)cc_map_el( cntr, 0, bucket_size ) ) / bucket_size + 1;
-
-  while( j < cc_map_hdr( cntr )->cap && !*cc_map_probelen( cntr, j, bucket_size, probelen_offset ) )
-    ++j;
-
-  return cc_map_el( cntr, j, bucket_size );
-}
-
-#define CC_MAP_NEXT( cntr, i ) cc_map_next( cntr, i, CC_MAP_BUCKET_SIZE( cntr ), CC_MAP_PROBELEN_OFFSET( cntr ) )
-
-static inline void *cc_map_prev( void *cntr, void *i, size_t bucket_size, size_t probelen_offset )
-{
-  size_t j = ( (char *)i - (char *)cc_map_el( cntr, 0, bucket_size ) ) / bucket_size;
-
   while( true )
   {
-    if( j == 0 )
+    if( itr == cc_map_el( cntr, 0, el_size, layout ) )
       return cc_map_r_end( cntr );
 
-    --j;
-    if( *cc_map_probelen( cntr, j, bucket_size, probelen_offset ) )
-      return cc_map_el( cntr, j, bucket_size );
+    itr = (void *)( (char *)itr - CC_BUCKET_SIZE( el_size, layout ) );
+    if( *(cc_probelen_ty *)( (char *)itr + CC_PROBELEN_OFFSET( el_size, layout ) ) )
+      return itr;
   }
 }
 
-#define CC_MAP_PREV( cntr, i ) cc_map_prev( cntr, i, CC_MAP_BUCKET_SIZE( cntr ), CC_MAP_PROBELEN_OFFSET( cntr ) )
+static inline void *cc_map_next(
+  void *cntr,
+  void *itr,
+  size_t el_size,
+  uint64_t layout
+)
+{
+  do
+    itr = (void *)( (char *)itr + CC_BUCKET_SIZE( el_size, layout ) );
+  while(
+    itr != cc_map_end( cntr, el_size, layout ) &&
+    !*(cc_probelen_ty *)( (char *)itr + CC_PROBELEN_OFFSET( el_size, layout ) )
+  );
+
+  return itr;
+}
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /*                                                        Set                                                         */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-// Set is implemented as a map where the key and element are merged into one space in memory.
-// Hence, it reuses the functions for map, except that the key offset passed in is zero and the element size passed in
-// is also zero to avoid double-memcpying.
-// For simplicity's sake, the idea here is to deviate as little from the code for map as possible.
-// Note that for set, CC_EL_TYPE and CC_KEY_TYPE are synonymous (as are CC_KEY_SIZE and CC_EL_SIZE).
+// A set is implemented as a map where the key and element are combined into one space in memory.
+// Hence, it reuses the functions for map, except:
+//   - The key offset inside the bucket is zero.
+//     This is handled at the API-macro level via the cc_layout function and associated macros.
+//   - The element size passed into map functions is zero in order to avoid double-memcpying.
 
-#define CC_SET_PROBELEN_OFFSET( cntr ) CC_ROUND_UP( CC_EL_SIZE( cntr ), alignof( cc_probelen_ty ) )
+static inline size_t cc_set_size( void *cntr )
+{
+  return cc_map_size( cntr );
+}
 
-#define CC_SET_BUCKET_SIZE( cntr )                                                                    \
-CC_ROUND_UP( CC_SET_PROBELEN_OFFSET( cntr ) + sizeof( cc_probelen_ty ), alignof( CC_EL_TY( cntr ) ) ) \
+static inline size_t cc_set_cap( void *cntr )
+{
+  return cc_map_cap( cntr );
+}
 
-#define CC_SET_INIT CC_MAP_INIT
+static inline cc_allocing_fn_result_ty cc_set_reserve(
+  void *cntr,
+  size_t n,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  double max_load,
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
+)
+{
+  return cc_map_reserve( cntr, n, 0 /* Zero element size */, layout, hash, max_load, realloc_, free_ );
+}
 
-#define CC_SET_SIZE cc_map_size
+static inline cc_allocing_fn_result_ty cc_set_insert(
+  void *cntr,
+  void *key,
+  bool replace,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_cmpr_fnptr_ty cmpr,
+  double max_load,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
+)
+{
+  return cc_map_insert(
+    cntr,
+    cntr,     // Dummy pointer for element as memcpying to a NULL pointer is undefined behavior even when size is zero.
+    key,
+    replace,
+    0,        // Zero element size.
+    layout,
+    hash,
+    cmpr,
+    max_load,
+    el_dtor,
+    NULL,     // Only one dtor.
+    realloc_,
+    free_
+  );
+}
 
-#define CC_SET_CAP cc_map_cap
+static inline void *cc_set_get(
+  void *cntr,
+  void *key,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_cmpr_fnptr_ty cmpr
+)
+{
+  return cc_map_get( cntr, key, 0 /* Dummy */, layout, hash, cmpr );
+}
 
-#define CC_SET_RESERVE( cntr, n )                \
-(                                                \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(           \
-    cntr,                                        \
-    cc_map_reserve(                              \
-      cntr,                                      \
-      n,                                         \
-      CC_SET_BUCKET_SIZE( cntr ),                \
-      0, /* zero el size */                      \
-      0, /* zero key offset */                   \
-      CC_KEY_SIZE( cntr ),                       \
-      CC_SET_PROBELEN_OFFSET( cntr ),            \
-      CC_KEY_CMPR( cntr ),                       \
-      CC_KEY_HASH( cntr ),                       \
-      CC_KEY_LOAD( cntr ),                       \
-      CC_GET_REALLOC,                            \
-      CC_GET_FREE                                \
-    )                                            \
-  ),                                             \
-  (bool)CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr ) \
-)                                                \
+static inline void cc_set_erase_itr(
+  void *cntr,
+  void *itr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor )
+)
+{
+  cc_map_erase_itr( cntr, itr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one dtor */ );
+}
 
-#define CC_SET_INSERT( cntr, el, replace )         \
-(                                                  \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(             \
-    cntr,                                          \
-    cc_map_insert(                                 \
-      cntr,                                        \
-      /* Copying el is a non-op, but we still      \
-      need to pass a valid pointer for memcpy. */  \
-      cntr,                                        \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( cntr ), el ), \
-      replace,                                     \
-      CC_SET_BUCKET_SIZE( cntr ),                  \
-      0, /* Zero el size. */                       \
-      0, /* Zero key offset. */                    \
-      CC_KEY_SIZE( cntr ),                         \
-      CC_SET_PROBELEN_OFFSET( cntr ),              \
-      CC_KEY_CMPR( cntr ),                         \
-      CC_KEY_HASH( cntr ),                         \
-      CC_KEY_LOAD( cntr ),                         \
-      CC_KEY_DTOR( cntr ),                         \
-      NULL, /* Only need one dtor. */              \
-      CC_GET_REALLOC,                              \
-      CC_GET_FREE                                  \
-    )                                              \
-  ),                                               \
-  CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr )         \
-)                                                  \
+static inline void *cc_set_erase(
+  void *cntr,
+  void *key,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_cmpr_fnptr_ty cmpr,
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  return cc_map_erase(
+    cntr,
+    key,
+    0,       // Zero element size.
+    layout,
+    hash,
+    cmpr,
+    el_dtor,
+    NULL,    // Only one dtor.
+    NULL     // Dummy.
+  );
+}
 
-#define CC_SET_GET( cntr, el )                 \
-cc_map_get(                                    \
-  cntr,                                        \
-  &CC_MAKE_LVAL_COPY( CC_KEY_TY( cntr ), el ), \
-  CC_SET_BUCKET_SIZE( cntr ),                  \
-  0, /* Zero key offset. */                    \
-  CC_SET_PROBELEN_OFFSET( cntr ),              \
-  CC_KEY_CMPR( cntr ),                         \
-  CC_KEY_HASH( cntr )                          \
-)                                              \
+static inline cc_allocing_fn_result_ty cc_set_shrink(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  double max_load,
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
+)
+{
+  return cc_map_shrink( cntr, 0 /* Zero element size */, layout, hash, max_load, realloc_, free_ );
+}
 
-#define CC_SET_ERASE_ITR( cntr, i ) \
-cc_map_erase_itr(                   \
-  cntr,                             \
-  i,                                \
-  CC_SET_BUCKET_SIZE( cntr ),       \
-  0, /* Zero el size. */            \
-  0, /* Zero key offset. */         \
-  CC_KEY_SIZE( cntr ),              \
-  CC_SET_PROBELEN_OFFSET( cntr ),   \
-  CC_KEY_DTOR( cntr ),              \
-  NULL /* Only need one dtor */     \
-)                                   \
+static inline void *cc_set_init_clone(
+  void *src,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  return cc_map_init_clone( src, /* Zero element size */ 0, layout, realloc_, NULL /* Dummy */ );
+}
 
-#define CC_SET_ERASE( cntr, key )               \
-cc_map_erase(                                   \
-  cntr,                                         \
-  &CC_MAKE_LVAL_COPY( CC_KEY_TY( cntr ), key ), \
-  CC_SET_BUCKET_SIZE( cntr ),                   \
-  0, /* Zero el size. */                        \
-  0, /* Zero key offset. */                     \
-  CC_KEY_SIZE( cntr ),                          \
-  CC_SET_PROBELEN_OFFSET( cntr ),               \
-  CC_KEY_CMPR( cntr ),                          \
-  CC_KEY_HASH( cntr ),                          \
-  CC_KEY_DTOR( cntr ),                          \
-  NULL /* Only need one dtor. */                \
-)                                               \
+static inline void cc_set_clear(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  cc_map_clear( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one dtor */, NULL /* Dummy */ );
+}
 
-#define CC_SET_INIT_CLONE( cntr, src )                                                                \
-( cntr = (CC_TYPEOF_XP( cntr ))cc_map_init_clone( src, CC_SET_BUCKET_SIZE( cntr ), CC_GET_REALLOC ) ) \
+static inline void cc_set_cleanup(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  void ( *el_dtor )( void * ),
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  void ( *free_ )( void * ))
+{
+  cc_map_cleanup( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one dtor */, free_ );
+}
 
-#define CC_SET_SHRINK( cntr )                    \
-(                                                \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(           \
-    cntr,                                        \
-    cc_map_shrink(                               \
-      cntr,                                      \
-      CC_SET_BUCKET_SIZE( cntr ),                \
-      0, /* Zero el size. */                     \
-      0, /* Zero key offset. */                  \
-      CC_KEY_SIZE( cntr ),                       \
-      CC_SET_PROBELEN_OFFSET( cntr ),            \
-      CC_KEY_CMPR( cntr ),                       \
-      CC_KEY_HASH( cntr ),                       \
-      CC_KEY_LOAD( cntr ),                       \
-      CC_GET_REALLOC,                            \
-      CC_GET_FREE                                \
-    )                                            \
-  ),                                             \
-  (bool)CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr ) \
-)                                                \
+static inline void *cc_set_r_end( void *cntr )
+{
+  return cc_map_r_end( cntr );
+}
 
-#define CC_SET_CLEAR( cntr )      \
-cc_map_clear(                     \
-  cntr,                           \
-  CC_SET_BUCKET_SIZE( cntr ),     \
-  0,  /* Zero key offset. */      \
-  CC_SET_PROBELEN_OFFSET( cntr ), \
-  CC_KEY_DTOR( cntr ),            \
-  NULL /* Only need one dtor. */  \
-)                                 \
+static inline void *cc_set_end(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout
+)
+{
+  return cc_map_end( cntr, /* Zero element size */ 0, layout );
+}
 
-#define CC_SET_CLEANUP( cntr )      \
-(                                   \
-  cc_map_cleanup(                   \
-    cntr,                           \
-    CC_SET_BUCKET_SIZE( cntr ),     \
-    0,  /* Zero key offset. */      \
-    CC_SET_PROBELEN_OFFSET( cntr ), \
-    CC_KEY_DTOR( cntr ),            \
-    NULL, /* Only need one dtor. */ \
-    CC_GET_FREE                     \
-  ),                                \
-  CC_SET_INIT( cntr )               \
-)                                   \
+static inline void *cc_set_first(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout
+)
+{
+  return cc_map_first( cntr, /* Zero element size */ 0, layout );
+}
 
-#define CC_SET_R_END cc_map_r_end
+static inline void *cc_set_last(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout
+)
+{
+  return cc_map_last( cntr, /* Zero element size */ 0, layout );
+}
 
-#define CC_SET_END( cntr ) cc_map_end( cntr, CC_SET_BUCKET_SIZE( cntr ) )
+static inline void *cc_set_prev(
+  void *cntr,
+  void *itr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout
+)
+{
+  return cc_map_prev( cntr, itr, /* Zero element size */ 0, layout );
+}
 
-#define CC_SET_FIRST( cntr ) cc_map_first( cntr, CC_SET_BUCKET_SIZE( cntr ), CC_SET_PROBELEN_OFFSET( cntr ) )
-
-#define CC_SET_LAST( cntr ) cc_map_last( cntr, CC_SET_BUCKET_SIZE( cntr ), CC_SET_PROBELEN_OFFSET( cntr ) )
-
-#define CC_SET_NEXT( cntr, i ) cc_map_next( cntr, i, CC_SET_BUCKET_SIZE( cntr ), CC_SET_PROBELEN_OFFSET( cntr ) )
-
-#define CC_SET_PREV( cntr, i ) cc_map_prev( cntr, i, CC_SET_BUCKET_SIZE( cntr ), CC_SET_PROBELEN_OFFSET( cntr ) )
+static inline void *cc_set_next(
+  void *cntr,
+  void *itr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout
+)
+{
+  return cc_map_next( cntr, itr, /* Zero element size */ 0, layout );
+}
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /*                                                        API                                                         */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-// Generally, API macros need to do several things:
-// - For GCC and Clang, check the first argument - the pointer to the container handle - for potential duplicate side
-//   effects and generate a compile-time warning if they exist.
-//   Although this is only strictly necessary for macros that may cause reallocation operating on containers that store
-//   their headers in the same block of memory as their elements, we extend this check to all API macros for the sake of
-//   consistency.
-// - Check that the aforementioned pointer points to a container handle compatible with the macro.
-// - Convert the aforementioned pointer to the actual container handle (i.e. derference it).
-//   While the internal macros take the container handle directly, API macros take a pointer to the handle so that it's
-//   clear to the user that they may modify it.
-// - Call the correct container-specific function or macro.
-// - Provide dummy values as arguments to the non-called container-specific functions or macros to avoid compiler
-//   errors.
-// - Cast the result of the container-specific function or macro, if it is a void pointer, to the correct pointer type
-//   (usually the container's element type).
-// - For container-specific functions or macros that return a void pointer that actually denotes whether the operation
-//   was successful, convert it to bool in the case of those containers.
-// Although these macros are long and ramose, the compiler should optimize away all the checks and irrelevant paths.
+#define cc_init( cntr )                                                                \
+(                                                                                      \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                              \
+  CC_STATIC_ASSERT(                                                                    \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                                                    \
+  ),                                                                                   \
+  *(cntr) = (                                                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ? (CC_TYPEOF_XP( *(cntr) ))&cc_vec_placeholder  : \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ? (CC_TYPEOF_XP( *(cntr) ))&cc_list_placeholder : \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ? (CC_TYPEOF_XP( *(cntr) ))&cc_map_placeholder  : \
+                          /* CC_SET */ (CC_TYPEOF_XP( *(cntr) ))&cc_map_placeholder    \
+  ),                                                                                   \
+  (void)0                                                                              \
+)                                                                                      \
 
-#define cc_init( cntr )                                        \
-(                                                              \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                      \
-  CC_STATIC_ASSERT(                                            \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                        \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                        \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                        \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                            \
-  ),                                                           \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? CC_VEC_INIT( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? CC_LIST_INIT( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? CC_MAP_INIT( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_INIT( *(cntr) )  : \
-  (void)0 /* Unreachable. */                                   \
-)                                                              \
+#define cc_size( cntr )                               \
+(                                                     \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),             \
+  CC_STATIC_ASSERT(                                   \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||               \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||               \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||               \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                   \
+  ),                                                  \
+  /* Function select */                               \
+  (                                                   \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_size  : \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_size : \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_size  : \
+                          /* CC_SET */ cc_set_size    \
+  )                                                   \
+  /* Function args */                                 \
+  (                                                   \
+    *(cntr)                                           \
+  )                                                   \
+)                                                     \
 
-#define cc_init_clone( cntr, src )                                           \
-CC_CAST_MAYBE_UNUSED( bool, (                                                \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                    \
-  CC_STATIC_ASSERT( CC_IS_SAME_TY( *(cntr), *(src) ) ),                      \
-  CC_STATIC_ASSERT(                                                          \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                                          \
-  ),                                                                         \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? CC_VEC_INIT_CLONE( *(cntr), *(src) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? CC_LIST_INIT_CLONE( *(cntr), *(src) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? CC_MAP_INIT_CLONE( *(cntr), *(src) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_INIT_CLONE( *(cntr), *(src) )  : \
-  NULL /* Unreachable. */                                                    \
-) )                                                                          \
+#define cc_cap( cntr )                              \
+(                                                   \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),           \
+  CC_STATIC_ASSERT(                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC ||              \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP ||              \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                 \
+  ),                                                \
+  /* Function select */                             \
+  (                                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_cap : \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_cap : \
+                          /* CC_SET */ cc_set_cap   \
+  )                                                 \
+  /* Function args */                               \
+  (                                                 \
+    *(cntr)                                         \
+  )                                                 \
+)                                                   \
 
-
-#define cc_size( cntr )                                        \
-(                                                              \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                      \
-  CC_STATIC_ASSERT(                                            \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                        \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                        \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                        \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                            \
-  ),                                                           \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_size( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_size( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_size( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_SIZE( *(cntr) )  : \
-  0 /* Unreachable. */                                         \
-)                                                              \
-
-#define cc_cap( cntr )                                       \
-(                                                            \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                    \
-  CC_STATIC_ASSERT(                                          \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                      \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                      \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                          \
-  ),                                                         \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_cap( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_cap( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_CAP( *(cntr) ) : \
-  0 /* Unreachable. */                                       \
-)                                                            \
-
-#define cc_reserve( cntr, n )                                        \
-CC_CAST_MAYBE_UNUSED( bool, (                                        \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                            \
-  CC_STATIC_ASSERT(                                                  \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                              \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                              \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                                  \
-  ),                                                                 \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC ? CC_VEC_RESERVE( *(cntr), (n) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP ? CC_MAP_RESERVE( *(cntr), (n) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET ? CC_SET_RESERVE( *(cntr), (n) ) : \
-  false /* Unreachable. */                                           \
-) )                                                                  \
-
-#define cc_resize( cntr, n )                           \
-CC_CAST_MAYBE_UNUSED( bool, (                          \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),              \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ), \
-  CC_VEC_RESIZE( *(cntr), (n) )                        \
-) )                                                    \
-
-#define cc_shrink( cntr )                                      \
-CC_CAST_MAYBE_UNUSED( bool, (                                  \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                      \
-  CC_STATIC_ASSERT(                                            \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC ||                         \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP ||                         \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                            \
-  ),                                                           \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC ? CC_VEC_SHRINK( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP ? CC_MAP_SHRINK( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET ? CC_SET_SHRINK( *(cntr) ) : \
-  false /* Unreachable. */                                     \
-) )                                                            \
+#define cc_reserve( cntr, n )                                                                \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT(                                                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                                                          \
+  ),                                                                                         \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    /* Function select */                                                                    \
+    (                                                                                        \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_reserve :                                    \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_reserve :                                    \
+                            /* CC_SET */ cc_set_reserve                                      \
+    )                                                                                        \
+    /* Function args */                                                                      \
+    (                                                                                        \
+      *(cntr),                                                                               \
+      n,                                                                                     \
+      CC_EL_SIZE( *(cntr) ),                                                                 \
+      CC_LAYOUT( *(cntr) ),                                                                  \
+      CC_KEY_HASH( *(cntr) ),                                                                \
+      CC_KEY_LOAD( *(cntr) ),                                                                \
+      CC_REALLOC_FN,                                                                         \
+      CC_FREE_FN                                                                             \
+    )                                                                                        \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                                            \
 
 #define cc_insert( ... ) CC_SELECT_ON_NUM_ARGS( cc_insert, __VA_ARGS__ )
 
-#define cc_insert_2( cntr, el )                        \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (         \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),              \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_SET ), \
-  CC_SET_INSERT( *(cntr), (el), true )                 \
-) )                                                    \
+#define cc_insert_2( cntr, key )                                                             \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_SET ),                                       \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    cc_set_insert(                                                                           \
+      *(cntr),                                                                               \
+      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
+      true,                                                                                  \
+      CC_LAYOUT( *(cntr) ),                                                                  \
+      CC_KEY_HASH( *(cntr) ),                                                                \
+      CC_KEY_CMPR( *(cntr) ),                                                                \
+      CC_KEY_LOAD( *(cntr) ),                                                                \
+      CC_EL_DTOR( *(cntr) ),                                                                 \
+      CC_REALLOC_FN,                                                                         \
+      CC_FREE_FN                                                                             \
+    )                                                                                        \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                                            \
 
-#define cc_insert_3( cntr, i, el )                                                                             \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                                                                 \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                                      \
-  CC_STATIC_ASSERT(                                                                                            \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                                        \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                                        \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP                                                                            \
-  ),                                                                                                           \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC ?                                                                            \
-    CC_VEC_INSERT( *(cntr), CC_IF_THEN_XP_ELSE_DUMMY( CC_CNTR_ID( *(cntr) ) == CC_VEC, (i), size_t ), (el) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ?                                                                           \
-    CC_LIST_INSERT(                                                                                            \
-      *(cntr),                                                                                                 \
-      CC_IF_THEN_XP_ELSE_DUMMY( CC_CNTR_ID( *(cntr) ) == CC_LIST, (i), CC_EL_TY( *(cntr) )* ),                 \
-      (el)                                                                                                     \
-    ) :                                                                                                        \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP ?                                                                            \
-    CC_MAP_INSERT(                                                                                             \
-      *(cntr),                                                                                                 \
-      CC_IF_THEN_XP_ELSE_DUMMY( CC_CNTR_ID( *(cntr) ) == CC_MAP, (i), CC_KEY_TY( *(cntr) ) ),                  \
-      (el),                                                                                                    \
-      true                                                                                                     \
-    ) :                                                                                                        \
-  NULL /* Unreachable. */                                                                                      \
-) )                                                                                                            \
+#define cc_insert_3( cntr, key, el )                                                         \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT(                                                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP                                                          \
+  ),                                                                                         \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    /* Function select */                                                                    \
+    (                                                                                        \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_insert  :                                    \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_insert :                                    \
+                            /* CC_MAP */ cc_map_insert                                       \
+    )                                                                                        \
+    /* Function args */                                                                      \
+    (                                                                                        \
+      *(cntr),                                                                               \
+      &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
+      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
+      true,                                                                                  \
+      CC_EL_SIZE( *(cntr) ),                                                                 \
+      CC_LAYOUT( *(cntr) ),                                                                  \
+      CC_KEY_HASH( *(cntr) ),                                                                \
+      CC_KEY_CMPR( *(cntr) ),                                                                \
+      CC_KEY_LOAD( *(cntr) ),                                                                \
+      CC_EL_DTOR( *(cntr) ),                                                                 \
+      CC_KEY_DTOR( *(cntr) ),                                                                \
+      CC_REALLOC_FN,                                                                         \
+      CC_FREE_FN                                                                             \
+    )                                                                                        \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                                            \
 
-#define cc_insert_n( cntr, i, els, n )                 \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (         \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),              \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ), \
-  CC_VEC_INSERT_N( *(cntr), (i), (els), (n) )          \
-) )                                                    \
+#define cc_insert_n( cntr, index, els, n )                                                   \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ),                                       \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    cc_vec_insert_n( *(cntr), (index), (els), (n), CC_EL_SIZE( *(cntr) ), CC_REALLOC_FN )    \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                                            \
 
-#define cc_push( cntr, el )                                          \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                       \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                            \
-  CC_STATIC_ASSERT(                                                  \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                              \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST                                 \
-  ),                                                                 \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? CC_VEC_PUSH( *(cntr), (el) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? CC_LIST_PUSH( *(cntr), (el) ) : \
-  NULL /* Unreachable. */                                            \
-) )                                                                  \
+#define cc_push( cntr, el )                                                                  \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT(                                                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST                                                         \
+  ),                                                                                         \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    /* Function select */                                                                    \
+    (                                                                                        \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ?  cc_vec_push  :                                     \
+                            /* CC_LIST */ cc_list_push                                       \
+    )                                                                                        \
+    /* Function args */                                                                      \
+    (                                                                                        \
+      *(cntr),                                                                               \
+      &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
+      CC_EL_SIZE( *(cntr) ),                                                                 \
+      CC_REALLOC_FN                                                                          \
+    )                                                                                        \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                                            \
 
-#define cc_push_n( cntr, els, n )                      \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (         \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),              \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ), \
-  CC_VEC_PUSH_N( *(cntr), (els), (n) )                 \
-) )                                                    \
-
-#define cc_splice( cntr, i, src, src_i )                \
-CC_CAST_MAYBE_UNUSED( bool, (                           \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),               \
-  CC_STATIC_ASSERT( CC_IS_SAME_TY( (cntr), (src) ) ),   \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_LIST ), \
-  CC_LIST_SPLICE( *(cntr), (i), *(src), (src_i) )       \
-) )                                                     \
-
-#define cc_get( cntr, i )                                                                                           \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                                                                      \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                                           \
-  CC_STATIC_ASSERT(                                                                                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC ||                                                                              \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP ||                                                                              \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                                                                                 \
-  ),                                                                                                                \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC ?                                                                                 \
-    CC_VEC_GET( *(cntr), CC_IF_THEN_XP_ELSE_DUMMY( CC_CNTR_ID( *(cntr) ) == CC_VEC, (i), size_t ) )               : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP ?                                                                                 \
-    CC_MAP_GET( *(cntr), CC_IF_THEN_XP_ELSE_DUMMY( CC_CNTR_ID( *(cntr) ) == CC_MAP, (i), CC_KEY_TY( *(cntr) ) ) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET ?                                                                                 \
-    CC_SET_GET( *(cntr), CC_IF_THEN_XP_ELSE_DUMMY( CC_CNTR_ID( *(cntr) ) == CC_SET, (i), CC_KEY_TY( *(cntr) ) ) ) : \
-  NULL /* Unreachable. */                                                                                           \
-) )                                                                                                                 \
+#define cc_push_n( cntr, els, n )                                                            \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ),                                       \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    cc_vec_push_n( *(cntr), (els), (n), CC_EL_SIZE( *(cntr) ), CC_REALLOC_FN )               \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                                            \
 
 #define cc_get_or_insert( ... ) CC_SELECT_ON_NUM_ARGS( cc_get_or_insert, __VA_ARGS__ )
 
-#define cc_get_or_insert_2( cntr, el )                 \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (         \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),              \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_SET ), \
-  CC_SET_INSERT( *(cntr), (el), false )                \
-) )                                                    \
+#define cc_get_or_insert_2( cntr, key )                                                      \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_SET ),                                       \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    cc_set_insert(                                                                           \
+      *(cntr),                                                                               \
+      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
+      false,                                                                                 \
+      CC_LAYOUT( *(cntr) ),                                                                  \
+      CC_KEY_HASH( *(cntr) ),                                                                \
+      CC_KEY_CMPR( *(cntr) ),                                                                \
+      CC_KEY_LOAD( *(cntr) ),                                                                \
+      CC_EL_DTOR( *(cntr) ),                                                                 \
+      CC_REALLOC_FN,                                                                         \
+      CC_FREE_FN                                                                             \
+    )                                                                                        \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                                            \
 
-#define cc_get_or_insert_3( cntr, key, el )            \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (         \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),              \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_MAP ), \
-  CC_MAP_INSERT( *(cntr), (key), (el), false )         \
-) )                                                    \
+#define cc_get_or_insert_3( cntr, key, el )                                                  \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_MAP ),                                       \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    cc_map_insert(                                                                           \
+      *(cntr),                                                                               \
+      &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
+      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
+      false,                                                                                 \
+      CC_EL_SIZE( *(cntr) ),                                                                 \
+      CC_LAYOUT( *(cntr) ),                                                                  \
+      CC_KEY_HASH( *(cntr) ),                                                                \
+      CC_KEY_CMPR( *(cntr) ),                                                                \
+      CC_KEY_LOAD( *(cntr) ),                                                                \
+      CC_EL_DTOR( *(cntr) ),                                                                 \
+      CC_KEY_DTOR( *(cntr) ),                                                                \
+      CC_REALLOC_FN,                                                                         \
+      CC_FREE_FN                                                                             \
+    )                                                                                        \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                                            \
 
-#define cc_key_for( cntr, i )                          \
-CC_CAST_MAYBE_UNUSED( const CC_KEY_TY( *(cntr) ) *, (  \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),              \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_MAP ), \
-  CC_MAP_KEY_FOR( *(cntr), (i) )                       \
-) )                                                    \
+#define cc_get( cntr, key )                              \
+(                                                        \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                \
+  CC_STATIC_ASSERT(                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC ||                   \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP ||                   \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                      \
+  ),                                                     \
+  CC_CAST_MAYBE_UNUSED(                                  \
+    CC_EL_TY( *(cntr) ) *,                               \
+    /* Function select */                                \
+    (                                                    \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_get :    \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_get :    \
+                            /* CC_SET */ cc_set_get      \
+    )                                                    \
+    /* Function args */                                  \
+    (                                                    \
+      *(cntr),                                           \
+      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ), \
+      CC_EL_SIZE( *(cntr) ),                             \
+      CC_LAYOUT( *(cntr) ),                              \
+      CC_KEY_HASH( *(cntr) ),                            \
+      CC_KEY_CMPR( *(cntr) )                             \
+    )                                                    \
+  )                                                      \
+)                                                        \
 
-#define cc_erase( cntr, i )                                                                                           \
-CC_IF_THEN_PTR_TO_BOOL_ELSE_PTR( CC_CNTR_ID( *(cntr) ) == CC_MAP || CC_CNTR_ID( *(cntr) ) == CC_SET,                  \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                                                                        \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                                             \
-  CC_STATIC_ASSERT(                                                                                                   \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                                               \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                                               \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                                               \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                                                                                   \
-  ),                                                                                                                  \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC ?                                                                                   \
-    CC_VEC_ERASE( *(cntr), CC_IF_THEN_XP_ELSE_DUMMY( CC_CNTR_ID( *(cntr) ) == CC_VEC, (i), size_t ) )               : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ?                                                                                  \
-    CC_LIST_ERASE(                                                                                                    \
-      *(cntr),                                                                                                        \
-      CC_IF_THEN_XP_ELSE_DUMMY( CC_CNTR_ID( *(cntr) ) == CC_LIST, (i), CC_EL_TY( *(cntr) ) * )                        \
-    )                                                                                                               : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP ?                                                                                   \
-    CC_MAP_ERASE( *(cntr), CC_IF_THEN_XP_ELSE_DUMMY( CC_CNTR_ID( *(cntr) ) == CC_MAP, (i), CC_KEY_TY( *(cntr) ) ) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET ?                                                                                   \
-    CC_SET_ERASE( *(cntr), CC_IF_THEN_XP_ELSE_DUMMY( CC_CNTR_ID( *(cntr) ) == CC_SET, (i), CC_KEY_TY( *(cntr) ) ) ) : \
-  NULL /* Unreachable. */                                                                                             \
-) ) )                                                                                                                 \
+#define cc_key_for( cntr, itr )                                          \
+(                                                                        \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_MAP ),                   \
+  CC_CAST_MAYBE_UNUSED(                                                  \
+    const CC_KEY_TY( *(cntr) ) *,                                        \
+    cc_map_key_for( (itr), CC_EL_SIZE( *(cntr) ), CC_LAYOUT( *(cntr) ) ) \
+  )                                                                      \
+)                                                                        \
 
-#define cc_erase_n( cntr, i, n )                       \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (         \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),              \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ), \
-  CC_VEC_ERASE_N( *(cntr), (i), (n) )                  \
-) )                                                    \
+#define cc_erase( cntr, key )                                           \
+(                                                                       \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                               \
+  CC_STATIC_ASSERT(                                                     \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                                     \
+  ),                                                                    \
+  CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2(                                  \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP || CC_CNTR_ID( *(cntr) ) == CC_SET, \
+    bool,                                                               \
+    CC_EL_TY( *(cntr) ) *,                                              \
+    /* Function select */                                               \
+    (                                                                   \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_erase  :                \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_erase :                \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_erase  :                \
+                            /* CC_SET */ cc_set_erase                   \
+    )                                                                   \
+    /* Function args */                                                 \
+    (                                                                   \
+      *(cntr),                                                          \
+      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                \
+      CC_EL_SIZE( *(cntr) ),                                            \
+      CC_LAYOUT( *(cntr) ),                                             \
+      CC_KEY_HASH( *(cntr) ),                                           \
+      CC_KEY_CMPR( *(cntr) ),                                           \
+      CC_EL_DTOR( *(cntr) ),                                            \
+      CC_KEY_DTOR( *(cntr) ),                                           \
+      CC_FREE_FN                                                        \
+    )                                                                   \
+  )                                                                     \
+)                                                                       \
 
-#define cc_erase_itr( cntr, i )                                        \
-(                                                                      \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                              \
-  CC_STATIC_ASSERT(                                                    \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP ||                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                                    \
-  ),                                                                   \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP ? CC_MAP_ERASE_ITR( *(cntr), (i) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET ? CC_SET_ERASE_ITR( *(cntr), (i) ) : \
-  (void)0 /* Unreachable. */                                           \
-)                                                                      \
+#define cc_erase_n( cntr, index, n )                                                      \
+(                                                                                         \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                 \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ),                                    \
+  CC_CAST_MAYBE_UNUSED(                                                                   \
+    CC_EL_TY( *(cntr) ) *,                                                                \
+    cc_vec_erase_n( *(cntr), (index), (n), CC_EL_SIZE( *(cntr) ), CC_EL_DTOR( *(cntr) ) ) \
+  )                                                                                       \
+)                                                                                         \
 
-#define cc_clear( cntr )                                        \
-(                                                               \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                       \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? CC_VEC_CLEAR( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? CC_LIST_CLEAR( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? CC_MAP_CLEAR( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_CLEAR( *(cntr) )  : \
-  (void)0 /* Unreachable. */                                    \
-)                                                               \
+#define cc_erase_itr( cntr, itr )                         \
+(                                                         \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                 \
+  CC_STATIC_ASSERT(                                       \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP ||                    \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                       \
+  ),                                                      \
+  /* Function select */                                   \
+  (                                                       \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_erase_itr : \
+                          /* CC_SET */ cc_set_erase_itr   \
+  )                                                       \
+  /* Function args */                                     \
+  (                                                       \
+    *(cntr),                                              \
+    itr,                                                  \
+    CC_EL_SIZE( *(cntr) ),                                \
+    CC_LAYOUT( *(cntr) ),                                 \
+    CC_EL_DTOR( *(cntr) ),                                \
+    CC_KEY_DTOR( *(cntr) )                                \
+  )                                                       \
+)                                                         \
 
-#define cc_cleanup( cntr )                                        \
-(                                                                 \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                         \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? CC_VEC_CLEANUP( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? CC_LIST_CLEANUP( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? CC_MAP_CLEANUP( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_CLEANUP( *(cntr) )  : \
-  (void)0 /* Unreachable. */                                      \
-)                                                                 \
+#define cc_splice( cntr, itr, src, src_itr )                                \
+(                                                                           \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                   \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_LIST ),                     \
+  CC_STATIC_ASSERT( CC_IS_SAME_TY( (cntr), (src) ) ),                       \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                      \
+    *(cntr),                                                                \
+    cc_list_splice( *(cntr), itr, *(src), src_itr, CC_REALLOC_FN )          \
+  ),                                                                        \
+  CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                           \
 
-#define cc_first( cntr )                                        \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                  \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                       \
-  CC_STATIC_ASSERT(                                             \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                         \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                         \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                         \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                             \
-  ),                                                            \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_first( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_first( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? CC_MAP_FIRST( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_FIRST( *(cntr) )  : \
-  NULL  /* Unreachable. */                                      \
-) )                                                             \
+#define cc_resize( cntr, n )                                                                 \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ),                                       \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    cc_vec_resize( *(cntr), n, CC_EL_SIZE( *(cntr) ), CC_EL_DTOR( *(cntr) ), CC_REALLOC_FN ) \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) )                  \
+)                                                                                            \
 
-#define cc_last( cntr )                                        \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                 \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                      \
-  CC_STATIC_ASSERT(                                            \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                        \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                        \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                        \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                            \
-  ),                                                           \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? CC_VEC_LAST( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_last( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? CC_MAP_LAST( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_LAST( *(cntr) )  : \
-  NULL  /* Unreachable. */                                     \
-) )                                                            \
+#define cc_shrink( cntr )                                                   \
+(                                                                           \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                   \
+  CC_STATIC_ASSERT(                                                         \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                     \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                     \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                     \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                                         \
+  ),                                                                        \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                      \
+    *(cntr),                                                                \
+    /* Function select */                                                   \
+    (                                                                       \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_shrink :                    \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_shrink :                    \
+                            /* CC_SET */ cc_set_shrink                      \
+    )                                                                       \
+    /* Function args */                                                     \
+    (                                                                       \
+      *(cntr),                                                              \
+      CC_EL_SIZE( *(cntr) ),                                                \
+      CC_LAYOUT( *(cntr) ),                                                 \
+      CC_KEY_HASH( *(cntr) ),                                               \
+      CC_KEY_LOAD( *(cntr) ),                                               \
+      CC_REALLOC_FN,                                                        \
+      CC_FREE_FN                                                            \
+    )                                                                       \
+  ),                                                                        \
+  CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                           \
 
-#define cc_r_end( cntr )                                        \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                  \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                       \
-  CC_STATIC_ASSERT(                                             \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                         \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                         \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                             \
-  ),                                                            \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_r_end( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_r_end( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_R_END( *(cntr) )  : \
-  NULL  /* Unreachable. */                                      \
-) )                                                             \
-
-#define cc_end( cntr )                                        \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                \
+#define cc_init_clone( cntr, src )                            \
+(                                                             \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                     \
   CC_STATIC_ASSERT(                                           \
     CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                       \
@@ -2910,42 +3237,240 @@ CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                       \
     CC_CNTR_ID( *(cntr) ) == CC_SET                           \
   ),                                                          \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? CC_VEC_END( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_end( *(cntr) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? CC_MAP_END( *(cntr) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_END( *(cntr) )  : \
-  NULL  /* Unreachable. */                                    \
-) )                                                           \
+  CC_STATIC_ASSERT( CC_IS_SAME_TY( *(cntr), *(src) ) ),       \
+  CC_CAST_MAYBE_UNUSED(                                       \
+    bool,                                                     \
+    *(cntr) = (CC_TYPEOF_XP( *(cntr) ))                       \
+    /* Function select */                                     \
+    (                                                         \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_init_clone  : \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_init_clone : \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_init_clone  : \
+                            /* CC_SET */ cc_set_init_clone    \
+    )                                                         \
+    /* Function args */                                       \
+    (                                                         \
+      *(src),                                                 \
+      CC_EL_SIZE( *(cntr) ),                                  \
+      CC_LAYOUT( *(cntr) ),                                   \
+      CC_REALLOC_FN,                                          \
+      CC_FREE_FN                                              \
+    )                                                         \
+  )                                                           \
+)                                                             \
 
-#define cc_next( cntr, i )                                          \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                      \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                           \
-  CC_STATIC_ASSERT(                                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                             \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                             \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                             \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                                 \
-  ),                                                                \
-  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? CC_VEC_NEXT( *(cntr), (i) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_next( *(cntr), (i) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? CC_MAP_NEXT( *(cntr), (i) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_NEXT( *(cntr), (i) )  : \
-  NULL  /* Unreachable. */                                          \
-) )                                                                 \
+#define cc_clear( cntr )                               \
+(                                                      \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),              \
+  CC_STATIC_ASSERT(                                    \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                    \
+  ),                                                   \
+  /* Function select */                                \
+  (                                                    \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_clear  : \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_clear : \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_clear  : \
+                          /* CC_SET */ cc_set_clear    \
+  )                                                    \
+  /* Function args */                                  \
+  (                                                    \
+    *(cntr),                                           \
+    CC_EL_SIZE( *(cntr) ),                             \
+    CC_LAYOUT( *(cntr) ),                              \
+    CC_EL_DTOR( *(cntr) ),                             \
+    CC_KEY_DTOR( *(cntr) ),                            \
+    CC_FREE_FN                                         \
+  )                                                    \
+)                                                      \
 
-#define cc_prev( cntr, i )                                          \
-CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                      \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                           \
-  CC_STATIC_ASSERT(                                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                             \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                             \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                                 \
-  ),                                                                \
-  CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_prev( *(cntr), (i) ) : \
-  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? CC_MAP_PREV( *(cntr), (i) )  : \
-  CC_CNTR_ID( *(cntr) ) == CC_SET  ? CC_SET_PREV( *(cntr), (i) )  : \
-  NULL  /* Unreachable. */                                          \
-) )                                                                 \
+#define cc_cleanup( cntr )                               \
+(                                                        \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                \
+  CC_STATIC_ASSERT(                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                      \
+  ),                                                     \
+  /* Function select */                                  \
+  (                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_cleanup  : \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_cleanup : \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_cleanup  : \
+                          /* CC_SET */ cc_set_cleanup    \
+  )                                                      \
+  /* Function args */                                    \
+  (                                                      \
+    *(cntr),                                             \
+    CC_EL_SIZE( *(cntr) ),                               \
+    CC_LAYOUT( *(cntr) ),                                \
+    CC_EL_DTOR( *(cntr) ),                               \
+    CC_KEY_DTOR( *(cntr) ),                              \
+    CC_FREE_FN                                           \
+  ),                                                     \
+  cc_init( cntr )                                        \
+)                                                        \
+
+#define cc_r_end( cntr )                                 \
+(                                                        \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                \
+  CC_STATIC_ASSERT(                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                      \
+  ),                                                     \
+  CC_CAST_MAYBE_UNUSED(                                  \
+    CC_EL_TY( *(cntr) ) *,                               \
+    /* Function select */                                \
+    (                                                    \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_r_end : \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_r_end  : \
+                            /* CC_SET */ cc_set_r_end    \
+    )                                                    \
+    /* Function args */                                  \
+    (                                                    \
+      *(cntr)                                            \
+    )                                                    \
+  )                                                      \
+)                                                        \
+
+#define cc_end( cntr )                                 \
+(                                                      \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),              \
+  CC_STATIC_ASSERT(                                    \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                    \
+  ),                                                   \
+  CC_CAST_MAYBE_UNUSED(                                \
+    CC_EL_TY( *(cntr) ) *,                             \
+    /* Function select */                              \
+    (                                                  \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_end  : \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_end : \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_end  : \
+                            /* CC_SET */ cc_set_end    \
+    )                                                  \
+    /* Function args */                                \
+    (                                                  \
+      *(cntr),                                         \
+      CC_EL_SIZE( *(cntr) ),                           \
+      CC_LAYOUT( *(cntr) )                             \
+    )                                                  \
+  )                                                    \
+)                                                      \
+
+#define cc_first( cntr )                                 \
+(                                                        \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                \
+  CC_STATIC_ASSERT(                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                      \
+  ),                                                     \
+  CC_CAST_MAYBE_UNUSED(                                  \
+    CC_EL_TY( *(cntr) ) *,                               \
+    /* Function select */                                \
+    (                                                    \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_first  : \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_first : \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_first  : \
+                            /* CC_SET */ cc_set_first    \
+    )                                                    \
+    /* Function args */                                  \
+    (                                                    \
+      *(cntr),                                           \
+      CC_EL_SIZE( *(cntr) ),                             \
+      CC_LAYOUT( *(cntr) )                               \
+    )                                                    \
+  )                                                      \
+)                                                        \
+
+#define cc_last( cntr )                                 \
+(                                                       \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),               \
+  CC_STATIC_ASSERT(                                     \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                     \
+  ),                                                    \
+  CC_CAST_MAYBE_UNUSED(                                 \
+    CC_EL_TY( *(cntr) ) *,                              \
+    /* Function select */                               \
+    (                                                   \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_last  : \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_last : \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_last  : \
+                            /* CC_SET */ cc_set_last    \
+    )                                                   \
+    /* Function args */                                 \
+    (                                                   \
+      *(cntr),                                          \
+      CC_EL_SIZE( *(cntr) ),                            \
+      CC_LAYOUT( *(cntr) )                              \
+    )                                                   \
+  )                                                     \
+)                                                       \
+
+#define cc_next( cntr, itr )                            \
+(                                                       \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),               \
+  CC_STATIC_ASSERT(                                     \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                     \
+  ),                                                    \
+  CC_CAST_MAYBE_UNUSED(                                 \
+    CC_EL_TY( *(cntr) ) *,                              \
+    /* Function select */                               \
+    (                                                   \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_next  : \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_next : \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_next  : \
+                            /* CC_SET */ cc_set_next    \
+    )                                                   \
+    /* Function args */                                 \
+    (                                                   \
+      *(cntr),                                          \
+      (itr),                                            \
+      CC_EL_SIZE( *(cntr) ),                            \
+      CC_LAYOUT( *(cntr) )                              \
+    )                                                   \
+  )                                                     \
+)                                                       \
+
+#define cc_prev( cntr, itr )                            \
+(                                                       \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),               \
+  CC_STATIC_ASSERT(                                     \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                     \
+  ),                                                    \
+  CC_CAST_MAYBE_UNUSED(                                 \
+    CC_EL_TY( *(cntr) ) *,                              \
+    /* Function select */                               \
+    (                                                   \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_prev : \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_prev  : \
+                            /* CC_SET */ cc_set_prev    \
+    )                                                   \
+    /* Function args */                                 \
+    (                                                   \
+      *(cntr),                                          \
+      (itr),                                            \
+      CC_EL_SIZE( *(cntr) ),                            \
+      CC_LAYOUT( *(cntr) )                              \
+    )                                                   \
+  )                                                     \
+)                                                       \
 
 #define cc_for_each( ... ) CC_SELECT_ON_NUM_ARGS( cc_for_each, __VA_ARGS__ )
 
@@ -3029,9 +3554,9 @@ CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, (                      \
 #define CC_R3_7( m, arg ) CC_R2_8( m, arg, 6 ) CC_R3_6( m, arg )
 
 #define CC_FOR_OCT_COUNT( m, arg, d3, d2, d1 ) \
-CC_CAT( CC_R1_, d1 )( m, arg, d3, d2 )         \
-CC_CAT( CC_R2_, d2 )( m, arg, d3 )             \
-CC_CAT( CC_R3_, d3 )( m, arg )                 \
+CC_CAT_2( CC_R1_, d1 )( m, arg, d3, d2 )       \
+CC_CAT_2( CC_R2_, d2 )( m, arg, d3 )           \
+CC_CAT_2( CC_R3_, d3 )( m, arg )               \
 
 #define CC_FOR_EACH_DTOR( m, arg ) CC_FOR_OCT_COUNT( m, arg, CC_N_DTORS_D3, CC_N_DTORS_D2, CC_N_DTORS_D1 )
 #define CC_FOR_EACH_CMPR( m, arg ) CC_FOR_OCT_COUNT( m, arg, CC_N_CMPRS_D3, CC_N_CMPRS_D2, CC_N_CMPRS_D1 )
@@ -3039,7 +3564,8 @@ CC_CAT( CC_R3_, d3 )( m, arg )                 \
 #define CC_FOR_EACH_LOAD( m, arg ) CC_FOR_OCT_COUNT( m, arg, CC_N_LOADS_D3, CC_N_LOADS_D2, CC_N_LOADS_D1 )
 
 // Macros for inferring the destructor, comparison, or hash function or load factor associated with a container's
-// key or element type, as well as for determining whether a comparison or hash function exists for a type.
+// key or element type, as well as for determining whether a comparison or hash function exists for a type and inferring
+// certain map function arguments in bulk (argument packs) from they key type.
 // In C, we use the CC_FOR_EACH_XXXX macros above to create _Generic expressions that select the correct user-defined
 // function or load factor for the container's key or element types.
 // For comparison and hash functions, the list of user-defined functions is followed by a nested _Generic statement
@@ -3056,7 +3582,7 @@ CC_CAT( CC_R3_, d3 )( m, arg )                 \
 #define CC_EL_DTOR( cntr )                              \
 (                                                       \
   CC_FOR_EACH_DTOR( CC_EL_DTOR_SLOT, CC_EL_TY( cntr ) ) \
-  (void (*)( void * ))NULL                              \
+  (cc_dtor_fnptr_ty)NULL                                \
 )                                                       \
 
 #define CC_KEY_DTOR_SLOT( n, arg )                           \
@@ -3068,44 +3594,44 @@ std::is_same<                                                \
 #define CC_KEY_DTOR( cntr )                  \
 (                                            \
   CC_FOR_EACH_DTOR( CC_KEY_DTOR_SLOT, cntr ) \
-  (void (*)( void * ))NULL                   \
+  (cc_dtor_fnptr_ty)NULL                     \
 )                                            \
 
 #define CC_KEY_CMPR_SLOT( n, arg )                                                                      \
 std::is_same<CC_TYPEOF_XP(**arg), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( arg ), cc_cmpr_##n##_ty ) >::value ? \
-  cc_cmpr_##n##_fn                                                                                    : \
+  cc_cmpr_##n##_fn_select                                                                             : \
 
 #define CC_KEY_CMPR( cntr )                                                                                  \
 (                                                                                                            \
   CC_FOR_EACH_CMPR( CC_KEY_CMPR_SLOT, cntr )                                                                 \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char )>::value               ? \
-    cc_cmpr_char                                                                                           : \
+    cc_cmpr_char_select                                                                                    : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char )>::value      ? \
-    cc_cmpr_unsigned_char                                                                                  : \
+    cc_cmpr_unsigned_char_select                                                                           : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char )>::value        ? \
-    cc_cmpr_signed_char                                                                                    : \
+    cc_cmpr_signed_char_select                                                                             : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short )>::value     ? \
-    cc_cmpr_unsigned_short                                                                                 : \
+    cc_cmpr_unsigned_short_select                                                                          : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short )>::value              ? \
-    cc_cmpr_short                                                                                          : \
+    cc_cmpr_short_select                                                                                   : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int )>::value       ? \
-    cc_cmpr_unsigned_int                                                                                   : \
+    cc_cmpr_unsigned_int_select                                                                            : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int )>::value                ? \
-    cc_cmpr_int                                                                                            : \
+    cc_cmpr_int_select                                                                                     : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long )>::value      ? \
-    cc_cmpr_unsigned_long                                                                                  : \
+    cc_cmpr_unsigned_long_select                                                                           : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long )>::value               ? \
-    cc_cmpr_long                                                                                           : \
+    cc_cmpr_long_select                                                                                    : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long )>::value ? \
-    cc_cmpr_unsigned_long_long                                                                             : \
+    cc_cmpr_unsigned_long_long_select                                                                      : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long )>::value          ? \
-    cc_cmpr_long_long                                                                                      : \
+    cc_cmpr_long_long_select                                                                               : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), size_t )>::value             ? \
-    cc_cmpr_size_t                                                                                         : \
+    cc_cmpr_size_t_select                                                                                  : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * )>::value             ? \
-    cc_cmpr_c_string                                                                                       : \
-  (int (*)( void *, void *))NULL                                                                             \
-)                                                                                                            \
+    cc_cmpr_c_string_select                                                                                : \
+  cc_cmpr_dummy_select                                                                                       \
+)( CC_CNTR_ID( cntr ) )                                                                                      \
 
 #define CC_KEY_HASH_SLOT( n, arg )                           \
 std::is_same<                                                \
@@ -3142,7 +3668,7 @@ std::is_same<                                                \
     cc_hash_size_t                                                                                         : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * )>::value             ? \
     cc_hash_c_string                                                                                       : \
-  (size_t (*)( void *))NULL                                                                                  \
+  (cc_hash_fnptr_ty)NULL                                                                                     \
 )                                                                                                            \
 
 #define CC_HAS_CMPR_SLOT( n, arg ) std::is_same<arg, cc_cmpr_##n##_ty>::value ? true :
@@ -3197,43 +3723,51 @@ std::is_same<                                                \
   CC_DEFAULT_LOAD                            \
 )                                            \
 
+#define CC_LAYOUT( cntr )                                                        \
+cc_layout(                                                                       \
+  CC_CNTR_ID( cntr ),                                                            \
+  CC_EL_SIZE( cntr ),                                                            \
+  alignof( CC_EL_TY( cntr ) ),                                                   \
+  cc_key_details_ty{ sizeof( CC_KEY_TY( cntr ) ), alignof( CC_KEY_TY( cntr ) ) } \
+)                                                                                \
+
 #else
 
 #define CC_EL_DTOR_SLOT( n, arg ) cc_dtor_##n##_ty: cc_dtor_##n##_fn,
 #define CC_EL_DTOR( cntr )             \
 _Generic( (CC_EL_TY( cntr )){ 0 },     \
   CC_FOR_EACH_DTOR( CC_EL_DTOR_SLOT, ) \
-  default: (void (*)( void * ))NULL    \
+  default: (cc_dtor_fnptr_ty)NULL      \
 )                                      \
 
 #define CC_KEY_DTOR_SLOT( n, arg ) CC_MAKE_BASE_FNPTR_TY( arg, cc_dtor_##n##_ty ): cc_dtor_##n##_fn,
 #define CC_KEY_DTOR( cntr )                              \
 _Generic( (**cntr),                                      \
   CC_FOR_EACH_DTOR( CC_KEY_DTOR_SLOT, CC_EL_TY( cntr ) ) \
-  default: (void (*)( void * ))NULL                      \
+  default: (cc_dtor_fnptr_ty)NULL                        \
 )                                                        \
 
-#define CC_KEY_CMPR_SLOT( n, arg ) CC_MAKE_BASE_FNPTR_TY( arg, cc_cmpr_##n##_ty ): cc_cmpr_##n##_fn,
-#define CC_KEY_CMPR( cntr )                                                                    \
-_Generic( (**cntr),                                                                            \
-  CC_FOR_EACH_CMPR( CC_KEY_CMPR_SLOT, CC_EL_TY( cntr ) )                                       \
-  default: _Generic( (**cntr),                                                                 \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               cc_cmpr_char,               \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_cmpr_unsigned_char,      \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_cmpr_signed_char,        \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_cmpr_unsigned_short,     \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              cc_cmpr_short,              \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       cc_cmpr_unsigned_int,       \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int ):                cc_cmpr_int,                \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long ):      cc_cmpr_unsigned_long,      \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long ):               cc_cmpr_long,               \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long ): cc_cmpr_unsigned_long_long, \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_cmpr_long_long,          \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_cmpr_size_t,             \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_cmpr_c_string,           \
-    default: (int (*)( void *, void *))NULL                                                    \
-  )                                                                                            \
-)                                                                                              \
+#define CC_KEY_CMPR_SLOT( n, arg ) CC_MAKE_BASE_FNPTR_TY( arg, cc_cmpr_##n##_ty ): cc_cmpr_##n##_fn_select,
+#define CC_KEY_CMPR( cntr )                                                                           \
+_Generic( (**cntr),                                                                                   \
+  CC_FOR_EACH_CMPR( CC_KEY_CMPR_SLOT, CC_EL_TY( cntr ) )                                              \
+  default: _Generic( (**cntr),                                                                        \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               cc_cmpr_char_select,               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_cmpr_unsigned_char_select,      \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_cmpr_signed_char_select,        \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_cmpr_unsigned_short_select,     \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              cc_cmpr_short_select,              \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       cc_cmpr_unsigned_int_select,       \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int ):                cc_cmpr_int_select,                \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long ):      cc_cmpr_unsigned_long_select,      \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long ):               cc_cmpr_long_select,               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long ): cc_cmpr_unsigned_long_long_select, \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_cmpr_long_long_select,          \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_cmpr_size_t_select,             \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_cmpr_c_string_select,           \
+    default: cc_cmpr_dummy_select                                                                     \
+  )                                                                                                   \
+)( CC_CNTR_ID( cntr ) )                                                                               \
 
 #define CC_KEY_HASH_SLOT( n, arg ) CC_MAKE_BASE_FNPTR_TY( arg, cc_hash_##n##_ty ): cc_hash_##n##_fn,
 #define CC_KEY_HASH( cntr )                                                                    \
@@ -3253,7 +3787,7 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_hash_long_long,          \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_hash_size_t,             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_hash_c_string,           \
-    default: (size_t (*)( void *))NULL                                                         \
+    default: (cc_hash_fnptr_ty)NULL                                                            \
   )                                                                                            \
 )                                                                                              \
 
@@ -3308,6 +3842,47 @@ _Generic( (**cntr),                                      \
   default: CC_DEFAULT_LOAD                               \
 )                                                        \
 
+#define CC_KEY_DETAILS_SLOT( n, arg )                                               \
+CC_MAKE_BASE_FNPTR_TY( arg, cc_cmpr_##n##_ty ):                                     \
+  ( cc_key_details_ty ){ sizeof( cc_cmpr_##n##_ty ), alignof( cc_cmpr_##n##_ty ) }, \
+
+#define CC_KEY_DETAILS( cntr )                                                              \
+_Generic( (**cntr),                                                                         \
+  CC_FOR_EACH_CMPR( CC_KEY_DETAILS_SLOT, CC_EL_TY( cntr ) )                                 \
+  default: _Generic( (**cntr),                                                              \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):                                        \
+      ( cc_key_details_ty ){ sizeof( char ), alignof( char ) },                             \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ) :                              \
+      ( cc_key_details_ty ){ sizeof( unsigned char ), alignof( unsigned char ) },           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ) :                                \
+      ( cc_key_details_ty ){ sizeof( signed char ), alignof( signed char ) },               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ) :                             \
+      ( cc_key_details_ty ){ sizeof( unsigned short ), alignof( unsigned short ) },         \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ) :                                      \
+      ( cc_key_details_ty ){ sizeof( short ), alignof( short ) },                           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ) :                               \
+      ( cc_key_details_ty ){ sizeof( unsigned int ), alignof( unsigned int ) },             \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int ) :                                        \
+      ( cc_key_details_ty ){ sizeof( int ), alignof( int ) },                               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long ):                               \
+      ( cc_key_details_ty ){ sizeof( unsigned long ), alignof( unsigned long ) },           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long ):                                        \
+      ( cc_key_details_ty ){ sizeof( long ), alignof( long ) },                             \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long ):                          \
+      ( cc_key_details_ty ){ sizeof( unsigned long long ), alignof( unsigned long long ) }, \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):                                   \
+      ( cc_key_details_ty ){ sizeof( long long ), alignof( long long ) },                   \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):                             \
+      ( cc_key_details_ty ){ sizeof( cc_maybe_size_t ), alignof( cc_maybe_size_t ) },       \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):                                      \
+      ( cc_key_details_ty ){ sizeof( char * ), alignof( char * ) },                         \
+    default: ( cc_key_details_ty ){ 0 }                                                     \
+  )                                                                                         \
+)                                                                                           \
+
+#define CC_LAYOUT( cntr )                                                                                \
+cc_layout( CC_CNTR_ID( cntr ), CC_EL_SIZE( cntr ), alignof( CC_EL_TY( cntr ) ), CC_KEY_DETAILS( cntr ) ) \
+
 #endif
 
 // Macros for extracting the type and function body or load factor from user-defined DTOR, CMPR, HASH, and LOAD macros. 
@@ -3320,122 +3895,66 @@ _Generic( (**cntr),                                      \
 
 // Integer types.
 
-static inline int cc_cmpr_char( void *void_val_1, void *void_val_2 )
+static inline size_t hash_uint64( uint64_t val )
 {
-  return ( *(char *)void_val_1 > *(char *)void_val_2 ) - ( *(char *)void_val_1 < *(char *)void_val_2 );
+#if SIZE_MAX == 0xFFFFFFFFFFFFFFFF || SIZE_MAX == 0xFFFFFFFF // 64-bit or 32-bit size_t.
+  // Fast-hash: https://jonkagstrom.com/bit-mixer-construction/
+  //            https://code.google.com/archive/p/fast-hash/
+  val ^= val >> 23;
+  val *= 0x2127599bf4325c37ULL;
+  val ^= val >> 47;
+#if SIZE_MAX == 0xFFFFFFFFFFFFFFFF
+  return val;
+#elif SIZE_MAX == 0xFFFFFFFF
+  return val - ( val >> 32 );
+#endif
+#else // Unknown size_t, fall back on Knuth.
+  return val * 2654435761ull;
+#endif
 }
 
-static inline size_t cc_hash_char( void *void_val )
-{
-  return *(char *)void_val;
-}
+// Comparison functionality for each type is split between an equality function and a less-than function.
+// A select function returns a pointer to the relevant of these two functions based on the container type.
+// This bifurcation, instead of one unified three-way comparison function, allows the most optimized comparison to
+// always be used without increasing the number of _Generic statements inside API macros or complicating the API for
+// defining custom comparison functions (see "DEFINING DESTRUCTOR, COMPARISON, OR HASH FUNCTION OR LOAD FACTOR MODE"
+// below for more details).
+// Note that the less-than functions are currently unused, but they will be necessary for future tree-based containers
+// and sort functions for vectors and lists.
 
-static inline int cc_cmpr_unsigned_char( void *void_val_1, void *void_val_2 )
-{
-  return ( *(unsigned char *)void_val_1 > *(unsigned char *)void_val_2 ) -
-         ( *(unsigned char *)void_val_1 < *(unsigned char *)void_val_2 );
-}
+#define CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( ty, name )                                        \
+                                                                                                  \
+static inline bool cc_cmpr_##name##_less( void *void_val_1, void *void_val_2 )                    \
+{                                                                                                 \
+  return *(ty *)void_val_1 < *(ty *)void_val_2;                                                   \
+}                                                                                                 \
+                                                                                                  \
+static inline bool cc_cmpr_##name##_equal( void *void_val_1, void *void_val_2 )                   \
+{                                                                                                 \
+  return *(ty *)void_val_1 == *(ty *)void_val_2;                                                  \
+}                                                                                                 \
+                                                                                                  \
+static inline CC_ALWAYS_INLINE cc_cmpr_fnptr_ty cc_cmpr_##name##_select( size_t cntr_id )         \
+{                                                                                                 \
+  return cntr_id == CC_MAP || cntr_id == CC_SET ? cc_cmpr_##name##_equal : cc_cmpr_##name##_less; \
+}                                                                                                 \
+                                                                                                  \
+static inline size_t cc_hash_##name( void *void_val )                                             \
+{                                                                                                 \
+  return hash_uint64( (uint64_t)*(ty *)void_val );                                                \
+}                                                                                                 \
 
-static inline size_t cc_hash_unsigned_char( void *void_val )
-{
-  return *(unsigned char *)void_val;
-}
-
-static inline int cc_cmpr_signed_char( void *void_val_1, void *void_val_2 )
-{
-  return ( *(signed char *)void_val_1 > *(signed char *)void_val_2 ) -
-         ( *(signed char *)void_val_1 < *(signed char *)void_val_2 );
-}
-
-static inline size_t cc_hash_signed_char( void *void_val )
-{
-  return *(signed char *)void_val;
-}
-
-static inline int cc_cmpr_unsigned_short( void *void_val_1, void *void_val_2 )
-{
-  return ( *(unsigned short *)void_val_1 > *(unsigned short *)void_val_2 ) -
-         ( *(unsigned short *)void_val_1 < *(unsigned short *)void_val_2 );
-}
-
-static inline size_t cc_hash_unsigned_short( void *void_val )
-{
-  return *(unsigned short *)void_val * 2654435761ull;
-}
-
-static inline int cc_cmpr_short( void *void_val_1, void *void_val_2 )
-{
-  return ( *(short *)void_val_1 > *(short *)void_val_2 ) - ( *(short *)void_val_1 < *(short *)void_val_2 );
-}
-
-static inline size_t cc_hash_short( void *void_val )
-{
-  return *(short *)void_val * 2654435761ull;
-}
-
-static inline int cc_cmpr_unsigned_int( void *void_val_1, void *void_val_2 )
-{
-  return ( *(unsigned int *)void_val_1 > *(unsigned int *)void_val_2 ) -
-         ( *(unsigned int *)void_val_1 < *(unsigned int *)void_val_2 );
-}
-
-static inline size_t cc_hash_unsigned_int( void *void_val )
-{
-  return *(unsigned int *)void_val * 2654435761ull;
-}
-
-static inline int cc_cmpr_int( void *void_val_1, void *void_val_2 )
-{
-  return ( *(int *)void_val_1 > *(int *)void_val_2 ) - ( *(int *)void_val_1 < *(int *)void_val_2 );
-}
-
-static inline size_t cc_hash_int( void *void_val )
-{
-  return *(int *)void_val * 2654435761ull;
-}
-
-static inline int cc_cmpr_unsigned_long( void *void_val_1, void *void_val_2 )
-{
-  return ( *(unsigned long *)void_val_1 > *(unsigned long *)void_val_2 ) -
-         ( *(unsigned long *)void_val_1 < *(unsigned long *)void_val_2 );
-}
-
-static inline size_t cc_hash_unsigned_long( void *void_val )
-{
-  return *(unsigned long *)void_val * 2654435761ull;
-}
-
-static inline int cc_cmpr_long( void *void_val_1, void *void_val_2 )
-{
-  return ( *(long *)void_val_1 > *(long *)void_val_2 ) - ( *(long *)void_val_1 < *(long *)void_val_2 );
-}
-
-static inline size_t cc_hash_long( void *void_val )
-{
-  return *(long *)void_val * 2654435761ull;
-}
-
-static inline int cc_cmpr_unsigned_long_long( void *void_val_1, void *void_val_2 )
-{
-  return ( *(unsigned long long *)void_val_1 > *(unsigned long long *)void_val_2 ) -
-         ( *(unsigned long long *)void_val_1 < *(unsigned long long *)void_val_2 );
-}
-
-static inline size_t cc_hash_unsigned_long_long( void *void_val )
-{
-  return *(unsigned long long *)void_val * 2654435761ull;
-}
-
-static inline int cc_cmpr_long_long( void *void_val_1, void *void_val_2 )
-{
-  return ( *(long long *)void_val_1 > *(long long *)void_val_2 ) - 
-         ( *(long long *)void_val_1 < *(long long *)void_val_2 );
-}
-
-static inline size_t cc_hash_long_long( void *void_val )
-{
-  return *(long long *)void_val * 2654435761ull;
-}
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( char, char )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( unsigned char, unsigned_char )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( signed char, signed_char )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( unsigned short, unsigned_short )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( short, short )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( unsigned int, unsigned_int )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( int, int )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( unsigned long, unsigned_long )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( long, long )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( unsigned long long, unsigned_long_long )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( long long, long_long )
 
 // size_t could be an alias for a fundamental integer type or a distinct type.
 // Hence, in C we have to handle it as a special case so that it doesn't clash with another type in _Generic statements.
@@ -3462,24 +3981,26 @@ typedef CC_TYPEOF_XP(
 
 #endif
 
-static inline int cc_cmpr_size_t( void *void_val_1, void *void_val_2 )
-{
-  return ( *(size_t *)void_val_1 > *(size_t *)void_val_2 ) - ( *(size_t *)void_val_1 < *(size_t *)void_val_2 );
-}
-
-static inline size_t cc_hash_size_t( void *void_val )
-{
-  return *(size_t *)void_val * 2654435761ull;
-}
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( size_t, size_t )
 
 // Null-terminated C strings.
 // We use FNV-1a because newer, faster alternatives that process word-sized chunks require prior knowledge of the
 // string's length.
 
-static inline int cc_cmpr_c_string( void *void_val_1, void *void_val_2 )
+static inline bool cc_cmpr_c_string_less( void *void_val_1, void *void_val_2 )
 {
-  return strcmp( *(char **)void_val_1, *(char **)void_val_2 );
+  return strcmp( *(char **)void_val_1, *(char **)void_val_2 ) < 0;
 }
+
+static inline bool cc_cmpr_c_string_equal( void *void_val_1, void *void_val_2 )
+{
+  return strcmp( *(char **)void_val_1, *(char **)void_val_2 ) == 0;
+}
+
+static inline cc_cmpr_fnptr_ty cc_cmpr_c_string_select( size_t cntr_id )                          \
+{                                                                                                 \
+  return cntr_id == CC_MAP || cntr_id == CC_SET ? cc_cmpr_c_string_equal : cc_cmpr_c_string_less; \
+}                                                                                                 \
 
 #if SIZE_MAX == 0xFFFFFFFF // 32-bit size_t.
 
@@ -3519,7 +4040,14 @@ static inline size_t cc_hash_c_string( void *void_val )
 
 #endif
 
+// Dummy for containers with no comparison function.
+static inline CC_ALWAYS_INLINE cc_cmpr_fnptr_ty cc_cmpr_dummy_select( CC_UNUSED( size_t, cntr_id ) )
+{
+  return NULL;
+}
+
 #endif
+
 #else/*---------------------------------------------------------------------------------------------------------------*/
 /*                                                                                                                    */
 /*                       DEFINING DESTRUCTOR, COMPARISON, OR HASH FUNCTION OR LOAD FACTOR MODE                        */
@@ -3622,11 +4150,34 @@ static inline void CC_CAT_3( cc_dtor_, CC_N_DTORS, _fn )( void *void_val )
 
 typedef CC_TYPEOF_TY( CC_1ST_ARG( CC_CMPR ) ) CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty );
 
-static inline int CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn )( void *void_val_1, void *void_val_2 )
+// For user-defined comparison functions, the user provides a three-way comparison (see documentation at start of file).
+// The library then defines less-than and equals functions that call the three-way comparison function.
+// This allows the compiler to optimize the comparison for best performance in both cases without burdening the user
+// with having to define two separate comparison functions for a single type.
+
+static inline CC_ALWAYS_INLINE int CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_three_way )( void *void_val_1, void *void_val_2 )
 {
   CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) val_1 = *(CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) *)void_val_1;
   CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) val_2 = *(CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) *)void_val_2;
   CC_OTHER_ARGS( CC_CMPR )
+}
+
+static inline bool CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_less )( void *void_val_1, void *void_val_2 )
+{
+  return CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_three_way )( void_val_1, void_val_2 ) < 0;
+}
+
+static inline bool CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_equals )( void *void_val_1, void *void_val_2 )
+{
+  return CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_three_way )( void_val_1, void_val_2 ) == 0;
+}
+
+static inline CC_ALWAYS_INLINE cc_cmpr_fnptr_ty CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_select )( size_t cntr_id )
+{
+  return cntr_id == CC_MAP || cntr_id == CC_SET ?
+    CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_equals )
+    :
+    CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_less );
 }
 
 #if CC_N_CMPRS_D1 == 0
