@@ -497,10 +497,6 @@ Destructor, comparison, and hash functions are also deduced via a novel techniqu
 
 **CC** has been tested under GCC, MinGW, and Clang. `tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivalent **CC** and C++ STL containers and then check that they remain in sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
 
-### Does it impact build times?
-    
-Yes. The compiler must do extra work deducing types, processing macros, and inlining functions at compile time. `unit_tests.c`, as an example of a program that uses **CC** extensively, compiles in 4.5 seconds in MinGW with `O3` in my development environment, whereas a roughly equivalent program using C++'s STL containers compiles in 3.1 seconds. So consider this point if your project is large and build speed is important.  
-
 ### What's next?
 
 Future versions should include `NULL`-terminated dynamic strings, ordered maps, and ordered sets, as well as performance benchmarks.
