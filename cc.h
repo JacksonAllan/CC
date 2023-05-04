@@ -525,7 +525,7 @@ Version history:
                     - Reducing the work done inside _Generic expressions (this seemed to be a bottleneck).
                     - Changing the API macro function-selection mechanism so that only the function itself varies based
                       on container type (all parallel functions now use the same parameter interface) and each macro
-                      contains only one argument list (unused arguments are discaded).
+                      contains only one argument list (unused arguments are discarded).
                     Also introduced performance improvements into maps and sets, changed the default integer hash
                     functions to more robust ones, and corrected a bug that could cause map and set probe-length
                     integers to be unaligned for small elements and keys.
