@@ -1,5 +1,5 @@
 /*
-unit_tests.c - v1.0.3
+CC/tests/unit_tests.c - v1.0.4
 
 This file tests CC containers.
 It aims to cover the full API and to check corner cases, particularly transitions between placeholder containers and
@@ -7,25 +7,20 @@ non-placeholder containers.
 
 License (MIT):
 
-Copyright (c) 2022-2023 Jackson L. Allan
+  Copyright (c) 2022-2024 Jackson L. Allan
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+  documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+  persons to whom the Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+  Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #define TEST_VEC
@@ -37,7 +32,6 @@ SOFTWARE.
 #include <stdlib.h>
 #include <time.h>
 
-//#define inline inline __attribute__((always_inline))
 #include "../cc.h"
 
 // Assert macro that is not disabled by NDEBUG.
@@ -174,7 +168,7 @@ void test_vec_resize( void )
     20, 21, 22, 23, 24, 25, 26, 27, 28, 29
   };
 
-  // Resize placeholder zero.
+  // Resize placeholder vec with zero.
   UNTIL_SUCCESS( resize( &our_vec, 0 ) );
   ALWAYS_ASSERT( cap( &our_vec ) >= 0 );
   ALWAYS_ASSERT( size( &our_vec ) == 0 );
@@ -184,7 +178,7 @@ void test_vec_resize( void )
   ALWAYS_ASSERT( cap( &our_vec ) >= 30 );
   ALWAYS_ASSERT( size( &our_vec ) == 30 );
 
-  // Resize up from non-placeholder vec.
+  // Resize up from non-placeholder.
   UNTIL_SUCCESS( resize( &our_vec, 60 ) );
   ALWAYS_ASSERT( cap( &our_vec ) >= 60 );
   ALWAYS_ASSERT( size( &our_vec ) == 60 );
@@ -873,8 +867,8 @@ void test_list_cleanup( void )
   cleanup( &our_list );
 }
 
-// This needs to test, in particular, that r_end and end iterator-pointers are stable,
-// especially between transition from placeholder to non-placeholder.
+// This needs to test, in particular, that r_end and end iterator-pointers are stable, especially between transition
+// from placeholder to non-placeholder.
 void test_list_iteration( void )
 {
   list( int ) our_list;
@@ -1320,7 +1314,7 @@ void test_map_iteration_and_get_key( void )
 
   // Empty.
 
-  // Test fist and last.
+  // Test first and last.
   ALWAYS_ASSERT( first( &our_map ) == end( &our_map ) );
   ALWAYS_ASSERT( last( &our_map ) == r_end( &our_map ) );
 
@@ -1372,6 +1366,20 @@ void test_map_iteration_and_get_key( void )
   }
 
   ALWAYS_ASSERT( n_iterations == 180 );
+
+  // Iteration over empty, non-placeholder map.
+
+  clear( &our_map );
+
+  n_iterations = 0;
+
+  for_each( &our_map, i )
+    ++n_iterations;
+
+  r_for_each( &our_map, i )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 0 );
 
   cleanup( &our_map );
 }
@@ -1824,7 +1832,7 @@ void test_set_iteration( void )
 
   // Empty.
 
-  // Test fist and last.
+  // Test first and last.
   ALWAYS_ASSERT( first( &our_set ) == end( &our_set ) );
   ALWAYS_ASSERT( last( &our_set ) == r_end( &our_set ) );
 
@@ -1856,6 +1864,20 @@ void test_set_iteration( void )
     ++n_iterations;
 
   ALWAYS_ASSERT( n_iterations == 120 );
+
+  // Iteration over empty, non-placeholder set.
+
+  clear( &our_set );
+
+  n_iterations = 0;
+
+  for_each( &our_set, i )
+    ++n_iterations;
+
+  r_for_each( &our_set, i )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 0 );
 
   cleanup( &our_set );
 }
@@ -1997,7 +2019,7 @@ int main( void )
   for( int i = 0; i < 1000; ++i )
   {
     #ifdef TEST_VEC
-    // vec, init, size, cap, get tested implicitly.
+    // vec, init, size, cap, and get are tested implicitly.
     test_vec_reserve();
     test_vec_resize();
     test_vec_shrink();
@@ -2015,7 +2037,7 @@ int main( void )
     #endif
 
     #ifdef TEST_LIST
-    // list, init, size tested implicitly.
+    // list, init, and size are tested implicitly.
     test_list_insert();
     test_list_push();
     test_list_splice();
@@ -2028,13 +2050,14 @@ int main( void )
     #endif
 
     #ifdef TEST_MAP
-    // map, init, cap, size tested implicitly.
+    // map, init, cap, and size are tested implicitly.
     test_map_reserve();
     test_map_shrink();
     test_map_insert();
     test_map_get_or_insert();
     test_map_get();
     test_map_erase();
+    test_map_erase_itr();
     test_map_clear();
     test_map_cleanup();
     test_map_init_clone();
@@ -2045,7 +2068,7 @@ int main( void )
     #endif
 
     #ifdef TEST_SET
-    // set, init, cap, size tested implicitly.
+    // set, init, cap, and size are tested implicitly.
     test_set_reserve();
     test_set_shrink();
     test_set_insert();

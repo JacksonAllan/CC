@@ -1,5 +1,5 @@
 /*
-tests_against_stl.cpp - v. 1.0.3
+CC/tests/tests_against_stl.cpp - v. 1.0.4
 
 This file tests CC containers against equivalent C++ STL containers.
 Primarily, it checks that a CC container and its equivalent STL container end up in the same state after a random
@@ -10,25 +10,20 @@ for every new node.
 
 License (MIT):
 
-Copyright (c) 2022-2023 Jackson L. Allan
+  Copyright (c) 2022-2024 Jackson L. Allan
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+  documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+  persons to whom the Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+  Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include <ctime>
@@ -64,9 +59,9 @@ SOFTWARE.
 // Custom realloc and free functions that track the number of outstanding allocations.
 // If SIMULATE_ALLOC_FAILURES is defined above, unreliable_tracking_realloc will also sporadically fail.
 
-bool failing_alloc_on = true; // Even when SIMULATE_ALLOC_FAILURES is on, we need to be able to toggle this behavior
-                              // because in some instances (e.g. cloning lists), the operation would never succeed
-                              // with a set realloc failure rate.
+bool failing_alloc_on = true; // Even when SIMULATE_ALLOC_FAILURES is enabled, we need to be able to toggle this
+                              // behavior because in some instances (e.g. cloning lists), the operation would never
+                              // succeed with a fixed realloc failure rate.
 
 size_t simulated_alloc_failures;
 std::unordered_set<void *> oustanding_allocs;
@@ -100,7 +95,7 @@ void tracking_free( void *ptr )
   free( ptr );
 }
 
-// Activate custom realloc and free functions.
+// Activate the custom realloc and free functions.
 #define CC_REALLOC unreliable_tracking_realloc
 #define CC_FREE tracking_free
 
@@ -356,7 +351,7 @@ int main()
           stl_list[ !list ].splice( stl_itr_dest, stl_list[ list ], stl_itr_src );
         }
         break;
-        case 4: // cc_splice within list.
+        case 4: // cc_splice within a list.
         {
           if( cc_size( &our_list[ list ] ) == 0 )
             break;
@@ -431,7 +426,7 @@ int main()
     }
     ALWAYS_ASSERT( stl_itr == stl_list[ 1 ].end() );
 
-    // Backward iteration.
+    // Reverse iteration.
 
     auto stl_r_itr = stl_list[ 0 ].rbegin();
     cc_r_for_each( &our_list[ 0 ], cc_itr )
@@ -466,7 +461,7 @@ int main()
     {
       switch( rand() % 7 )
       {
-        case 0: // Insert.
+        case 0: // cc_insert.
         {
           int *el;
           int key = rand() % ( N_OPS / 10 );
@@ -479,7 +474,7 @@ int main()
           stl_map[ key ] = el_val;
         }
         break;
-        case 1: // Get or insert.
+        case 1: // cc_get_or_insert.
         {
           int *el;
           int key = rand() % ( N_OPS / 10 );
@@ -499,7 +494,7 @@ int main()
             ALWAYS_ASSERT( *el == stl_map.find( key )->second );
         }
         break;
-        case 2: // Get.
+        case 2: // cc_get.
         {
           int key = rand() % ( N_OPS / 10 );
           int *el = cc_get( &our_map, key );
@@ -509,7 +504,7 @@ int main()
             ALWAYS_ASSERT( stl_map.find( key ) == stl_map.end() );
         }
         break;
-        case 3: // Erase and erase itr.
+        case 3: // cc_erase and cc_erase_itr.
         {
           if( rand() % 2 )
           {
@@ -530,8 +525,8 @@ int main()
         case 4: // cc_reserve.
         {
           if( rand() % 2 )
-            UNTIL_SUCCESS( cc_reserve( &our_map, cc_cap( &our_map ) ) ); // Reserve above current capacity.
-          else if( cc_cap( &our_map ) * CC_DEFAULT_LOAD  >= 5 ) // Reserve below current capacity.
+            UNTIL_SUCCESS( cc_reserve( &our_map, cc_cap( &our_map ) ) ); // Reserve above the current capacity.
+          else if( cc_cap( &our_map ) * CC_DEFAULT_LOAD  >= 5 ) // Reserve below the current capacity.
             UNTIL_SUCCESS( cc_reserve( &our_map, cc_cap( &our_map ) * CC_DEFAULT_LOAD - 5 ) );
         }
         break;
@@ -576,7 +571,7 @@ int main()
     {
       switch( rand() % 7 )
       {
-        case 0: // Insert.
+        case 0: // cc_insert.
         {
           int el_val = rand() % ( N_OPS / 10 );
           int *el;
@@ -587,7 +582,7 @@ int main()
           stl_set.insert( el_val );
         }
         break;
-        case 1: // Get or insert.
+        case 1: // cc_get_or_insert.
         {
           int *el;
           int el_val = rand();
@@ -604,7 +599,7 @@ int main()
             ALWAYS_ASSERT( *el == *stl_set.find( el_val ) );
         }
         break;
-        case 2: // Get.
+        case 2: // cc_get.
         {
           int el_val = rand() % ( N_OPS / 10 );
           int *el = cc_get( &our_set, el_val );
@@ -614,7 +609,7 @@ int main()
             ALWAYS_ASSERT( stl_set.find( el_val ) == stl_set.end() );
         }
         break;
-        case 3: // Erase and erase_itr.
+        case 3: // cc_erase and cc_erase_itr.
         {
           if( rand() % 2 )
           {
@@ -658,11 +653,11 @@ int main()
 
     ALWAYS_ASSERT( cc_size( &our_set ) == stl_set.size() );
 
-    // Check cc_set against unordered_map.
+    // Check cc_set against unordered_set.
     cc_for_each( &our_set, i )
       ALWAYS_ASSERT( *i == *stl_set.find( *i ) );
 
-    // Check unordered_map against cc_set.
+    // Check unordered_set against cc_set.
     for( auto i = stl_set.begin(); i != stl_set.end(); ++i )
       ALWAYS_ASSERT( *cc_get( &our_set, *i ) == *i );
 

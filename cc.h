@@ -1,4 +1,4 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.0.3 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.0.4 -------------------------------------------
 
 This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, and unordered sets).
 
@@ -518,6 +518,8 @@ API:
 
 Version history:
 
+  23/01/2024 1.0.4: Fixed critical bug causing undefined behavior upon iteration of empty maps with nonzero capacities.
+                    Fixed formatting inconsistencies and improved code comments.
   04/05/2023 1.0.3: Completed refractor that reduces compile speed by approximately 53% in C with GCC.
                     This was achieved by:
                     - Reducing the number of _Generic expressions in API calls by extracting multiple key-related data
@@ -537,25 +539,20 @@ Version history:
 
 License (MIT):
 
-  Copyright (c) 2022-2023 Jackson L. Allan
+  Copyright (c) 2022-2024 Jackson L. Allan
 
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+  documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+  persons to whom the Software is furnished to do so, subject to the following conditions:
 
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+  Software.
 
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #if !defined( CC_DTOR ) && !defined( CC_CMPR ) && !defined( CC_HASH ) && !defined( CC_LOAD )/*------------------------*/
@@ -624,7 +621,7 @@ License (MIT):
 // The copy is valid until at least the end of full expression surrounding the macro call.
 // In C, this is accomplished using a compound literal.
 // In C++, we use rvalue reference magic.
-// This is used to pass a pointers to elements and keys (which the user may have provided as rvalues) into container
+// This is used to pass pointers to elements and keys (which the user may have provided as rvalues) into container
 // functions.
 #ifdef __cplusplus
 template<class ty> ty& cc_unmove( ty&& var ) { return var; }
@@ -634,7 +631,7 @@ template<class ty> ty& cc_unmove( ty&& var ) { return var; }
 #endif
 
 // Macro used primarily for silencing unused-expression warnings for macros that return cast pointers.
-// This issued seems to affect Clang in particular.
+// This issue seems to affect Clang in particular.
 // GCC, on the other hand, seems to accept that pointer casts may be redundant.
 #ifdef __cplusplus
 template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (ty_1)xp; }
@@ -684,8 +681,8 @@ CC_CAST_MAYBE_UNUSED(                                               \
 
 // In GCC and Clang, we can generate a warning if the user passes an expression that may have side effects as the first
 // argument of API macros.
-// If the expression could have side effects, the compiler will not able able to resolve a comparision of it with itself
-// at compile time, which we can check using __builtin_constant_p.
+// If the expression could have side effects, the compiler will be unable to resolve a comparison of it with itself at
+// compile time, which we can check using __builtin_constant_p.
 // The warning itself is generated via a division by zero.
 // This macro may produce false positives (e.g. for &our_containers[ our_func() ] where our_func is a pure function that
 // always returns the same value), but that is a reasonable price to pay for more macro safety.
@@ -701,7 +698,7 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #define CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ) (void)0
 #endif
 
-// Typeof for expressions and abstract declarations.
+// Typeof for expressions and abstract declarators.
 #ifdef __cplusplus
 #define CC_TYPEOF_XP( xp ) std::decay<std::remove_reference<decltype( xp )>::type>::type
 #define CC_TYPEOF_TY( ty ) std::decay<std::remove_reference<decltype( std::declval<ty>() )>::type>::type
@@ -711,7 +708,7 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #define CC_TYPEOF_TY( ty ) __typeof__( ty )
 #endif
 
-// CC_SELECT_ON_NUM_ARGS macro for overloading API macros based on number of arguments.
+// CC_SELECT_ON_NUM_ARGS macro for overloading API macros based on the number of arguments.
 #define CC_CAT_2_( a, b ) a##b
 #define CC_CAT_2( a, b ) CC_CAT_2_( a, b )
 #define CC_N_ARGS_( _1, _2, _3, _4, _5, _6, n, ... ) n
@@ -773,10 +770,10 @@ typedef void ( *cc_free_fnptr_ty )( void * );
 #define CC_MAP  3
 #define CC_SET  4
 
-// Produces underlying function pointer type for a given element/key type pair.
+// Produces the underlying function pointer type for a given element/key type pair.
 #define CC_MAKE_BASE_FNPTR_TY( el_ty, key_ty ) CC_TYPEOF_TY( CC_TYPEOF_TY( el_ty ) (*)( CC_TYPEOF_TY( key_ty )* ) )
 
-// Produces container handle for a given element type, key type, and container id.
+// Produces the container handle type for a given element type, key type, and container id.
 // In other words, this macro creates a pointer that carries all the information needed to identify and operate on a
 // container at compile time: el_ty (*(*)[ cntr_id ])( key_ty * ).
 // That is a pointer to an array of function pointers whose signature is el_ty ( key_ty * ).
@@ -790,16 +787,16 @@ typedef void ( *cc_free_fnptr_ty )( void * );
 
 #define cc_list( el_ty )        CC_MAKE_CNTR_TY( el_ty, void *, CC_LIST ) // List key is a pointer-iterator.
 
-#define cc_map( key_ty, el_ty ) CC_MAKE_CNTR_TY(                                                       \
-                                  el_ty,                                                               \
-                                  key_ty,                                                              \
-                                  CC_MAP * ( (                                                         \
-                                    /* Compiler error if key type lacks compare and hash functions. */ \
-                                    CC_HAS_CMPR( key_ty ) && CC_HAS_HASH( key_ty ) &&                  \
-                                    /* Compiler error if bucket layout constraints are violated. */    \
-                                    CC_SATISFIES_LAYOUT_CONSTRAINTS( key_ty, el_ty )                   \
-                                  ) ? 1 : -1 )                                                         \
-                                )                                                                      \
+#define cc_map( key_ty, el_ty ) CC_MAKE_CNTR_TY(                                                          \
+                                  el_ty,                                                                  \
+                                  key_ty,                                                                 \
+                                  CC_MAP * ( (                                                            \
+                                    /* Compiler error if key type lacks comparison and hash functions. */ \
+                                    CC_HAS_CMPR( key_ty ) && CC_HAS_HASH( key_ty ) &&                     \
+                                    /* Compiler error if bucket layout constraints are violated. */       \
+                                    CC_SATISFIES_LAYOUT_CONSTRAINTS( key_ty, el_ty )                      \
+                                  ) ? 1 : -1 )                                                            \
+                                )                                                                         \
 
 #define cc_set( el_ty )         CC_MAKE_CNTR_TY(                                                                 \
                                   /* As set simply wraps map, we use el_ty as both the element and key types. */ \
@@ -807,7 +804,7 @@ typedef void ( *cc_free_fnptr_ty )( void * );
                                   el_ty,                                                                         \
                                   el_ty,                                                                         \
                                   CC_SET * ( (                                                                   \
-                                    /* Compiler error if key type lacks compare and hash functions. */           \
+                                    /* Compiler error if key type lacks comparison and hash functions. */        \
                                     CC_HAS_CMPR( el_ty ) && CC_HAS_HASH( el_ty ) &&                              \
                                     /* Compiler error if bucket layout constraints are violated. */              \
                                     CC_SATISFIES_LAYOUT_CONSTRAINTS( el_ty, el_ty )                              \
@@ -837,7 +834,7 @@ key_ty cc_key_ty( el_ty (*)( key_ty * ) )
 #define CC_KEY_TY( cntr ) CC_TYPEOF_XP( cc_key_ty( **cntr ) )
 
 #else // For C, we need to use _Generic trickery to match the base function pointer type with a key type previously
-      // coupled with a compare function.
+      // coupled with a comparison function.
 
 #define CC_KEY_TY_SLOT( n, arg ) CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( arg ), cc_cmpr_##n##_ty ): ( cc_cmpr_##n##_ty ){ 0 },
 #define CC_KEY_TY( cntr )                                                                         \
@@ -859,7 +856,7 @@ CC_TYPEOF_XP(                                                                   
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    ( size_t ){ 0 },             \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             ( char * ){ 0 },             \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), void * ):             ( void * ){ 0 },             \
-      default: (char){ 0 } /* Nothing */                                                          \
+      default: (char){ 0 } /* Nothing. */                                                         \
     )                                                                                             \
   )                                                                                               \
 )                                                                                                 \
@@ -946,7 +943,7 @@ CC_PADDING(                                                          \
   CC_MAX( el_align, alignof( cc_probelen_ty ) )                      \
 )                                                                    \
 
-// Struct for conveying key-related information from _Generic macro into below function.
+// Struct for conveying key-related information from the _Generic macro into the function below.
 typedef struct
 {
   uint64_t size;
@@ -979,7 +976,7 @@ static inline CC_ALWAYS_INLINE uint64_t cc_layout(
   return 0; // Other container types don't require layout data.
 }
 
-// Macros for extracting data from uint64_t layout descriptor.
+// Macros for extracting data from a uint64_t layout descriptor.
 
 #define CC_KEY_SIZE( layout ) (uint32_t)( layout )
 
@@ -1007,7 +1004,7 @@ typedef struct
   void *other_ptr;
 } cc_allocing_fn_result_ty;
 
-// Helper function for one-line cc_allocing_fn_result_ty.
+// Helper function for creating a cc_allocing_fn_result_ty in one line.
 static inline cc_allocing_fn_result_ty cc_make_allocing_fn_result( void *new_cntr, void *other_ptr )
 {
   cc_allocing_fn_result_ty result;
@@ -1017,7 +1014,7 @@ static inline cc_allocing_fn_result_ty cc_make_allocing_fn_result( void *new_cnt
 }
 
 // Performs memcpy and returns ptr.
-// Used in conjunction with cc_allocing_fn_result_ty (see below).
+// This is used in conjunction with cc_allocing_fn_result_ty (see below).
 static inline void *cc_memcpy_and_return_ptr( void *dest, void *src, size_t size, void *ptr )
 {
   memcpy( dest, src, size );
@@ -1063,7 +1060,7 @@ typedef struct
 // In the case of vectors, the placeholder allows us to avoid checking for a NULL container handle inside functions.
 static const cc_vec_hdr_ty cc_vec_placeholder = { 0, 0 };
 
-// Easy header access function for internal use.
+// Easy header access function.
 static inline cc_vec_hdr_ty *cc_vec_hdr( void *cntr )
 {
   return (cc_vec_hdr_ty *)cntr;
@@ -1087,7 +1084,7 @@ static inline bool cc_vec_is_placeholder( void *cntr )
 // Returns a pointer-iterator to the element at a specified index.
 static inline void *cc_vec_get(
   void *cntr,
-  void *key, /* Pointer to size_t index */
+  void *key, // Pointer to a size_t index.
   size_t el_size,
   CC_UNUSED( uint64_t, layout ),
   CC_UNUSED( cc_hash_fnptr_ty, hash ),
@@ -1248,9 +1245,9 @@ static inline void *cc_vec_erase_n(
   return (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * index;
 }
 
-// Shrinks vector's capacity to its current size.
+// Shrinks the vector's capacity to its current size.
 // Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer that evaluates to true if the
-// operation was successful and false in the case of allocation failure.
+// operation was successful or false in the case of allocation failure.
 static inline void *cc_vec_erase(
   void *cntr,
   void *key, // Pointer to size_t index.
@@ -1271,7 +1268,7 @@ static inline void *cc_vec_erase(
 // In this case, the vector's capacity is not changed.
 // If n is above the current size, the new elements are uninitialized.
 // Returns a cc_allocing_fn_result_ty containing new container handle and a pointer that evaluates to true if the
-// operation was successful and false in the case of allocation failure.
+// operation was successful or false in the case of allocation failure.
 static inline cc_allocing_fn_result_ty cc_vec_resize(
   void *cntr,
   size_t n,
@@ -1340,8 +1337,8 @@ static inline cc_allocing_fn_result_ty cc_vec_shrink(
 
 // Initializes a shallow copy of the source vector.
 // The capacity of the new vector is the size of the source vector, not its capacity.
-// Returns a the pointer to the copy, or NULL in the case of allocation failure.
-// That return value is cast to bool in the corresponding macro.
+// Returns a pointer to the copy, or NULL in the case of allocation failure.
+// The return value is cast to bool in the corresponding macro.
 static inline void *cc_vec_init_clone(
   void *src,
   size_t el_size,
@@ -1357,7 +1354,7 @@ static inline void *cc_vec_init_clone(
     (void *)&cc_vec_placeholder,
     cc_vec_size( src ),
     el_size,
-    NULL, // dtor unused.
+    NULL, // Destructor unused.
     realloc_
   );
 
@@ -1450,7 +1447,7 @@ static inline void *cc_vec_last(
 /*                                                        List                                                        */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-// List is implemented a doubly linked list with sentinel nodes.
+// List is implemented as a doubly linked list with sentinel nodes.
 
 // Node header.
 typedef struct cc_listnode_hdr_ty
@@ -1465,17 +1462,17 @@ typedef struct cc_listnode_hdr_ty
 typedef struct
 {
   size_t size;
-  cc_listnode_hdr_ty  r_end;
-  cc_listnode_hdr_ty  end;
+  cc_listnode_hdr_ty r_end;
+  cc_listnode_hdr_ty end;
 } cc_list_hdr_ty;
 
-// Placeholder for list with no allocated header.
+// Placeholder for a list with no allocated header.
 // The main purpose this serves is to provide every list with stable r_end and end iterators across translation units
 // and irrespective of whether any memory has been allocated for its header.
 // Every list initially (after cc_init) points to this placeholder, which differs across translation units, and is then
 // associated with that placeholder until cc_cleanup is called.
-// Calls to cc_r_end and cc_end on a list return pointers to the associated placeholder's r_end and end elements even
-// after a header has been dynamically allocated to it.
+// Calls to cc_r_end and cc_end on a list return pointers to the associated placeholder's r_end and end nodes even after
+// a header has been dynamically allocated for it.
 // The way this works is that the placeholder's r_end.prev pointer points to the placeholder's r_end (i.e. a circular
 // link), and ditto for end.next.
 // Meanwhile, a list with an allocated header has it's r_end.prev pointer point to the placeholder's r_end, and ditto
@@ -1495,7 +1492,7 @@ const static cc_list_hdr_ty cc_list_placeholder = {
   }
 };
 
-// Easy access to list header.
+// Easy access to the list header.
 static inline cc_list_hdr_ty *cc_list_hdr( void *cntr )
 {
   return (cc_list_hdr_ty *)cntr;
@@ -1507,7 +1504,7 @@ static inline cc_listnode_hdr_ty *cc_listnode_hdr( void *itr )
   return (cc_listnode_hdr_ty *)( (char *)itr - sizeof( cc_listnode_hdr_ty ) );
 }
 
-// Easy access to a pointer-iterator from pointer to a list node header.
+// Easy access to a pointer-iterator from a pointer to a list node header.
 static inline void *cc_list_el( void *hdr )
 {
   return (char *)hdr + sizeof( cc_listnode_hdr_ty );
@@ -1563,7 +1560,7 @@ static inline void *cc_list_next(
 {
   cc_listnode_hdr_ty *next = cc_listnode_hdr( itr )->next;
 
-  // See comment in cc_list_prev above.
+  // See the comment in cc_list_prev above.
   if( next == &cc_list_hdr( cntr )->end )
     next = next->next;
 
@@ -1593,8 +1590,8 @@ static inline void *cc_list_last(
   return cc_list_prev(
     cntr,
     cc_list_el( &cc_list_hdr( cntr )->end ),
-    0,              // Dummy.
-    0 // Dummy.
+    0, // Dummy.
+    0  // Dummy.
   );
 }
 
@@ -1621,7 +1618,11 @@ static inline void *cc_list_alloc_hdr(
 }
 
 // Attaches a node to the list before the node pointed to by the specified pointer-iterator.
-static inline void cc_list_attach( void *cntr, void *itr, cc_listnode_hdr_ty *node )
+static inline void cc_list_attach(
+  void *cntr,
+  void *itr,
+  cc_listnode_hdr_ty *node
+)
 {
   // Handle r_end and end iterators as a special case.
   // We need to convert the iterator from the global placeholder's r_end or end to the local r_end or end.
@@ -1776,7 +1777,7 @@ static inline cc_allocing_fn_result_ty cc_list_splice(
 
 // Initializes a shallow copy of the source list.
 // This requires allocating memory for every node, as well as for the list's header unless src is a placeholder.
-// Returns a the pointer to the copy, or NULL in the case of allocation failure.
+// Returns a pointer to the copy, or NULL in the case of allocation failure.
 // That return value is cast to bool in the corresponding macro.
 static inline void *cc_list_init_clone(
   void *src,
@@ -1845,10 +1846,7 @@ static inline void cc_list_clear(
   cc_free_fnptr_ty free_
 )
 {
-  while(
-    cc_list_first( cntr, 0 /* Dummy */, 0 /* Dummy */ ) !=
-    cc_list_end( cntr, 0 /* Dummy */, 0 /* Dummy */ )
-  )
+  while( cc_list_first( cntr, 0 /* Dummy */, 0 /* Dummy */ ) != cc_list_end( cntr, 0 /* Dummy */, 0 /* Dummy */ ) )
     cc_list_erase(
       cntr,
       &CC_MAKE_LVAL_COPY( void *, cc_list_first( cntr, 0 /* Dummy */, 0 /* Dummy */ ) ),
@@ -1862,7 +1860,7 @@ static inline void cc_list_clear(
     );
 }
 
-// Erases all elements, calling their destructors if necessary, and frees memory for the list's header if it is not
+// Erases all elements, calling their destructors if necessary, and frees the memory for the list's header if it is not
 // a placeholder.
 static inline void cc_list_cleanup(
   void *cntr,
@@ -1891,17 +1889,15 @@ typedef struct
   size_t cap;
 } cc_map_hdr_ty;
 
-// Placeholder for map with no allocated memory.
+// Placeholder for a map with no allocated memory.
 // In the case of maps, this placeholder allows us to avoid checking for a NULL handle inside functions.
 static const cc_map_hdr_ty cc_map_placeholder = { 0, 0 };
 
-// Easy header access function for internal use.
+// Easy header access function.
 static inline cc_map_hdr_ty *cc_map_hdr( void *cntr )
 {
   return (cc_map_hdr_ty *)cntr;
 }
-
-// Size and capacity.
 
 static inline size_t cc_map_size( void *cntr )
 {
@@ -1921,17 +1917,32 @@ static inline bool cc_map_is_placeholder( void *cntr )
 // Functions for easily accessing element, key, and probe length for the bucket at index i.
 // The element pointer also denotes the beginning of the bucket.
 
-static inline void *cc_map_el( void *cntr, size_t i, size_t el_size, uint64_t layout )
+static inline void *cc_map_el(
+  void *cntr,
+  size_t i,
+  size_t el_size,
+  uint64_t layout
+)
 {
   return (char *)cntr + sizeof( cc_map_hdr_ty ) + CC_BUCKET_SIZE( el_size, layout ) * i;
 }
 
-static inline void *cc_map_key( void *cntr, size_t i, size_t el_size, uint64_t layout )
+static inline void *cc_map_key(
+  void *cntr,
+  size_t i,
+  size_t el_size,
+  uint64_t layout
+)
 {
   return (char *)cc_map_el( cntr, i, el_size, layout ) + CC_KEY_OFFSET( el_size, layout );
 }
 
-static inline cc_probelen_ty *cc_map_probelen( void *cntr, size_t i, size_t el_size, uint64_t layout )
+static inline cc_probelen_ty *cc_map_probelen(
+  void *cntr,
+  size_t i,
+  size_t el_size,
+  uint64_t layout
+)
 {
   return (cc_probelen_ty *)( (char *)cc_map_el( cntr, i, el_size, layout ) + CC_PROBELEN_OFFSET( el_size, layout ) );
 }
@@ -1977,7 +1988,7 @@ static inline void *cc_map_insert_raw(
   {
     if( probelen > *cc_map_probelen( cntr, i, el_size, layout ) )
     {
-      // Empty bucket, or stealing occupied bucket.
+      // Empty bucket, or stealing an occupied bucket.
 
       // Find first empty bucket at or after i.
       // Since the intervening elements will be shifted, we update their probe lengths at the same time.
@@ -1991,7 +2002,7 @@ static inline void *cc_map_insert_raw(
         j = ( j + 1 ) & ( cc_map_hdr( cntr )->cap - 1 );        
       }
 
-      // Shift all elements [i to j) foward one bucket.
+      // Shift all elements [i to j) forward one bucket.
 
       if( j < i )
       {
@@ -2017,7 +2028,7 @@ static inline void *cc_map_insert_raw(
           ( j - i ) * CC_BUCKET_SIZE( el_size, layout )
         );
 
-      // Insert new element and key into vacated bucket.
+      // Insert the new element and key into the vacated bucket.
       memcpy( cc_map_key( cntr, i, el_size, layout ), key, CC_KEY_SIZE( layout ) );
       memcpy( cc_map_el( cntr, i, el_size, layout ), el, el_size );
       *cc_map_probelen( cntr, i, el_size, layout ) = probelen;
@@ -2052,9 +2063,9 @@ static inline void *cc_map_insert_raw(
   }
 }
 
-// Same as previous function, except for elements with keys known not to already exist in the map.
+// Same as the previous function, except for elements with keys known not to already exist in the map.
 // This function is used for rehashing when the map's capacity changes.
-// When we known that the key is new, we can skip certain checks and achieve a small performance improvement.
+// When we know that the key is new, we can skip certain checks and achieve a small performance improvement.
 static inline void *cc_map_insert_raw_unique(
   void *cntr,
   void *el,
@@ -2071,7 +2082,7 @@ static inline void *cc_map_insert_raw_unique(
   {
     if( probelen > *cc_map_probelen( cntr, i, el_size, layout ) )
     {
-      // Empty bucket, or stealing occupied bucket.
+      // Empty bucket, or stealing an occupied bucket.
 
       size_t j = i;
       while( true )
@@ -2137,7 +2148,7 @@ static inline size_t cc_map_min_cap_for_n_els( size_t n, double max_load )
 
 // Creates a rehashed duplicate of cntr with capacity cap.
 // Assumes that cap is large enough to accommodate all elements in cntr without violating the max load factor.
-// Returns pointer to the duplicate, or NULL in the case of allocation failure.
+// Returns a pointer to the duplicate, or NULL in the case of allocation failure.
 static inline void *cc_map_make_rehash(
   void *cntr,
   size_t cap,
@@ -2175,8 +2186,8 @@ static inline void *cc_map_make_rehash(
 
 // Reserves capacity such that the map can accommodate n elements without reallocation (i.e. without violating the
 // max load factor).
-// Returns a cc_allocing_fn_result_ty containing new container handle and a pointer that evaluates to true if the
-// operation successful or false in the case of allocation failure.
+// Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer that evaluates to true if the
+// operation was successful or false in the case of allocation failure.
 static inline cc_allocing_fn_result_ty cc_map_reserve(
   void *cntr,
   size_t n,
@@ -2263,7 +2274,6 @@ static inline cc_allocing_fn_result_ty cc_map_insert(
     replace,
     el_size,
     layout,
-    //hash,
     cmpr,
     el_dtor,
     key_dtor
@@ -2407,10 +2417,11 @@ static inline void *cc_map_erase(
   return NULL;
 }
 
-// Shrinks map's capacity to the minimum possible without violating the max load factor associated with the key type.
+// Shrinks the map's capacity to the minimum possible without violating the max load factor associated with the key
+// type.
 // If shrinking is necessary, then a complete rehash occurs.
 // Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer that evaluates to true if the
-// operation was successful and false in the case of allocation failure.
+// operation was successful or false in the case of allocation failure.
 static inline cc_allocing_fn_result_ty cc_map_shrink(
   void *cntr,
   size_t el_size,
@@ -2455,7 +2466,7 @@ static inline cc_allocing_fn_result_ty cc_map_shrink(
 // The capacity of the copy is the same as the capacity of the source map, unless the source map is empty, in which case
 // the copy is a placeholder.
 // Hence, this function does no rehashing.
-// Returns a the pointer to the copy, or NULL in the case of allocation failure.
+// Returns a pointer to the copy, or NULL in the case of allocation failure.
 // That return value is cast to bool in the corresponding macro.
 static inline void *cc_map_init_clone(
   void *src,
@@ -2490,7 +2501,7 @@ static inline void cc_map_clear(
   CC_UNUSED( cc_free_fnptr_ty, free_ )
 )
 {
-  if( cc_map_size( cntr ) == 0 ) // Also handles placeholder map.
+  if( cc_map_size( cntr ) == 0 ) // Also handles placeholder.
     return;
 
   for( size_t i = 0; i < cc_map_hdr( cntr )->cap; ++i )
@@ -2525,14 +2536,12 @@ static inline void cc_map_cleanup(
 }
 
 // For maps, the container handle doubles up as r_end.
-static inline void *cc_map_r_end(
-  void *cntr
-)
+static inline void *cc_map_r_end( void *cntr )
 {
   return cntr;
 }
 
-// Returns a pointer-iterator to the end of the bucket array.
+// Returns a pointer-iterator to the end of the buckets array.
 static inline void *cc_map_end(
   void *cntr,
   size_t el_size,
@@ -2553,7 +2562,7 @@ static inline void *cc_map_first(
     if( *cc_map_probelen( cntr, i, el_size, layout ) )
       return cc_map_el( cntr, i, el_size, layout );
 
-  return cc_map_end( cntr, 0 /* Dummy */, layout );
+  return cc_map_end( cntr, el_size, layout );
 }
 
 // Returns a pointer-iterator to the last element, or r_end if the map is empty.
@@ -2613,7 +2622,7 @@ static inline void *cc_map_next(
 // Hence, it reuses the functions for map, except:
 //   - The key offset inside the bucket is zero.
 //     This is handled at the API-macro level via the cc_layout function and associated macros.
-//   - The element size passed into map functions is zero in order to avoid double-memcpying.
+//   - The element size passed into map functions is zero in order to avoid double memcpy-ing.
 
 static inline size_t cc_set_size( void *cntr )
 {
@@ -2654,7 +2663,7 @@ static inline cc_allocing_fn_result_ty cc_set_insert(
 {
   return cc_map_insert(
     cntr,
-    cntr,     // Dummy pointer for element as memcpying to a NULL pointer is undefined behavior even when size is zero.
+    cntr,     // Dummy pointer for element as memcpy-ing to a NULL pointer is undefined behavior even when size is zero.
     key,
     replace,
     0,        // Zero element size.
@@ -2663,7 +2672,7 @@ static inline cc_allocing_fn_result_ty cc_set_insert(
     cmpr,
     max_load,
     el_dtor,
-    NULL,     // Only one dtor.
+    NULL,     // Only one destructor.
     realloc_,
     free_
   );
@@ -2678,7 +2687,7 @@ static inline void *cc_set_get(
   cc_cmpr_fnptr_ty cmpr
 )
 {
-  return cc_map_get( cntr, key, 0 /* Dummy */, layout, hash, cmpr );
+  return cc_map_get( cntr, key, 0 /* Zero element size */, layout, hash, cmpr );
 }
 
 static inline void cc_set_erase_itr(
@@ -2690,7 +2699,7 @@ static inline void cc_set_erase_itr(
   CC_UNUSED( cc_dtor_fnptr_ty, key_dtor )
 )
 {
-  cc_map_erase_itr( cntr, itr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one dtor */ );
+  cc_map_erase_itr( cntr, itr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one destructor */ );
 }
 
 static inline void *cc_set_erase(
@@ -2713,7 +2722,7 @@ static inline void *cc_set_erase(
     hash,
     cmpr,
     el_dtor,
-    NULL,    // Only one dtor.
+    NULL,    // Only one destructor.
     NULL     // Dummy.
   );
 }
@@ -2751,7 +2760,7 @@ static inline void cc_set_clear(
   CC_UNUSED( cc_free_fnptr_ty, free_ )
 )
 {
-  cc_map_clear( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one dtor */, NULL /* Dummy */ );
+  cc_map_clear( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one destructor */, NULL /* Dummy */ );
 }
 
 static inline void cc_set_cleanup(
@@ -2762,7 +2771,7 @@ static inline void cc_set_cleanup(
   CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
   void ( *free_ )( void * ))
 {
-  cc_map_cleanup( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one dtor */, free_ );
+  cc_map_cleanup( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one destructor */, free_ );
 }
 
 static inline void *cc_set_r_end( void *cntr )
@@ -2855,7 +2864,7 @@ static inline void *cc_set_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_size  : \
                           /* CC_SET */ cc_set_size    \
   )                                                   \
-  /* Function args */                                 \
+  /* Function arguments */                            \
   (                                                   \
     *(cntr)                                           \
   )                                                   \
@@ -2875,7 +2884,7 @@ static inline void *cc_set_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_cap : \
                           /* CC_SET */ cc_set_cap   \
   )                                                 \
-  /* Function args */                               \
+  /* Function arguments */                          \
   (                                                 \
     *(cntr)                                         \
   )                                                 \
@@ -2897,7 +2906,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_reserve :                                    \
                             /* CC_SET */ cc_set_reserve                                      \
     )                                                                                        \
-    /* Function args */                                                                      \
+    /* Function arguments */                                                                 \
     (                                                                                        \
       *(cntr),                                                                               \
       n,                                                                                     \
@@ -2952,7 +2961,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_insert :                                    \
                             /* CC_MAP */ cc_map_insert                                       \
     )                                                                                        \
-    /* Function args */                                                                      \
+    /* Function arguments */                                                                 \
     (                                                                                        \
       *(cntr),                                                                               \
       &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
@@ -2997,7 +3006,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_VEC  ?  cc_vec_push  :                                     \
                             /* CC_LIST */ cc_list_push                                       \
     )                                                                                        \
-    /* Function args */                                                                      \
+    /* Function arguments */                                                                 \
     (                                                                                        \
       *(cntr),                                                                               \
       &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
@@ -3084,7 +3093,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_get :    \
                             /* CC_SET */ cc_set_get      \
     )                                                    \
-    /* Function args */                                  \
+    /* Function arguments */                             \
     (                                                    \
       *(cntr),                                           \
       &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ), \
@@ -3126,7 +3135,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_erase  :                \
                             /* CC_SET */ cc_set_erase                   \
     )                                                                   \
-    /* Function args */                                                 \
+    /* Function arguments */                                            \
     (                                                                   \
       *(cntr),                                                          \
       &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                \
@@ -3163,7 +3172,7 @@ static inline void *cc_set_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_erase_itr : \
                           /* CC_SET */ cc_set_erase_itr   \
   )                                                       \
-  /* Function args */                                     \
+  /* Function arguments */                                \
   (                                                       \
     *(cntr),                                              \
     itr,                                                  \
@@ -3214,7 +3223,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_shrink :                    \
                             /* CC_SET */ cc_set_shrink                      \
     )                                                                       \
-    /* Function args */                                                     \
+    /* Function arguments */                                                \
     (                                                                       \
       *(cntr),                                                              \
       CC_EL_SIZE( *(cntr) ),                                                \
@@ -3248,7 +3257,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_init_clone  : \
                             /* CC_SET */ cc_set_init_clone    \
     )                                                         \
-    /* Function args */                                       \
+    /* Function arguments */                                  \
     (                                                         \
       *(src),                                                 \
       CC_EL_SIZE( *(cntr) ),                                  \
@@ -3275,7 +3284,7 @@ static inline void *cc_set_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_clear  : \
                           /* CC_SET */ cc_set_clear    \
   )                                                    \
-  /* Function args */                                  \
+  /* Function arguments */                             \
   (                                                    \
     *(cntr),                                           \
     CC_EL_SIZE( *(cntr) ),                             \
@@ -3302,7 +3311,7 @@ static inline void *cc_set_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_cleanup  : \
                           /* CC_SET */ cc_set_cleanup    \
   )                                                      \
-  /* Function args */                                    \
+  /* Function arguments */                               \
   (                                                      \
     *(cntr),                                             \
     CC_EL_SIZE( *(cntr) ),                               \
@@ -3330,7 +3339,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_r_end  : \
                             /* CC_SET */ cc_set_r_end    \
     )                                                    \
-    /* Function args */                                  \
+    /* Function arguments */                             \
     (                                                    \
       *(cntr)                                            \
     )                                                    \
@@ -3355,7 +3364,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_end  : \
                             /* CC_SET */ cc_set_end    \
     )                                                  \
-    /* Function args */                                \
+    /* Function arguments */                           \
     (                                                  \
       *(cntr),                                         \
       CC_EL_SIZE( *(cntr) ),                           \
@@ -3382,7 +3391,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_first  : \
                             /* CC_SET */ cc_set_first    \
     )                                                    \
-    /* Function args */                                  \
+    /* Function arguments */                             \
     (                                                    \
       *(cntr),                                           \
       CC_EL_SIZE( *(cntr) ),                             \
@@ -3409,7 +3418,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_last  : \
                             /* CC_SET */ cc_set_last    \
     )                                                   \
-    /* Function args */                                 \
+    /* Function arguments */                            \
     (                                                   \
       *(cntr),                                          \
       CC_EL_SIZE( *(cntr) ),                            \
@@ -3436,7 +3445,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_next  : \
                             /* CC_SET */ cc_set_next    \
     )                                                   \
-    /* Function args */                                 \
+    /* Function arguments */                            \
     (                                                   \
       *(cntr),                                          \
       (itr),                                            \
@@ -3462,7 +3471,7 @@ static inline void *cc_set_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_prev  : \
                             /* CC_SET */ cc_set_prev    \
     )                                                   \
-    /* Function args */                                 \
+    /* Function arguments */                            \
     (                                                   \
       *(cntr),                                          \
       (itr),                                            \
@@ -3495,7 +3504,7 @@ static inline void *cc_set_next(
 /*--------------------------------------------------------------------------------------------------------------------*/
 
 // Octal counters that support up to 511 of each function type and 511 load factors.
-#define CC_N_DTORS_D1 0 // D1 = digit 1, i.e. least significant digit.
+#define CC_N_DTORS_D1 0 // D1 = digit 1, i.e. the least significant digit.
 #define CC_N_DTORS_D2 0
 #define CC_N_DTORS_D3 0
 #define CC_N_CMPRS_D1 0
@@ -3565,7 +3574,7 @@ CC_CAT_2( CC_R3_, d3 )( m, arg )               \
 
 // Macros for inferring the destructor, comparison, or hash function or load factor associated with a container's
 // key or element type, as well as for determining whether a comparison or hash function exists for a type and inferring
-// certain map function arguments in bulk (argument packs) from they key type.
+// certain map function arguments in bulk (argument packs) from the key type.
 // In C, we use the CC_FOR_EACH_XXXX macros above to create _Generic expressions that select the correct user-defined
 // function or load factor for the container's key or element types.
 // For comparison and hash functions, the list of user-defined functions is followed by a nested _Generic statement
@@ -3574,7 +3583,7 @@ CC_CAT_2( CC_R3_, d3 )( m, arg )               \
 // In C++, we use the same macros combined with std::is_same and ternary expressions to emulate _Generic statements.
 // Unfortunately, the behavior is not identical because the C++ versions won't generate compile errors if the user
 // defines multiple functions (e.g. multiple destructors) for the same type.
-// Hence, it is up to the user to make sure they are not doing that if they are compiling for C++.
+// Hence, it is up to the user to make sure they are not doing that if they are compiling in C++.
 
 #ifdef __cplusplus
 
@@ -3901,7 +3910,7 @@ static inline size_t hash_uint64( uint64_t val )
   // Fast-hash: https://jonkagstrom.com/bit-mixer-construction/
   //            https://code.google.com/archive/p/fast-hash/
   val ^= val >> 23;
-  val *= 0x2127599bf4325c37ULL;
+  val *= 0x2127599BF4325C37ULL;
   val ^= val >> 47;
 #if SIZE_MAX == 0xFFFFFFFFFFFFFFFF
   return val;
@@ -3909,7 +3918,7 @@ static inline size_t hash_uint64( uint64_t val )
   return val - ( val >> 32 );
 #endif
 #else // Unknown size_t, fall back on Knuth.
-  return val * 2654435761ull;
+  return val * 2654435761ULL;
 #endif
 }
 
@@ -4009,7 +4018,7 @@ static inline size_t cc_hash_c_string( void *void_val )
     char *val = *(char **)void_val;
     size_t hash = 0x01000193;
     while( *val )
-      hash = ( (unsigned char)*val++ ^ hash ) * 0x811c9dc5;
+      hash = ( (unsigned char)*val++ ^ hash ) * 0x811C9DC5;
 
     return hash;
 }
@@ -4019,9 +4028,9 @@ static inline size_t cc_hash_c_string( void *void_val )
 static inline size_t cc_hash_c_string( void *void_val )
 {
     char *val = *(char **)void_val;
-    size_t hash = 0xcbf29ce484222325;
+    size_t hash = 0xCBF29CE484222325;
     while( *val )
-      hash = ( (unsigned char)*val++ ^ hash ) * 0x100000001b3;
+      hash = ( (unsigned char)*val++ ^ hash ) * 0x100000001B3;
 
     return hash;
 }
@@ -4056,7 +4065,7 @@ static inline CC_ALWAYS_INLINE cc_cmpr_fnptr_ty cc_cmpr_dummy_select( CC_UNUSED(
 
 #ifdef CC_DTOR
 
-// Convert the user-defined CC_DTOR macro into a cc_dtor_XXXX_ty and cc_dtor_XXXX_fn pair that can be pluged into the
+// Convert the user-defined CC_DTOR macro into a cc_dtor_XXXX_ty and cc_dtor_XXXX_fn pair that can be plugged into the
 // CC_GET_EL_DTOR and CC_GET_KEY_DTOR macros above.
 
 typedef CC_TYPEOF_TY( CC_1ST_ARG( CC_DTOR ) ) CC_CAT_3( cc_dtor_, CC_N_DTORS, _ty );
@@ -4138,7 +4147,7 @@ static inline void CC_CAT_3( cc_dtor_, CC_N_DTORS, _fn )( void *void_val )
 #undef CC_N_DTORS_D3
 #define CC_N_DTORS_D3 7
 #elif CC_N_DTORS_D3 == 7
-#error Sorry, number of destructor functions is limited to 511.
+#error Sorry, the number of destructor functions is limited to 511.
 #endif
 #endif
 #endif
@@ -4150,7 +4159,7 @@ static inline void CC_CAT_3( cc_dtor_, CC_N_DTORS, _fn )( void *void_val )
 
 typedef CC_TYPEOF_TY( CC_1ST_ARG( CC_CMPR ) ) CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty );
 
-// For user-defined comparison functions, the user provides a three-way comparison (see documentation at start of file).
+// For user-defined comparison functions, the user provides a three-way comparison (see the API documentation).
 // The library then defines less-than and equals functions that call the three-way comparison function.
 // This allows the compiler to optimize the comparison for best performance in both cases without burdening the user
 // with having to define two separate comparison functions for a single type.
@@ -4250,7 +4259,7 @@ static inline CC_ALWAYS_INLINE cc_cmpr_fnptr_ty CC_CAT_3( cc_cmpr_, CC_N_CMPRS, 
 #undef CC_N_CMPRS_D3
 #define CC_N_CMPRS_D3 7
 #elif CC_N_CMPRS_D3 == 7
-#error Sorry, number of comparison functions is limited to 511.
+#error Sorry, the number of comparison functions is limited to 511.
 #endif
 #endif
 #endif
@@ -4338,7 +4347,7 @@ static inline size_t CC_CAT_3( cc_hash_, CC_N_HASHS, _fn )( void *void_val )
 #undef CC_N_HASHS_D3
 #define CC_N_HASHS_D3 7
 #elif CC_N_HASHS_D3 == 7
-#error Sorry, number of hash functions is limited to 511.
+#error Sorry, the number of hash functions is limited to 511.
 #endif
 #endif
 #endif
@@ -4422,7 +4431,7 @@ const double CC_CAT_3( cc_load_, CC_N_LOADS, _val ) = CC_OTHER_ARGS( CC_LOAD );
 #undef CC_N_LOADS_D3
 #define CC_N_LOADS_D3 7
 #elif CC_N_LOADS_D3 == 7
-#error Sorry, number of load factors is limited to 511.
+#error Sorry, the number of load factors is limited to 511.
 #endif
 #endif
 #endif
