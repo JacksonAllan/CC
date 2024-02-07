@@ -1,4 +1,4 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.0.4 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v-.-.- -------------------------------------------
 
 This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, and unordered sets).
 
@@ -518,6 +518,7 @@ API:
 
 Version history:
 
+  --/--/---- -.-.-: ...
   23/01/2024 1.0.4: Fixed critical bug causing undefined behavior upon iteration of empty maps with nonzero capacities.
                     Fixed formatting inconsistencies and improved code comments.
   04/05/2023 1.0.3: Completed refractor that reduces compile speed by approximately 53% in C with GCC.
@@ -599,6 +600,7 @@ License (MIT):
 #ifndef CC_H
 #define CC_H
 
+#include <limits.h>
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -869,6 +871,99 @@ CC_TYPEOF_XP(                                                                   
 // This optimization allows us to eliminate separate checks for empty buckets.
 typedef unsigned int cc_probelen_ty;
 
+
+
+// The functions associated with some containers require extra information about how elements and/or keys and other data
+// are laid out in memory.
+// Specifically, maps - and by extension sets - need information about their bucket layouts, which depend on their
+// element and/or key types (a future implementation of ordered maps and sets will require similar data).
+// This data is formed by extracting the key size and alignment and passing it, along with the element size and
+// alignment and the container type id, into the cc_layout function, which returns a uint64_t describing the layout.
+// The key size and alignment are inferred via a _Generic macro that looks up the key type based on the default
+// and user-supplied comparison functions, since all containers that require layout information also require a
+// comparison function.
+// Although this mechanism is convoluted, it has proven to compile much faster than other approaches (e.g. calculating
+// the layout inside the _Generic macro).
+// The compiler should optimize the entire mechanism into compile-time constants.
+
+// The layout for a map bucket is:
+//   +------------+----+------------+----+
+//   |     #1     | #2 |     #3     | #4 |
+//   +------------+----+------------+----+
+//   #1 Element.
+//   #2 Element padding to key_ty alignment.
+//   #3 Key.
+//   #4 Key padding to the larger of el_ty and key_ty alignments.
+
+// For sets, the layout collapses:
+//   +------------+
+//   |     #1     |
+//   +------------+
+//   #1 Element.
+
+// The layout data passed into a container function is a uint64_t composed of a uint32_t denoting the key size, a
+// uint16_t denoting the padding after the element, and a uint16_t denoting the padding after the key.
+// The reason that a uint64_t, rather than a struct, is used is that GCC seems to have trouble properly optimizing the
+// passing of the struct - even if only 8 bytes - into some container functions (specifically cc_map_insert), apparently
+// because it declines to pass by register.
+
+// Macro for ensuring valid layout on container declaration.
+// Since the key size occupies four bytes and the padding values each occupy one byte, the key size must be <=
+// UINT32_MAX (about 4.3GB) and the alignment of the element and key must be <= UINT16_MAX + 1 (i.e. 65536).
+// It unlikely that these constraints would be violated in practice, but we can check anyway.
+#define CC_SATISFIES_LAYOUT_CONSTRAINTS( key_ty, el_ty )                                                        \
+( sizeof( key_ty ) <= UINT32_MAX && alignof( el_ty ) <= UINT16_MAX + 1 && alignof( key_ty ) <= UINT16_MAX + 1 ) \
+
+// Macros and functions for constructing a map bucket layout.
+
+#define CC_PADDING( size, align ) ( ( ~(size) + 1 ) & ( (align) - 1 ) )
+#define CC_MAX( a, b ) ( (a) > (b) ? (a) : (b) )
+
+#define CC_MAP_EL_PADDING( el_size, key_align ) \
+CC_PADDING( el_size, key_align )                \
+
+#define CC_MAP_KEY_PADDING( el_size, el_align, key_size, key_align )                                      \
+CC_PADDING( el_size + CC_MAP_EL_PADDING( el_size, key_align ) + key_size, CC_MAX( el_align, key_align ) ) \
+
+// Struct for conveying key-related information from the _Generic macro into the function below.
+typedef struct
+{
+  uint64_t size;
+  uint64_t align;
+} cc_key_details_ty;
+
+// Function for creating the uint64_t layout descriptor.
+// This function must be inlined in order for layout calculations to be optimized into a compile-time constant.
+static inline CC_ALWAYS_INLINE uint64_t cc_layout(
+  size_t cntr_id,
+  uint64_t el_size,
+  uint64_t el_align,
+  cc_key_details_ty key_details
+)
+{
+  if( cntr_id == CC_MAP )
+    return
+      key_details.size                                                                   |
+      CC_MAP_EL_PADDING( el_size, key_details.align )                              << 32 |
+      CC_MAP_KEY_PADDING( el_size, el_align, key_details.size, key_details.align ) << 48;
+
+  if( cntr_id == CC_SET )
+    return el_size;
+
+  return 0; // Other container types don't require layout data.
+}
+
+// Macros for extracting data from a uint64_t layout descriptor.
+
+#define CC_KEY_SIZE( layout ) (uint32_t)( layout )
+
+#define CC_KEY_OFFSET( el_size, layout ) ( (el_size) + (uint16_t)( layout >> 32 ) )
+
+#define CC_BUCKET_SIZE( el_size, layout )                                                \
+( CC_KEY_OFFSET( el_size, layout ) + (uint32_t)( layout ) + (uint16_t)( layout >> 48 ) ) \
+
+#if 0
+
 // The functions associated with some containers require extra information about how elements and/or keys and other data
 // are laid out in memory.
 // Specifically, maps and sets need information about their bucket layouts, which depend on their element and/or key
@@ -987,6 +1082,10 @@ static inline CC_ALWAYS_INLINE uint64_t cc_layout(
 
 #define CC_BUCKET_SIZE( el_size, layout )                                                        \
 ( CC_PROBELEN_OFFSET( el_size, layout ) + sizeof( cc_probelen_ty ) + (uint8_t)( layout >> 48 ) ) \
+
+#endif
+
+
 
 // Return type for all functions that could reallocate a container's memory.
 // It contains a new container handle (the pointer may have changed to due reallocation) and an additional pointer whose
@@ -1881,19 +1980,41 @@ static inline void cc_list_cleanup(
 /*                                                        Map                                                         */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
+// Masks for manipulating and extracting data from a bucket's uint16_t metadatum.
+#define CC_MAP_EMPTY               0x0000
+#define CC_MAP_HASH_FRAG_MASK      0xF000 // 0b1111000000000000.
+#define CC_MAP_IN_HOME_BUCKET_MASK 0x0800 // 0b0000100000000000.
+#define CC_MAP_DISPLACEMENT_MASK   0x07FF // 0b0000011111111111, also denotes the displacement limit. Set to CC_LOAD to
+                                          // 1.0 to test proper handling of encroachment on the displacement limit
+                                          // during inserts.
+
+// Extracts a hash fragment from a uint64_t hash code.
+// We take the highest four bits so that keys that map (via modulo) to the same bucket have distinct hash fragments.
+static inline uint16_t cc_hash_frag( size_t hash )
+{
+  return ( hash >> ( sizeof( size_t ) * CHAR_BIT - sizeof( uint16_t ) * CHAR_BIT ) ) & CC_MAP_HASH_FRAG_MASK;
+}
+
+// Standard quadratic probing formula that guarantees that all buckets are visited when the bucket count is a power of
+// two (at least in theory, because the displacement limit could terminate the search early when the bucket count is
+// high).
+static inline size_t cc_quadratic( uint16_t displacement )
+{
+  return ( (size_t)displacement * displacement + displacement ) / 2;
+}
+
 // Map header.
 typedef struct
 {
   alignas( max_align_t )
   size_t size;
-  size_t cap;
+  size_t cap_mask;
+  uint16_t *metadata;
 } cc_map_hdr_ty;
 
-// Placeholder for a map with no allocated memory.
-// In the case of maps, this placeholder allows us to avoid checking for a NULL handle inside functions.
-static const cc_map_hdr_ty cc_map_placeholder = { 0, 0 };
+static const uint16_t cc_map_placeholder_metadatum = CC_MAP_EMPTY;
+static const cc_map_hdr_ty cc_map_placeholder = { 0, 0, (uint16_t *)&cc_map_placeholder_metadatum };
 
-// Easy header access function.
 static inline cc_map_hdr_ty *cc_map_hdr( void *cntr )
 {
   return (cc_map_hdr_ty *)cntr;
@@ -1906,13 +2027,963 @@ static inline size_t cc_map_size( void *cntr )
 
 static inline size_t cc_map_cap( void *cntr )
 {
-  return cc_map_hdr( cntr )->cap;
+  return cc_map_hdr( cntr )->cap_mask + (bool)cc_map_hdr( cntr )->cap_mask;
 }
 
 static inline bool cc_map_is_placeholder( void *cntr )
 {
-  return cc_map_cap( cntr ) == 0;
+  return !cc_map_hdr( cntr )->cap_mask;
 }
+
+static inline void *cc_map_el(
+  void *cntr,
+  size_t bucket,
+  size_t el_size,
+  uint64_t layout
+)
+{
+  return (char *)cntr + sizeof( cc_map_hdr_ty ) + CC_BUCKET_SIZE( el_size, layout ) * bucket;
+}
+
+static inline void *cc_map_key(
+  void *cntr,
+  size_t bucket,
+  size_t el_size,
+  uint64_t layout
+)
+{
+  return (char *)cc_map_el( cntr, bucket, el_size, layout ) + CC_KEY_OFFSET( el_size, layout );
+}
+
+static inline bool cc_map_find_first_empty(
+  void *cntr,
+  size_t home_bucket,
+  size_t *empty,
+  uint16_t *displacement
+)
+{
+  *displacement = 1;
+  size_t linear_dispacement = 1;
+
+  while( true )
+  {
+    *empty = ( home_bucket + linear_dispacement ) & cc_map_hdr( cntr )->cap_mask;
+    if( cc_map_hdr( cntr )->metadata[ *empty ] == CC_MAP_EMPTY )
+      return true;
+
+    if( ++*displacement == CC_MAP_DISPLACEMENT_MASK )
+      return false;
+
+    linear_dispacement += *displacement;
+  }
+}
+
+static inline size_t cc_map_find_insert_location_in_chain(
+  void *cntr,
+  size_t home_bucket,
+  uint16_t displacement_to_empty
+)
+{
+  size_t candidate = home_bucket;
+  while( true )
+  {
+    uint16_t displacement = cc_map_hdr( cntr )->metadata[ candidate ] & CC_MAP_DISPLACEMENT_MASK;
+
+    if( displacement > displacement_to_empty )
+      return candidate;
+
+    candidate = ( home_bucket + cc_quadratic( displacement ) ) & cc_map_hdr( cntr )->cap_mask;
+  }
+}
+
+static inline bool cc_map_evict(
+  void *cntr,
+  size_t bucket,
+  size_t el_size,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash
+)
+{
+  // Find the previous key in chain.
+  size_t home_bucket = hash( cc_map_key( cntr, bucket, el_size, layout ) ) & cc_map_hdr( cntr )->cap_mask;
+  size_t prev = home_bucket;
+  while( true )
+  {
+    size_t next = ( home_bucket + cc_quadratic( cc_map_hdr( cntr )->metadata[ prev ] & CC_MAP_DISPLACEMENT_MASK ) ) &
+      cc_map_hdr( cntr )->cap_mask;
+
+    if( next == bucket )
+      break;
+
+    prev = next;
+  }
+
+  // Disconnect the key from chain.
+  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
+    ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_DISPLACEMENT_MASK );
+
+  // Find the empty bucket to which to move the key.
+  size_t empty;
+  uint16_t displacement;
+  if( !cc_map_find_first_empty( cntr, home_bucket, &empty, &displacement ) )
+    return false;
+
+  // Find the key in the chain after which to link the moved key.
+  prev = cc_map_find_insert_location_in_chain( cntr, home_bucket, displacement );
+
+  // Move the key and value data.
+  memcpy(
+    cc_map_el( cntr, empty, el_size, layout ),
+    cc_map_el( cntr, bucket, el_size, layout ),
+    CC_BUCKET_SIZE( el_size, layout )
+  );
+
+  // Re-link the key to the chain from its new bucket.
+  cc_map_hdr( cntr )->metadata[ empty ] = ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_HASH_FRAG_MASK ) |
+    ( cc_map_hdr( cntr )->metadata[ prev ] & CC_MAP_DISPLACEMENT_MASK );
+  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
+    displacement;
+
+  return true;
+}
+
+static inline void *cc_map_insert_raw(
+  void *cntr,
+  void *el,
+  void *key,
+  bool replace,
+  size_t el_size,
+  uint64_t layout,
+  double max_load,
+  cc_hash_fnptr_ty hash,
+  cc_cmpr_fnptr_ty cmpr,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor
+)
+{
+  size_t key_hash = hash( key );
+  uint16_t hashfrag = cc_hash_frag( key_hash );
+  size_t home_bucket = key_hash & cc_map_hdr( cntr )->cap_mask;
+
+  // Case 1: The home bucket is empty or contains a key that doesn't belong there.
+  // This case also implicitly handles the case of a zero bucket count, since home_bucket will be zero and metadata[ 0 ]
+  // will be the iteration stopper, which is marked as a key not in its home bucket.
+  // In that scenario, the zero buckets_mask triggers the below load-factor check.
+  if( !( cc_map_hdr( cntr )->metadata[ home_bucket ] & CC_MAP_IN_HOME_BUCKET_MASK ) )
+  {
+    if( cc_map_hdr( cntr )->size + 1 > max_load * cc_map_cap( cntr ) )
+      return NULL;
+
+    if(
+      cc_map_hdr( cntr )->metadata[ home_bucket ] != CC_MAP_EMPTY &&
+      !cc_map_evict( cntr, home_bucket, el_size, layout, hash )
+    )
+      return NULL;
+
+    memcpy( cc_map_key( cntr, home_bucket, el_size, layout ), key, CC_KEY_SIZE( layout ) );
+    memcpy( cc_map_el( cntr, home_bucket, el_size, layout ), el, el_size );
+    cc_map_hdr( cntr )->metadata[ home_bucket ] = hashfrag | CC_MAP_IN_HOME_BUCKET_MASK | CC_MAP_DISPLACEMENT_MASK;
+
+    ++cc_map_hdr( cntr )->size;
+
+    return cc_map_el( cntr, home_bucket, el_size, layout );
+  }
+
+  // Case 2: The home bucket contains the beginning of a chain.
+
+  // Optionally, check the existing chain.
+  if( cmpr )
+  {
+    size_t bucket = home_bucket;
+    while( true )
+    {
+      if(
+        ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_HASH_FRAG_MASK ) == hashfrag &&
+        cmpr( cc_map_key( cntr, bucket, el_size, layout ), key )
+      )
+      {
+        if( replace )
+        {
+          if( key_dtor )
+            key_dtor( cc_map_key( cntr, bucket, el_size, layout ) );
+
+          if( el_dtor )
+            el_dtor( cc_map_el( cntr, bucket, el_size, layout ) );
+
+          memcpy( cc_map_key( cntr, bucket, el_size, layout ), key, CC_KEY_SIZE( layout ) );
+          memcpy( cc_map_el( cntr, bucket, el_size, layout ), el, el_size );
+        }
+
+        return cc_map_el( cntr, bucket, el_size, layout );
+      }
+
+      uint16_t displacement = cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_DISPLACEMENT_MASK;
+      if( displacement == CC_MAP_DISPLACEMENT_MASK )
+        break;
+
+      bucket = ( home_bucket + cc_quadratic( displacement ) ) & cc_map_hdr( cntr )->cap_mask;
+    }
+  }
+
+  if( cc_map_hdr( cntr )->size + 1 > max_load * cc_map_cap( cntr ) )
+    return NULL;
+
+  size_t empty;
+  uint16_t displacement;
+  if( !cc_map_find_first_empty( cntr, home_bucket, &empty, &displacement ) )
+    return NULL;
+
+  size_t prev = cc_map_find_insert_location_in_chain( cntr, home_bucket, displacement );
+
+  // Insert the new key and value in the empty bucket and link it to the chain.
+  memcpy( cc_map_key( cntr, empty, el_size, layout ), key, CC_KEY_SIZE( layout ) );
+  memcpy( cc_map_el( cntr, empty, el_size, layout ), el, el_size );
+
+  cc_map_hdr( cntr )->metadata[ empty ] = hashfrag | ( cc_map_hdr( cntr )->metadata[ prev ] & CC_MAP_DISPLACEMENT_MASK
+    );
+  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
+    displacement;
+
+  ++cc_map_hdr( cntr )->size;
+
+  return cc_map_el( cntr, empty, el_size, layout );
+}
+
+
+
+
+static inline void *cc_map_reinsert(
+  void *cntr,
+  void *el,
+  void *key,
+  size_t el_size,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash
+)
+{
+  size_t key_hash = hash( key );
+  uint16_t hashfrag = cc_hash_frag( key_hash );
+  size_t home_bucket = key_hash & cc_map_hdr( cntr )->cap_mask;
+
+  if( !( cc_map_hdr( cntr )->metadata[ home_bucket ] & CC_MAP_IN_HOME_BUCKET_MASK ) )
+  {
+    if(
+      cc_map_hdr( cntr )->metadata[ home_bucket ] != CC_MAP_EMPTY &&
+      !cc_map_evict( cntr, home_bucket, el_size, layout, hash )
+    )
+      return NULL;
+
+    memcpy( cc_map_key( cntr, home_bucket, el_size, layout ), key, CC_KEY_SIZE( layout ) );
+    memcpy( cc_map_el( cntr, home_bucket, el_size, layout ), el, el_size );
+    cc_map_hdr( cntr )->metadata[ home_bucket ] = hashfrag | CC_MAP_IN_HOME_BUCKET_MASK | CC_MAP_DISPLACEMENT_MASK;
+
+    ++cc_map_hdr( cntr )->size;
+
+    return cc_map_el( cntr, home_bucket, el_size, layout );
+  }
+
+  // Case 2: The home bucket contains the beginning of a chain.
+
+  size_t empty;
+  uint16_t displacement;
+  if( !cc_map_find_first_empty( cntr, home_bucket, &empty, &displacement ) )
+    return NULL;
+
+  size_t prev = cc_map_find_insert_location_in_chain( cntr, home_bucket, displacement );
+
+  // Insert the new key and value in the empty bucket and link it to the chain.
+  memcpy( cc_map_key( cntr, empty, el_size, layout ), key, CC_KEY_SIZE( layout ) );
+  memcpy( cc_map_el( cntr, empty, el_size, layout ), el, el_size );
+
+  cc_map_hdr( cntr )->metadata[ empty ] = hashfrag | ( cc_map_hdr( cntr )->metadata[ prev ] & CC_MAP_DISPLACEMENT_MASK
+    );
+  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
+    displacement;
+
+  ++cc_map_hdr( cntr )->size;
+
+  return cc_map_el( cntr, empty, el_size, layout );
+}
+
+
+
+
+
+
+// Returns the minimum capacity required to accommodate n elements, which is governed by the max load factor associated
+// with the map's key type.
+static inline size_t cc_map_min_cap_for_n_els( size_t n, double max_load )
+{
+  if( n == 0 )
+    return 0;
+
+  // Round up to power of 2.
+  size_t cap = 8;
+  while( n > cap * max_load )
+    cap *= 2;
+
+  return cap;
+}
+
+static inline void *cc_map_make_rehash(
+  void *cntr,
+  size_t cap,
+  size_t el_size,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
+)
+{
+  while( true )
+  {
+    size_t buckets_size = CC_BUCKET_SIZE( el_size, layout ) * cap;
+    size_t metadata_offset = sizeof( cc_map_hdr_ty ) + buckets_size + CC_PADDING( buckets_size, alignof( uint16_t ) );
+    size_t allocation_size = metadata_offset + sizeof( uint16_t ) * ( cap + 4 );
+
+    cc_map_hdr_ty *new_cntr = (cc_map_hdr_ty *)realloc_( NULL, allocation_size );
+    if( !new_cntr )
+      return NULL;
+
+    new_cntr->size = 0;
+    new_cntr->cap_mask = cap - 1;
+    new_cntr->metadata = (uint16_t *)( (char *)new_cntr + metadata_offset );
+
+    memset( new_cntr->metadata, 0x00, ( cap + 4 ) * sizeof( uint16_t ) );
+
+    // Iteration stopper at the end of the actual metadata array (i.e. the first of the four excess metadata).
+    new_cntr->metadata[ cap ] = 0x01;
+
+    for( size_t i = 0; i < cc_map_cap( cntr ); ++i )
+      if( cc_map_hdr( cntr )->metadata[ i ] != CC_MAP_EMPTY )
+      {
+        void *key = cc_map_key( cntr, i, el_size, layout );
+        /*if( !cc_map_insert_raw(
+          new_cntr,
+          cc_map_el( cntr, i, el_size, layout ),
+          key,
+          false, // ...
+          el_size,
+          layout,
+          1.0, //
+          hash,
+          NULL, // ...
+          NULL, // ...
+          NULL // ...
+        ) )*/
+        if( !cc_map_reinsert(
+          new_cntr,
+          cc_map_el( cntr, i, el_size, layout ),
+          key,
+          el_size,
+          layout,
+          hash
+        ) )
+        {
+          free_( new_cntr );
+          cap *= 2;
+          continue;
+        }
+      }
+
+    return new_cntr;
+  }
+}
+
+static inline cc_allocing_fn_result_ty cc_map_reserve(
+  void *cntr,
+  size_t n,
+  size_t el_size,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  double max_load,
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
+)
+{
+  size_t cap = cc_map_min_cap_for_n_els( n, max_load );
+
+  if( cc_map_cap( cntr ) >= cap )
+    return cc_make_allocing_fn_result( cntr, cc_dummy_true_ptr );
+
+  void *new_cntr = cc_map_make_rehash(
+    cntr,
+    cap,
+    el_size,
+    layout,
+    hash,
+    realloc_,
+    free_
+  );
+  if( !new_cntr )
+    return cc_make_allocing_fn_result( cntr, NULL );
+
+  if( !cc_map_is_placeholder( cntr ) )
+    free_( cntr );
+
+  return cc_make_allocing_fn_result( new_cntr, cc_dummy_true_ptr );
+}
+
+static inline cc_allocing_fn_result_ty cc_map_insert(
+  void *cntr,
+  void *el,
+  void *key,
+  bool replace,
+  size_t el_size,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_cmpr_fnptr_ty cmpr,
+  double max_load,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor,
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
+)
+{
+  while( true )
+  {
+    void *itr = cc_map_insert_raw(
+      cntr,
+      el,
+      key,
+      replace,
+      el_size,
+      layout,
+      max_load,
+      hash,
+      cmpr,
+      el_dtor,
+      key_dtor
+    );
+
+    if( itr )
+      return cc_make_allocing_fn_result( cntr, itr );
+
+    void *new_cntr = cc_map_make_rehash(
+      cntr,
+      cc_map_hdr( cntr )->cap_mask ? cc_map_cap( cntr ) * 2 : 8,
+      el_size,
+      layout,
+      hash,
+      realloc_,
+      free_
+    );
+
+    if( !new_cntr )
+      return cc_make_allocing_fn_result( cntr, NULL );
+
+    if( !cc_map_is_placeholder( cntr ) )
+        free_( cntr );
+
+    cntr = new_cntr;
+  }
+}
+
+static inline void *cc_map_get(
+  void *cntr,
+  void *key,
+  size_t el_size,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_cmpr_fnptr_ty cmpr
+)
+{
+  size_t key_hash = hash( key );
+  size_t home_bucket = key_hash & cc_map_hdr( cntr )->cap_mask;
+
+  // If the home bucket is empty or contains a key that does not belong there, then our key does not exist.
+  // This check also implicitly handles the case of a zero bucket count, since home_bucket will ...
+  if( !( cc_map_hdr( cntr )->metadata[ home_bucket ] & CC_MAP_IN_HOME_BUCKET_MASK ) )
+    return NULL;
+
+  // Traverse the chain of keys belonging to the home bucket.
+  uint16_t hashfrag = cc_hash_frag( key_hash );
+  size_t bucket = home_bucket;
+  while( true )
+  {
+    if(
+      ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_HASH_FRAG_MASK ) == hashfrag &&
+      cmpr( cc_map_key( cntr, bucket, el_size, layout ), key )
+    )
+      return cc_map_el( cntr, bucket, el_size, layout );
+
+    uint16_t displacement = cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_DISPLACEMENT_MASK;
+    if( displacement == CC_MAP_DISPLACEMENT_MASK )
+      return NULL;
+
+    bucket = ( home_bucket + cc_quadratic( displacement ) ) & cc_map_hdr( cntr )->cap_mask;
+  }
+}
+
+static inline void *cc_map_key_for(
+  void *itr,
+  size_t el_size,
+  uint64_t layout
+)
+{
+  return (char *)itr + CC_KEY_OFFSET( el_size, layout );
+}
+
+
+
+
+
+// Function to find the left-most non-zero uint16_t in a uint64_t.
+// This function is used when we scan four buckets at a time while iterating and relies on compiler intrinsics wherever
+// possible.
+
+#if defined( __GNUC__ ) && ULLONG_MAX == 0xFFFFFFFFFFFFFFFF
+
+static inline int cc_first_nonzero_uint16( uint64_t val )
+{
+  const uint16_t endian_checker = 0x0001;
+  if( *(char *)&endian_checker ) // Little-endian (the compiler will optimize away the check at -O1 and above).
+    return __builtin_ctzll( val ) / 16;
+  
+  return __builtin_clzll( val ) / 16;
+}
+
+static inline int cc_last_nonzero_uint16( uint64_t val )
+{
+  const uint16_t endian_checker = 0x0001;
+  if( *(char *)&endian_checker ) // Little-endian (the compiler will optimize away the check at -O1 and above).
+    return __builtin_clzll( val ) / 16;
+  
+  return __builtin_ctzll( val ) / 16;
+}
+
+#elif defined( _MSC_VER ) && ( defined( _M_X64 ) || defined( _M_ARM64 ) )
+
+#include <intrin.h>
+#pragma intrinsic(_BitScanForward64)
+#pragma intrinsic(_BitScanReverse64)
+
+static inline int cc_first_nonzero_uint16( uint64_t val )
+{
+  unsigned long result;
+
+  const uint16_t endian_checker = 0x0001;
+  if( *(char *)&endian_checker )
+    _BitScanForward64( &result, val );
+  else
+    _BitScanReverse64( &result, val );
+
+  return result / 16;
+}
+
+#else
+
+static inline int cc_first_nonzero_uint16( uint64_t val )
+{
+  int result = 0;
+
+  uint32_t half;
+  memcpy( &half, &val, sizeof( uint32_t ) );
+  if( !half )
+    result += 2;
+  
+  uint16_t quarter;
+  memcpy( &quarter, (char *)&val + result * 2, sizeof( uint16_t ) );
+  if( !quarter )
+    result += 1;
+  
+  return result;
+}
+
+#endif
+
+
+
+
+static inline void *cc_map_fast_forward( void *cntr, void *itr, size_t el_size, uint64_t layout )
+{
+  uint16_t *itr_metadatum = &cc_map_hdr( cntr )->metadata[
+    ( (char *)itr - (char *)cc_map_el( cntr, 0, el_size, layout ) ) / CC_BUCKET_SIZE( el_size, layout )
+  ];
+
+  while( true )
+  {
+    uint64_t metadatum;
+    memcpy( &metadatum, itr_metadatum, 8 );
+    if( metadatum )
+      return (char *)itr + CC_BUCKET_SIZE( el_size, layout ) * cc_first_nonzero_uint16( metadatum );
+
+    itr = (char *)itr + CC_BUCKET_SIZE( el_size, layout ) * 4;
+    itr_metadatum += 4;
+  }
+}
+
+
+static inline void *cc_map_leap_backward( void *cntr, void *itr, size_t el_size, uint64_t layout )
+{
+  size_t bucket = ( (char *)itr - (char *)cc_map_el( cntr, 0, el_size, layout ) ) / CC_BUCKET_SIZE( el_size, layout );
+
+  while( true )
+  {
+    if( bucket < 4 )
+    {
+      while( bucket-- )
+        if( cc_map_hdr( cntr )->metadata[ bucket ] )
+          return cc_map_el( cntr, bucket, el_size, layout );
+
+      return cntr; // 
+    }
+
+    if( cc_map_hdr( cntr )->metadata == &cc_map_placeholder_metadatum )
+      __builtin_unreachable();
+
+    uint64_t metadatum;
+    memcpy( &metadatum, cc_map_hdr( cntr )->metadata + bucket - 4, 8 );
+    if( metadatum )
+      return cc_map_el( cntr, bucket - cc_last_nonzero_uint16( metadatum ) - 1, el_size, layout );
+
+    bucket -= 4;
+  }
+}
+
+
+static inline void *cc_map_next(
+  void *cntr,
+  void *itr,
+  size_t el_size,
+  uint64_t layout
+)
+{
+  itr = (char *)itr + CC_BUCKET_SIZE( el_size, layout );
+  return cc_map_fast_forward( cntr, itr, el_size, layout );
+}
+
+
+
+
+
+
+static inline bool cc_map_erase_raw(
+  void *cntr,
+  size_t erase_bucket,
+  size_t home_bucket, // SIZE_MAX if unknown.
+  size_t el_size,
+  size_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor
+)
+{
+  --cc_map_hdr( cntr )->size;
+
+  // Case 1: The key is the only one in its chain, so just remove it.
+  if(
+    cc_map_hdr( cntr )->metadata[ erase_bucket ] & CC_MAP_IN_HOME_BUCKET_MASK &&
+    ( cc_map_hdr( cntr )->metadata[ erase_bucket ] & CC_MAP_DISPLACEMENT_MASK ) == CC_MAP_DISPLACEMENT_MASK
+  )
+  {
+    if( el_dtor )
+      el_dtor( cc_map_el( cntr, erase_bucket, el_size, layout ) );
+    if( key_dtor )
+      key_dtor( cc_map_key( cntr, erase_bucket, el_size, layout ) );
+
+    cc_map_hdr( cntr )->metadata[ erase_bucket ] = CC_MAP_EMPTY;
+    return true;
+  }
+
+  // Case 2 and 3 require that we know the key's home bucket, which the iterator may not have recorded.
+  if( home_bucket == SIZE_MAX )
+  {
+    if( cc_map_hdr( cntr )->metadata[ erase_bucket ] & CC_MAP_IN_HOME_BUCKET_MASK )
+      home_bucket = erase_bucket;
+    else
+      home_bucket = hash( cc_map_key( cntr, erase_bucket, el_size, layout ) ) & cc_map_hdr( cntr )->cap_mask;
+  }
+
+  if( el_dtor )
+    el_dtor( cc_map_el( cntr, erase_bucket, el_size, layout ) );
+  if( key_dtor )
+    key_dtor( cc_map_key( cntr, erase_bucket, el_size, layout ) );
+
+  // Case 2: The key is the last in a multi-key chain.
+  // Traverse the chain from the beginning and find the penultimate key.
+  // Then disconnect the key and erase.
+  if( ( cc_map_hdr( cntr )->metadata[ erase_bucket ] & CC_MAP_DISPLACEMENT_MASK ) == CC_MAP_DISPLACEMENT_MASK )
+  {
+    size_t bucket = home_bucket;
+    while( true )
+    {
+      uint16_t displacement = cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_DISPLACEMENT_MASK;
+      size_t next = ( home_bucket + cc_quadratic( displacement ) ) & cc_map_hdr( cntr )->cap_mask;
+      if( next == erase_bucket )
+      {
+        cc_map_hdr( cntr )->metadata[ bucket ] |= CC_MAP_DISPLACEMENT_MASK;
+        cc_map_hdr( cntr )->metadata[ erase_bucket ] = CC_MAP_EMPTY;
+        return true;
+      }
+
+      bucket = next;
+    }
+  }
+
+  // Case 3: The chain has multiple keys, and the key is not the last one.
+  // Traverse the chain from the key to be erased and find the last and penultimate keys.
+  // Disconnect the last key from the chain, and swap it with the key to erase.
+  size_t bucket = erase_bucket;
+  while( true )
+  {
+    size_t prev = bucket;
+    bucket = ( home_bucket + cc_quadratic( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_DISPLACEMENT_MASK ) ) &
+      cc_map_hdr( cntr )->cap_mask;
+
+    if( ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_DISPLACEMENT_MASK ) == CC_MAP_DISPLACEMENT_MASK )
+    {
+      memcpy(
+        cc_map_el( cntr, erase_bucket, el_size, layout ),
+        cc_map_el( cntr, bucket, el_size, layout ),
+        CC_BUCKET_SIZE( el_size, layout )
+      );
+
+      cc_map_hdr( cntr )->metadata[ erase_bucket ] = ( cc_map_hdr( cntr )->metadata[ erase_bucket ] &
+        ~CC_MAP_HASH_FRAG_MASK ) | ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_HASH_FRAG_MASK );
+
+      cc_map_hdr( cntr )->metadata[ prev ] |= CC_MAP_DISPLACEMENT_MASK;
+      cc_map_hdr( cntr )->metadata[ bucket ] = CC_MAP_EMPTY;
+
+      // Whether the iterator should be advanced depends on whether the key moved to the iterator bucket came from
+      // before or after that bucket.
+      // In the former case, the iteration would already have hit the moved key, so the iterator should still be
+      // advanced.
+      if( bucket > erase_bucket )
+        return false;
+
+      return true;
+    }
+  }
+}
+
+static inline void *cc_map_erase_itr(
+  void *cntr,
+  void *itr,
+  size_t el_size,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor
+)
+{
+  size_t bucket = ( (char *)itr - (char *)cc_map_el( cntr, 0, el_size, layout ) ) / CC_BUCKET_SIZE( el_size, layout );
+
+  if( cc_map_erase_raw( cntr, bucket, SIZE_MAX, el_size, layout, hash, el_dtor, key_dtor ) )
+    return cc_map_next( cntr, itr, el_size, layout );
+
+  return itr;
+}
+
+static inline void *cc_map_erase(
+  void *cntr,
+  void *key,
+  size_t el_size,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  cc_cmpr_fnptr_ty cmpr,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  size_t key_hash = hash( key );
+  size_t home_bucket = key_hash & cc_map_hdr( cntr )->cap_mask;
+
+  // If the home bucket is empty or contains a key that does not belong there, then our key does not exist.
+  // This check also implicitly handles the case of a zero bucket count, since home_bucket will ...
+  if( !( cc_map_hdr( cntr )->metadata[ home_bucket ] & CC_MAP_IN_HOME_BUCKET_MASK ) )
+    return NULL;
+
+  // Traverse the chain of keys belonging to the home bucket.
+  uint16_t hashfrag = cc_hash_frag( key_hash );
+  size_t bucket = home_bucket;
+  while( true )
+  {
+    if(
+      ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_HASH_FRAG_MASK ) == hashfrag &&
+      cmpr( cc_map_key( cntr, bucket, el_size, layout ), key )
+    )
+    {
+      cc_map_erase_raw( cntr, bucket, home_bucket, el_size, layout, hash, el_dtor, key_dtor );
+      return &cc_dummy_true;
+    }
+
+    uint16_t displacement = cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_DISPLACEMENT_MASK;
+    if( displacement == CC_MAP_DISPLACEMENT_MASK )
+      return NULL;
+
+    bucket = ( home_bucket + cc_quadratic( displacement ) ) & cc_map_hdr( cntr )->cap_mask;
+  }
+}
+
+static inline cc_allocing_fn_result_ty cc_map_shrink(
+  void *cntr,
+  size_t el_size,
+  uint64_t layout,
+  cc_hash_fnptr_ty hash,
+  double max_load,
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
+)
+{
+  size_t cap = cc_map_min_cap_for_n_els( cc_map_size( cntr ), max_load );
+
+  if( cap == cc_map_cap( cntr ) ) // Shrink unnecessary.
+    return cc_make_allocing_fn_result( cntr, cc_dummy_true_ptr );
+
+  if( cap == 0 ) // Restore placeholder.
+  {
+    if( !cc_map_is_placeholder( cntr ) )
+      free_( cntr );
+
+    return cc_make_allocing_fn_result( (void *)&cc_map_placeholder, cc_dummy_true_ptr );
+  }
+
+  void *new_cntr = cc_map_make_rehash(
+    cntr,
+    cap,
+    el_size,
+    layout,
+    hash,
+    realloc_,
+    free_
+  );
+  if( !new_cntr )
+    return cc_make_allocing_fn_result( cntr, NULL );
+
+  if( !cc_map_is_placeholder( cntr ) )
+    free_( cntr );
+
+  return cc_make_allocing_fn_result( new_cntr, cc_dummy_true_ptr );
+}
+
+static inline void *cc_map_init_clone(
+  void *src,
+  size_t el_size,
+  uint64_t layout,
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  if( cc_map_size( src ) == 0 ) // Also handles placeholder.
+    return (void *)&cc_map_placeholder;
+
+  size_t buckets_size = CC_BUCKET_SIZE( el_size, layout ) * cc_map_cap( src );
+  size_t metadata_offset = sizeof( cc_map_hdr_ty ) + buckets_size + CC_PADDING( buckets_size, alignof( uint16_t ) );
+  size_t allocation_size = metadata_offset + sizeof( uint16_t ) * ( cc_map_cap( src ) + 4 );
+
+  cc_map_hdr_ty *new_cntr = (cc_map_hdr_ty*)realloc_( NULL, allocation_size );
+  if( !new_cntr )
+    return NULL;
+
+  memcpy( new_cntr, src, allocation_size );
+  new_cntr->metadata = (uint16_t *)( (char *)new_cntr + metadata_offset );
+
+  return new_cntr;
+}
+
+static inline void cc_map_clear(
+  void *cntr,
+  size_t el_size,
+  uint64_t layout,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  if( cc_map_size( cntr ) == 0 ) // Also handles placeholder.
+    return;
+
+  for( size_t bucket = 0; bucket < cc_map_cap( cntr ); ++bucket )
+    if( cc_map_hdr( cntr )->metadata[ bucket ] )
+    {
+      if( key_dtor )
+        key_dtor( cc_map_key( cntr, bucket, el_size, layout ) );
+
+      if( el_dtor )
+        el_dtor( cc_map_el( cntr, bucket, el_size, layout ) );
+
+      cc_map_hdr( cntr )->metadata[ bucket ] = CC_MAP_EMPTY;
+    }
+
+  cc_map_hdr( cntr )->size = 0;
+}
+
+static inline void cc_map_cleanup(
+  void *cntr,
+  size_t el_size,
+  uint64_t layout,
+  cc_dtor_fnptr_ty el_dtor,
+  cc_dtor_fnptr_ty key_dtor,
+  cc_free_fnptr_ty free_
+)
+{
+  cc_map_clear( cntr, el_size, layout, key_dtor, el_dtor, NULL /* Dummy */ );
+
+  if( !cc_map_is_placeholder( cntr ) )
+    free_( cntr );
+}
+
+// For maps, the container handle doubles up as r_end.
+static inline void *cc_map_r_end( void *cntr )
+{
+  return cntr;
+}
+
+static inline void *cc_map_end(
+  void *cntr,
+  size_t el_size,
+  uint64_t layout
+)
+{
+  return cc_map_el( cntr, cc_map_cap( cntr ), el_size, layout );
+}
+
+
+
+
+
+
+
+
+
+static inline void *cc_map_first(
+  void *cntr,
+  size_t el_size,
+  uint64_t layout
+)
+{
+  void *itr = cc_map_el( cntr, 0, el_size, layout );
+
+  if( !cc_map_hdr( cntr )->cap_mask )
+    return itr;
+
+  return cc_map_fast_forward( cntr, itr, el_size, layout );
+}
+
+static inline void *cc_map_last(
+  void *cntr,
+  size_t el_size,
+  uint64_t layout
+)
+{
+  return cc_map_leap_backward( cntr, cc_map_end( cntr, el_size, layout ), el_size, layout );
+}
+
+static inline void *cc_map_prev(
+  void *cntr,
+  void *itr,
+  size_t el_size,
+  uint64_t layout
+)
+{
+  return cc_map_leap_backward( cntr, itr, el_size, layout );
+}
+
+
+
+#if 0 // Old.
 
 // Functions for easily accessing element, key, and probe length for the bucket at index i.
 // The element pointer also denotes the beginning of the bucket.
@@ -2614,6 +3685,8 @@ static inline void *cc_map_next(
   return itr;
 }
 
+#endif
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 /*                                                        Set                                                         */
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -2690,16 +3763,25 @@ static inline void *cc_set_get(
   return cc_map_get( cntr, key, 0 /* Zero element size */, layout, hash, cmpr );
 }
 
-static inline void cc_set_erase_itr(
+static inline void *cc_set_erase_itr(
   void *cntr,
   void *itr,
   CC_UNUSED( size_t, el_size ),
   uint64_t layout,
+  cc_hash_fnptr_ty hash,
   cc_dtor_fnptr_ty el_dtor,
   CC_UNUSED( cc_dtor_fnptr_ty, key_dtor )
 )
 {
-  cc_map_erase_itr( cntr, itr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one destructor */ );
+  return cc_map_erase_itr(
+    cntr,
+    itr,
+    0,       // Zero element size.
+    layout,
+    hash,
+    el_dtor,
+    NULL     // Only one destructor.
+  );
 }
 
 static inline void *cc_set_erase(
@@ -3175,9 +4257,10 @@ static inline void *cc_set_next(
   /* Function arguments */                                \
   (                                                       \
     *(cntr),                                              \
-    itr,                                                  \
+    (itr),                                                \
     CC_EL_SIZE( *(cntr) ),                                \
     CC_LAYOUT( *(cntr) ),                                 \
+    CC_KEY_HASH( *(cntr) ),                               \
     CC_EL_DTOR( *(cntr) ),                                \
     CC_KEY_DTOR( *(cntr) )                                \
   )                                                       \
@@ -3190,21 +4273,21 @@ static inline void *cc_set_next(
   CC_STATIC_ASSERT( CC_IS_SAME_TY( (cntr), (src) ) ),                       \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                      \
     *(cntr),                                                                \
-    cc_list_splice( *(cntr), itr, *(src), src_itr, CC_REALLOC_FN )          \
+    cc_list_splice( *(cntr), (itr), *(src), src_itr, CC_REALLOC_FN )        \
   ),                                                                        \
   CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                           \
 
-#define cc_resize( cntr, n )                                                                 \
-(                                                                                            \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ),                                       \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
-    *(cntr),                                                                                 \
-    cc_vec_resize( *(cntr), n, CC_EL_SIZE( *(cntr) ), CC_EL_DTOR( *(cntr) ), CC_REALLOC_FN ) \
-  ),                                                                                         \
-  CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) )                  \
-)                                                                                            \
+#define cc_resize( cntr, n )                                                                   \
+(                                                                                              \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                      \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ),                                         \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                         \
+    *(cntr),                                                                                   \
+    cc_vec_resize( *(cntr), (n), CC_EL_SIZE( *(cntr) ), CC_EL_DTOR( *(cntr) ), CC_REALLOC_FN ) \
+  ),                                                                                           \
+  CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) )                    \
+)                                                                                              \
 
 #define cc_shrink( cntr )                                                   \
 (                                                                           \

@@ -1,5 +1,5 @@
 /*
-CC/tests/unit_tests.c - v1.0.4
+CC/tests/unit_tests.c - v1.0.5
 
 This file tests CC containers.
 It aims to cover the full API and to check corner cases, particularly transitions between placeholder containers and
@@ -89,7 +89,7 @@ void tracking_free( void *ptr )
 // Define a custom type that will be used to check that destructors are always called where necessary.
 
 bool dtor_called[ 100 ];
-void check_dtors_arr()
+void check_dtors_arr( void )
 {
   for( size_t i = 0; i < sizeof( dtor_called ) / sizeof( *dtor_called ); ++i )
   {
