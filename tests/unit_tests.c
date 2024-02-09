@@ -1226,7 +1226,6 @@ void test_map_erase_itr( void )
   cleanup( &our_map );
 }
 
-
 void test_map_clear( void )
 {
   map( int, size_t ) our_map;
