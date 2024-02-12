@@ -247,7 +247,7 @@ int main( void )
 
 ### Map
 
-A `map` is an unordered container associating elements with keys, implemented as a [Robin Hood](https://www.sebastiansylvan.com/post/robin-hood-hashing-should-be-your-default-hash-table-implementation) hash table.
+A `map` is an unordered container associating elements with keys, implemented as an hybird open-addressing, chained hash table also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
 
 ```c
 #include <stdio.h>
@@ -299,7 +299,7 @@ int main( void )
 
 ### Set
 
-A `set` is a [Robin Hood](https://www.sebastiansylvan.com/post/robin-hood-hashing-should-be-your-default-hash-table-implementation) hash table for elements without a separate key.
+A `set` is an associative container for elements without a separate key, implemented as an hybird open-addressing, chained hash table also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
 
 ```c
 #include <stdio.h>
