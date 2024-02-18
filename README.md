@@ -4,12 +4,12 @@
 
 Its features include:
 
-- Fully generic API.
-- Type safety.
-- User-defined destructor, comparison, and hash functions associated with element and key types.
-- No assumption of successful memory allocation.
-- Single header.
-- Compiles in C and C++.
+* Fully generic API.
+* Type safety.
+* User-defined destructor, comparison, and hash functions associated with element and key types.
+* No assumption of successful memory allocation.
+* Single header.
+* Compiles in C and C++.
 
 It requires C23, or C11 and compiler support for `typeof`, or C++11.
 
@@ -247,7 +247,7 @@ int main( void )
 
 ### Map
 
-A `map` is an unordered container associating elements with keys, implemented as an hybird open-addressing, chained hash table also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
+A `map` is an unordered associative container mapping elements to keys, implemented as a hybird open-addressing, chained hash table that is also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
 
 ```c
 #include <stdio.h>
@@ -299,7 +299,7 @@ int main( void )
 
 ### Set
 
-A `set` is an associative container for elements without a separate key, implemented as an hybird open-addressing, chained hash table also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
+A `set` is an unordered associative container for elements without a separate key, implemented as a hybird open-addressing, chained hash table also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
 
 ```c
 #include <stdio.h>

@@ -96,7 +96,7 @@ Returns the current capacity.
 bool reserve( vec( el_ty ) *cntr, size_t n )
 ```
 
-Ensures that the the capacity is large enough to support `n` elements.  
+Ensures that the the capacity is large enough to accommodate `n` elements.  
 Returns `true`, or `false` if unsuccessful due to memory allocation failure.
 
 ```c
@@ -287,9 +287,9 @@ It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr );
 > **Note**
 > List pointer-iterators (including `r_end` and `end`) are not invalidated by any API calls besides `init` and `cleanup`, unless they point to erased elements.
 
-### Map
+## Map
 
-A `map` is an unordered container associating elements with keys, implemented as a Robin Hood hash table.
+A `map` is an unordered associative container mapping elements to keys, implemented as a hybird open-addressing, chained hash table.
 
 ```c
 map( key_ty, el_ty ) cntr
@@ -305,13 +305,13 @@ size_t cap( map( key_ty, el_ty ) *cntr )
 ```
 
 Returns the current capacity, i.e. bucket count.  
-Note that the number of elements a map can support without rehashing is not its capacity but its capacity multiplied by the max load factor associated with its key type.
+Note that the number of elements a map can accommodate without rehashing is not its capacity but its capacity multiplied by the max load factor associated with its key type.
 
 ```c
 bool reserve( map( key_ty, el_ty ) *cntr, size_t n )
 ```
 
-Ensures that the capacity is large enough to support `n` elements without rehashing.  
+Ensures that the capacity is large enough to accommodate `n` elements without rehashing.  
 Returns `true`, or `false` if unsuccessful due to memory allocation failure.
 
 ```c
@@ -327,8 +327,7 @@ el_ty *insert( map( key_ty, el_ty ) *cntr, key_ty key, el_ty el )
 
 Inserts element `el` with the specified key.  
 If an element with the same key already exists, the existing element is replaced.  
-Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.  
-If adding one element would violate the map's max load factor, failure can occur even if it already contains the key.
+Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.
 
 ```c
 el_ty *get( map( key_ty, el_ty ) *cntr, key_ty key )
@@ -341,9 +340,7 @@ el_ty *get_or_insert( map( key_ty, el_ty ) *cntr, key_ty key, el_ty el )
 ```
 
 Inserts element `el` if no element with the specified key already exist.  
-Returns a pointer-iterator to the new element if it was inserted, or a pointer-iterator to the existing element with the same key, or `NULL` in the case of memory allocation failure.  
-If adding one element would violate the map's max load factor, failure can occur even if it already contains the key.  
-Determine whether an element was inserted by comparing the map's size before and after the call.
+Returns a pointer-iterator to the new element if it was inserted, or a pointer-iterator to the existing element with the same key, or `NULL` in the case of memory allocation failure.
 
 ```c
 const key_ty *key_for( map( key_ty, el_ty ) *cntr, el_ty *i )
@@ -359,10 +356,11 @@ Erases the element with the specified key, if it exists.
 Returns `true` if an element was erased, or `false` if no such element exists.
 
 ```c
-void erase_itr( map( key_ty, el_ty ) *cntr, el_ty *i )
+el_ty * erase_itr( map( key_ty, el_ty ) *cntr, el_ty *i )
 ```
 
-Erases the element pointed to by pointer-iterator `i`.
+Erases the element pointed to by pointer-iterator `i`.  
+Returns an iterator to the next element in the map, or an end pointer-iterator if the erased element was the last one.
 
 ```c
 el_ty *first( map( key_ty, el_ty ) *cntr )
@@ -433,7 +431,7 @@ It should be followed by the body of the loop.
 
 ## Set
 
-A `set` is a Robin Hood hash table for elements without a separate key.
+A `set` is an unordered associative container for elements without a separate key, implemented as a hybird open-addressing, chained hash table
 
 ```c
 set( el_ty ) cntr
@@ -449,13 +447,13 @@ size_t cap( set( el_ty ) *cntr )
 ```
 
 Returns the current capacity, i.e. bucket count.  
-Note that the number of elements a set can support without rehashing is not its capacity but its capacity multiplied by the max load factor associated with its key type.
+Note that the number of elements a set can accommodate without rehashing is not its capacity but its capacity multiplied by the max load factor associated with its key type.
 
 ```c
 bool reserve( set( el_ty ) *cntr, size_t n )
 ```
 
-Ensures that the capacity is large enough to support `n` elements without rehashing.  
+Ensures that the capacity is large enough to accommodate `n` elements without rehashing.  
 Returns `true`, or `false` if unsuccessful due to memory allocation failure.
 
 ```c
@@ -471,8 +469,7 @@ el_ty *insert( set( el_ty ) *cntr, el_ty el )
 
 Inserts element `el`.  
 If the element already exists, the existing element is replaced.  
-Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.  
-Note that if adding one element would violate the set's max load factor, failure can occur even if it already contains `el`.
+Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.
 
 ```c
 el_ty *get( set( el_ty ) *cntr, el_ty el )
@@ -486,7 +483,6 @@ el_ty *get_or_insert( set( el_ty ) *cntr, el_ty el )
 
 Inserts element `el` if it does not already exist.  
 Returns a pointer-iterator to the new element if it was inserted, or a pointer-iterator to the existing element, or `NULL` in the case of memory allocation failure.  
-If adding one element would violate the set's max load factor, failure can occur even if it already contains the element.  
 Determine whether an element was inserted by comparing the set's size before and after the call.
 
 ```c
@@ -495,6 +491,13 @@ bool erase( set( el_ty ) *cntr, el_ty el )
 
 Erases the element `el`, if it exists.  
 Returns `true` if an element was erased, or `false` if no such element exists.
+
+```c
+el_ty * erase_itr( set( el_ty ) *cntr, el_ty *i )
+```
+
+Erases the element pointed to by pointer-iterator `i`.  
+Returns an iterator to the next element in the set, or an end pointer-iterator if the erased element was the last one.
 
 ```c
 el_ty *first( set( el_ty ) *cntr )
