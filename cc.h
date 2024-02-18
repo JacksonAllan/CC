@@ -1,4 +1,4 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v-.-.- -------------------------------------------
+/*-------------------------------------- CC: CONVENIENT CONTAINERS v1.1.0 BETA -----------------------------------------
 
 This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, and unordered sets).
 
@@ -514,7 +514,8 @@ API:
 
 Version history:
 
-  --/--/---- 1.1.0: Replaced the Robin Hood implementations of map and set with Verstable implementations.
+  --/--/---- 1.1.0 BETA:
+                    Replaced the Robin Hood implementations of map and set with Verstable implementations.
                     Added branch selection optimizations.
                     Improved documentation.
   23/01/2024 1.0.4: Fixed critical bug causing undefined behavior upon iteration of empty maps with nonzero capacities.
