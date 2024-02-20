@@ -1,5 +1,7 @@
 <picture><img src="./header.svg" alt="CC: Convenient Containers"></picture>
 
+*Note: [Version 1.1.0 Pre-Release](https://github.com/JacksonAllan/CC/releases/tag/v1.1.0_Pre-Release) is now available via a [dedicated branch](https://github.com/JacksonAllan/CC/tree/v1.1.0-Pre-Release).*
+
 **Convenient Containers** (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, and **unordered sets**.
 
 Its features include:
