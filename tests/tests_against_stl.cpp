@@ -1,5 +1,5 @@
 /*
-CC/tests/tests_against_stl.cpp - v. 1.0.4
+CC/tests/tests_against_stl.cpp - v1.0.4
 
 This file tests CC containers against equivalent C++ STL containers.
 Primarily, it checks that a CC container and its equivalent STL container end up in the same state after a random
