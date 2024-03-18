@@ -1,5 +1,6 @@
 /*
-CC/tests/unit_tests.c - v1.0.4
+
+CC/tests/unit_tests.c - v1.1.0
 
 This file tests CC containers.
 It aims to cover the full API and to check corner cases, particularly transitions between placeholder containers and
@@ -21,6 +22,7 @@ License (MIT):
   WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
   COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
   OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 */
 
 #define TEST_VEC
@@ -89,7 +91,7 @@ void tracking_free( void *ptr )
 // Define a custom type that will be used to check that destructors are always called where necessary.
 
 bool dtor_called[ 100 ];
-void check_dtors_arr()
+void check_dtors_arr( void )
 {
   for( size_t i = 0; i < sizeof( dtor_called ) / sizeof( *dtor_called ); ++i )
   {
@@ -1204,28 +1206,59 @@ void test_map_erase_itr( void )
   map( int, size_t ) our_map;
   init( &our_map );
 
-  // Test erase existing.
-  for( int i = 0; i < 100; ++i )
+  // In this instance, the key count and order of insert have been carefully chosen to cause skipped or repeat-visted
+  // keys if erase_itr does not correctly handle the case of another key being moved to the bucket of the erased key.
+  for( int i = 119; i >= 0; --i )
     UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
 
-  ALWAYS_ASSERT( size( &our_map ) == 100 );
+  ALWAYS_ASSERT( size( &our_map ) == 120 );
 
-  for( int i = 0; i < 100; i += 2 )
+  // Test with iterator from get.
+  for( uint64_t i = 0; i < 120; i += 4 )
     erase_itr( &our_map, get( &our_map, i ) );
 
   // Check.
-  ALWAYS_ASSERT( size( &our_map ) == 50 );
-  for( int i = 0; i < 100; ++i )
+  ALWAYS_ASSERT( size( &our_map ) == 90 );
+  for( uint64_t i = 0; i < 120; ++i )
+  {
+    if( i % 4 == 0 )
+      ALWAYS_ASSERT( !get( &our_map, i ) );
+    else
+    {
+      size_t *el = get( &our_map, i );
+      ALWAYS_ASSERT( el && *el == i + 1 );
+    }
+  }
+
+  // Test deletion while iterating.
+  size_t *el = first( &our_map );
+  size_t n_iterations = 0;
+  while( el != end( &our_map ) )
+  {
+    ++n_iterations;
+
+    if( *key_for( &our_map, el ) % 2 == 0 )
+      el = erase_itr( &our_map, el );
+    else
+      el = next( &our_map, el );
+  }
+
+  ALWAYS_ASSERT( n_iterations == 90 );
+  ALWAYS_ASSERT( size( &our_map ) == 60 );
+
+  for( uint64_t i = 0; i < 120; ++i )
   {
     if( i % 2 == 0 )
       ALWAYS_ASSERT( !get( &our_map, i ) );
     else
-      ALWAYS_ASSERT( *get( &our_map, i ) == (size_t)i + 1 );
+    {
+      el = get( &our_map, i );
+      ALWAYS_ASSERT( el && *el == i + 1 );
+    }
   }
 
   cleanup( &our_map );
 }
-
 
 void test_map_clear( void )
 {
@@ -1723,23 +1756,55 @@ void test_set_erase_itr( void )
   set( int ) our_set;
   init( &our_set );
 
-  // Test erase existing.
-  for( int i = 0; i < 100; ++i )
+  // In this instance, the key count and order of insert have been carefully chosen to cause skipped or repeat-visted
+  // keys if vt_erase_itr does not correctly handle the case of another key being moved to the bucket of the erased key.
+  for( int i = 119; i >= 0; --i )
     UNTIL_SUCCESS( insert( &our_set, i ) );
 
-  ALWAYS_ASSERT( size( &our_set ) == 100 );
+  ALWAYS_ASSERT( size( &our_set ) == 120 );
 
-  for( int i = 0; i < 100; i += 2 )
+  // Test with iterator from get.
+  for( uint64_t i = 0; i < 120; i += 4 )
     erase_itr( &our_set, get( &our_set, i ) );
 
   // Check.
-  ALWAYS_ASSERT( size( &our_set ) == 50 );
-  for( int i = 0; i < 100; ++i )
+  ALWAYS_ASSERT( size( &our_set ) == 90 );
+  for( uint64_t i = 0; i < 120; ++i )
+  {
+    if( i % 4 == 0 )
+      ALWAYS_ASSERT( !get( &our_set, i ) );
+    else
+    {
+      int *el = get( &our_set, i );
+      ALWAYS_ASSERT( el && *el == i );
+    }
+  }
+
+  // Test deletion while iterating.
+  int *el = first( &our_set );
+  size_t n_iterations = 0;
+  while( el != end( &our_set ) )
+  {
+    ++n_iterations;
+
+    if( *el % 2 == 0 )
+      el = erase_itr( &our_set, el );
+    else
+      el = next( &our_set, el );
+  }
+
+  ALWAYS_ASSERT( n_iterations == 90 );
+  ALWAYS_ASSERT( size( &our_set ) == 60 );
+
+  for( uint64_t i = 0; i < 120; ++i )
   {
     if( i % 2 == 0 )
       ALWAYS_ASSERT( !get( &our_set, i ) );
     else
-      ALWAYS_ASSERT( *get( &our_set, i ) == i );
+    {
+      el = get( &our_set, i );
+      ALWAYS_ASSERT( el && *el == i );
+    }
   }
 
   cleanup( &our_set );

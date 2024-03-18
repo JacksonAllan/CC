@@ -1,5 +1,6 @@
 /*
-CC/tests/tests_against_stl.cpp - v. 1.0.4
+
+CC/tests/tests_against_stl.cpp - v1.1.0
 
 This file tests CC containers against equivalent C++ STL containers.
 Primarily, it checks that a CC container and its equivalent STL container end up in the same state after a random
@@ -24,6 +25,7 @@ License (MIT):
   WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
   COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
   OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 */
 
 #include <ctime>

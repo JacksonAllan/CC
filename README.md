@@ -1,17 +1,15 @@
 <picture><img src="./header.svg" alt="CC: Convenient Containers"></picture>
 
-*Note: [Version 1.1.0 Pre-Release](https://github.com/JacksonAllan/CC/releases/tag/v1.1.0_Pre-Release) is now available via a [dedicated branch](https://github.com/JacksonAllan/CC/tree/v1.1.0-Pre-Release).*
-
-**Convenient Containers** (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, and **unordered sets**.
+Convenient Containers (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, and **unordered sets**.
 
 Its features include:
 
-- Fully generic API.
-- Type safety.
-- User-defined destructor, comparison, and hash functions associated with element and key types.
-- No assumption of successful memory allocation.
-- Single header.
-- Compiles in C and C++.
+* Fully generic API.
+* Type safety.
+* User-defined destructor, comparison, and hash functions associated with element and key types.
+* No assumption of successful memory allocation.
+* Single header.
+* Compiles in C and C++.
 
 It requires C23, or C11 and compiler support for `typeof`, or C++11.
 
@@ -29,7 +27,7 @@ In contrast, **CC** requires no type definitions and provides an API agnostic to
 <tr>
 </tr>
 <tr>
-<td>
+<td valign="top">
 
 ```c
 // CC
@@ -50,14 +48,10 @@ int main( void )
   printf( "%f\n", *get( &our_map, 5 ) );
   cleanup( &our_map );
 }
-
-
-
-
 ```
 
 </td>
-<td>
+<td valign="top">
 
 ```c
 // Template-instantiation paradigm
@@ -87,7 +81,7 @@ int main( void )
 <tr>
 </tr>
 <tr>
-<td>
+<td valign="top">
 
 ```c
 // Typed-pointer/hidden-metadata paradigm
@@ -115,7 +109,7 @@ int main( void )
 ```
 
 </td>
-<td>
+<td valign="top">
 
 ```c
 // void-pointers paradigm
@@ -136,11 +130,6 @@ int main( void )
   printf( "%f\n", *(float *)map_get( &our_map, &(int){ 5 } ) );
   map_cleanup( &our_map );
 }
-
-
-
-
-
 ```
 
 </td>
@@ -249,7 +238,7 @@ int main( void )
 
 ### Map
 
-A `map` is an unordered container associating elements with keys, implemented as a [Robin Hood](https://www.sebastiansylvan.com/post/robin-hood-hashing-should-be-your-default-hash-table-implementation) hash table.
+A `map` is an unordered associative container mapping elements to keys, implemented as a hybird open-addressing, chained hash table that is also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
 
 ```c
 #include <stdio.h>
@@ -301,7 +290,7 @@ int main( void )
 
 ### Set
 
-A `set` is a [Robin Hood](https://www.sebastiansylvan.com/post/robin-hood-hashing-should-be-your-default-hash-table-implementation) hash table for elements without a separate key.
+A `set` is an unordered associative container for elements without a separate key, implemented as a hybird open-addressing, chained hash table also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
 
 ```c
 #include <stdio.h>
@@ -503,4 +492,6 @@ Destructor, comparison, and hash functions are also deduced via a novel techniqu
 
 Future versions should include `NULL`-terminated dynamic strings, ordered maps, and ordered sets, as well as performance benchmarks.
 
-## [API Reference](api_reference.md)
+## API Reference
+
+Full API documentation is available [here](api_reference.md).
