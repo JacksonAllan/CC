@@ -737,8 +737,10 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #ifdef __cplusplus
 #define CC_TYPEOF_XP( xp ) std::decay<std::remove_reference<decltype( xp )>::type>::type
 #define CC_TYPEOF_TY( ty ) std::decay<std::remove_reference<decltype( std::declval<ty>() )>::type>::type
+#elif __STDC_VERSION__ >= 202311L /* C23 */
+#define CC_TYPEOF_XP( xp ) typeof( xp )
+#define CC_TYPEOF_TY( ty ) typeof( ty )
 #else
-// TODO: Add C23 check once C23 is supported by major compilers.
 #define CC_TYPEOF_XP( xp ) __typeof__( xp )
 #define CC_TYPEOF_TY( ty ) __typeof__( ty )
 #endif
