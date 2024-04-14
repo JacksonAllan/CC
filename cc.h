@@ -879,7 +879,6 @@ CC_TYPEOF_XP(                                                                   
     default: _Generic( (**cntr),                                                                  \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               ( char ){ 0 },               \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      ( unsigned char ){ 0 },      \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        ( signed char ){ 0 },        \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     ( unsigned short ){ 0 },     \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              ( short ){ 0 },              \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       ( unsigned int ){ 0 },       \
@@ -891,7 +890,10 @@ CC_TYPEOF_XP(                                                                   
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    ( size_t ){ 0 },             \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             ( char * ){ 0 },             \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), void * ):             ( void * ){ 0 },             \
-      default: (char){ 0 } /* Nothing. */                                                         \
+      default: _Generic( (**cntr),                                                                \
+        CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):      ( signed char ){ 0 },        \
+        default: (char){ 0 } /* Nothing. */                                                       \
+      )                                                                                           \
     )                                                                                             \
   )                                                                                               \
 )                                                                                                 \
@@ -4189,7 +4191,6 @@ _Generic( (**cntr),                                                             
   default: _Generic( (**cntr),                                                                        \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               cc_cmpr_char_select,               \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_cmpr_unsigned_char_select,      \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_cmpr_signed_char_select,        \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_cmpr_unsigned_short_select,     \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              cc_cmpr_short_select,              \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       cc_cmpr_unsigned_int_select,       \
@@ -4200,7 +4201,10 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_cmpr_long_long_select,          \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_cmpr_size_t_select,             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_cmpr_c_string_select,           \
-    default: cc_cmpr_dummy_select                                                                     \
+    default: _Generic( (**cntr),                                                                      \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):      cc_cmpr_signed_char_select,        \
+      default: cc_cmpr_dummy_select                                                                   \
+    )                                                                                                 \
   )                                                                                                   \
 )( CC_CNTR_ID( cntr ) )                                                                               \
 
@@ -4211,7 +4215,6 @@ _Generic( (**cntr),                                                             
   default: _Generic( (**cntr),                                                                 \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               cc_hash_char,               \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_hash_unsigned_char,      \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_hash_signed_char,        \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_hash_unsigned_short,     \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              cc_hash_short,              \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       cc_hash_unsigned_int,       \
@@ -4222,7 +4225,10 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_hash_long_long,          \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_hash_size_t,             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_hash_c_string,           \
-    default: (cc_hash_fnptr_ty)NULL                                                            \
+    default: _Generic( (**cntr),                                                               \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):      cc_hash_signed_char,        \
+      default: (cc_hash_fnptr_ty)NULL                                                          \
+    )                                                                                          \
   )                                                                                            \
 )                                                                                              \
 
@@ -4233,7 +4239,6 @@ _Generic( (ty){ 0 },                    \
   default: _Generic( (ty){ 0 },         \
     char:               true,           \
     unsigned char:      true,           \
-    signed char:        true,           \
     unsigned short:     true,           \
     short:              true,           \
     unsigned int:       true,           \
@@ -4244,7 +4249,10 @@ _Generic( (ty){ 0 },                    \
     long long:          true,           \
     cc_maybe_size_t:    true,           \
     char *:             true,           \
-    default:            false           \
+    default: _Generic( (ty){ 0 },       \
+      signed char:      true,           \
+      default:          false           \
+    )                                   \
   )                                     \
 )                                       \
 
@@ -4255,7 +4263,6 @@ _Generic( (ty){ 0 },                    \
   default: _Generic( (ty){ 0 },         \
     char:               true,           \
     unsigned char:      true,           \
-    signed char:        true,           \
     unsigned short:     true,           \
     short:              true,           \
     unsigned int:       true,           \
@@ -4266,7 +4273,10 @@ _Generic( (ty){ 0 },                    \
     long long:          true,           \
     cc_maybe_size_t:    true,           \
     char *:             true,           \
-    default:            false           \
+    default: _Generic( (ty){ 0 },       \
+      signed char:      true,           \
+      default:          false           \
+    )                                   \
   )                                     \
 )                                       \
 
@@ -4289,8 +4299,6 @@ _Generic( (**cntr),                                                             
       ( cc_key_details_ty ){ sizeof( char ), alignof( char ) },                             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ) :                              \
       ( cc_key_details_ty ){ sizeof( unsigned char ), alignof( unsigned char ) },           \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ) :                                \
-      ( cc_key_details_ty ){ sizeof( signed char ), alignof( signed char ) },               \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ) :                             \
       ( cc_key_details_ty ){ sizeof( unsigned short ), alignof( unsigned short ) },         \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ) :                                      \
@@ -4311,7 +4319,11 @@ _Generic( (**cntr),                                                             
       ( cc_key_details_ty ){ sizeof( cc_maybe_size_t ), alignof( cc_maybe_size_t ) },       \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):                                      \
       ( cc_key_details_ty ){ sizeof( char * ), alignof( char * ) },                         \
-    default: ( cc_key_details_ty ){ 0 }                                                     \
+    default: _Generic( (**cntr),                                                            \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ) :                              \
+        ( cc_key_details_ty ){ sizeof( signed char ), alignof( signed char ) },             \
+      default: ( cc_key_details_ty ){ 0 }                                                   \
+    )                                                                                       \
   )                                                                                         \
 )                                                                                           \
 
