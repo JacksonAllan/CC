@@ -600,12 +600,28 @@ License (MIT):
 #define CC_H
 
 #include <limits.h>
-#include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#if defined( _MSC_VER ) && !defined( __clang__ )
+#include <intrin.h>
+// <stdalign.h> may be not recognized under some condition.
+// As the header file is very small, we just emulate it here.
+#ifndef __cplusplus
+#define alignas _Alignas
+#define alignof _Alignof
+#endif
+#define __alignas_is_defined 1
+#define __alignof_is_defined 1
+// MSVC doesn't define max_align_t in <stddef.h>.
+typedef long double cc_max_align_t;
+#else
+#include <stdalign.h>
+typedef max_align_t cc_max_align_t;
+#endif
 
 #ifdef __cplusplus
 #include <type_traits>
@@ -759,7 +775,7 @@ CC_CAST_MAYBE_UNUSED(                                               \
 // that return a pointer (primarily cc_erase).
 // While any suitably aligned pointer - e.g. the container handle - would do, we declare a global cc_dummy_true_ptr for
 // the sake of code readability.
-static max_align_t cc_dummy_true;
+static cc_max_align_t cc_dummy_true;
 static void *cc_dummy_true_ptr = &cc_dummy_true;
 
 // Default max load factor for maps and sets.
@@ -973,7 +989,7 @@ static inline CC_ALWAYS_INLINE uint64_t cc_layout(
 // CC_POINT_HNDL_TO_ALLOCING_FN_RESULT below).
 typedef struct
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_t )
   void *new_cntr;
   void *other_ptr;
 } cc_allocing_fn_result_ty;
@@ -1092,7 +1108,7 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
 // Vector header.
 typedef struct
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_t )
   size_t size;
   size_t cap;
 } cc_vec_hdr_ty;
@@ -1493,7 +1509,7 @@ static inline void *cc_vec_last(
 // Node header.
 typedef struct cc_listnode_hdr_ty
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_t )
   struct cc_listnode_hdr_ty *prev;
   struct cc_listnode_hdr_ty *next;
 } cc_listnode_hdr_ty;
@@ -1997,7 +2013,7 @@ static inline size_t cc_quadratic( uint16_t displacement )
 // Map header.
 typedef struct
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_t )
   size_t size;
   size_t cap_mask; // Rather than storing the capacity (i.e. bucket count) directly, we store the bit mask used to
                    // reduce a hash code or displacement-derived bucket index to the buckets array, i.e. the capacity
