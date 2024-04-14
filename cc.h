@@ -674,6 +674,15 @@ template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (
 #define CC_UNLIKELY( xp ) ( xp )
 #endif
 
+// Marks a point where the program never reaches.
+#if defined( __GNUC__ )
+#define CC_UNREACHABLE() __builtin_unreachable()
+#elif defined( _MSC_VER )
+#define CC_UNREACHABLE() __assume(0)
+#else
+#define CC_UNREACHABLE() abort()
+#endif
+
 // CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2 is the same as above, except that it selects the type to which to cast based on
 // a condition.
 // This is necessary because some API macros (e.g. cc_erase) return either a pointer-iterator or a bool depending on the
@@ -2671,7 +2680,7 @@ static inline void *cc_map_leap_backward( void *cntr, void *itr, size_t el_size,
     }
 
     if( cc_map_hdr( cntr )->metadata == &cc_map_placeholder_metadatum )
-      __builtin_unreachable();
+      CC_UNREACHABLE();
 
     uint64_t metadatum;
     memcpy( &metadatum, cc_map_hdr( cntr )->metadata + bucket - 4, sizeof( uint64_t ) );
