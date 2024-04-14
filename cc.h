@@ -658,9 +658,10 @@ template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (
 #endif
 
 // Ensures inlining if possible.
-// TODO: Adding MSVC attribute once that compiler supports typeof (C23).
-#ifdef __GNUC__
+#if defined( __GNUC__ )
 #define CC_ALWAYS_INLINE __attribute__((always_inline))
+#elif defined( _MSC_VER )
+#define CC_ALWAYS_INLINE __forceinline
 #else
 #define CC_ALWAYS_INLINE
 #endif
@@ -1051,14 +1052,14 @@ cc_memcpy_and_return_ptr(                                                       
 // These functions are used when we scan four buckets at a time while iterating over maps and sets.
 // They rely on compiler intrinsics if possible.
 
-#if defined( __GNUC__ ) && ULLONG_MAX == 0xFFFFFFFFFFFFFFFF
-
 // The compiler will optimize away the endian check at -O1 and above.
 static inline bool cc_is_little_endian( void )
 {
   const uint16_t endian_checker = 0x0001;
   return *(char *)&endian_checker;
 }
+
+#if defined( __GNUC__ ) && ULLONG_MAX == 0xFFFFFFFFFFFFFFFF
 
 static inline int cc_first_nonzero_uint16( uint64_t a )
 {
@@ -1074,6 +1075,35 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
     return __builtin_clzll( a ) / 16;
   
   return __builtin_ctzll( a ) / 16;
+}
+
+#elif defined( _MSC_VER ) && defined( _WIN64 )
+
+// Apart from the signature, _BitScanForward64() works the same as GCC's __builtin_ctzll() on the
+// 64-bit environment. Note that _BitScanReverse64() counts from the MSB but the index starts from
+// the LSB, unlike __builtin_clzll().
+static inline int cc_first_nonzero_uint16( uint64_t a )
+{
+  unsigned long index;
+  if( cc_is_little_endian() )
+  {
+    _BitScanForward64(&index, a);
+    return (int)(index / 16);
+  }
+  _BitScanReverse64(&index, a);
+  return (int)((index ^ 63) / 16);
+}
+
+static inline int cc_last_nonzero_uint16( uint64_t a )
+{
+  unsigned long index;
+  if( cc_is_little_endian() )
+  {
+    _BitScanReverse64(&index, a);
+    return (int)((index ^ 63) / 16);
+  }
+  _BitScanForward64(&index, a);
+  return (int)(index / 16);
 }
 
 #else
