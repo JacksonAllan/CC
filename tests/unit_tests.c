@@ -1,6 +1,6 @@
 /*
 
-CC/tests/unit_tests.c - v1.1.0
+CC/tests/unit_tests.c - v1.1.1
 
 This file tests CC containers.
 It aims to cover the full API and to check corner cases, particularly transitions between placeholder containers and
@@ -172,7 +172,7 @@ void test_vec_resize( void )
 
   // Resize placeholder vec with zero.
   UNTIL_SUCCESS( resize( &our_vec, 0 ) );
-  ALWAYS_ASSERT( cap( &our_vec ) >= 0 );
+  ALWAYS_ASSERT( cap( &our_vec ) == 0 );
   ALWAYS_ASSERT( size( &our_vec ) == 0 );
 
   // Resize up from placeholder.
@@ -1769,7 +1769,7 @@ void test_set_erase_itr( void )
 
   // Check.
   ALWAYS_ASSERT( size( &our_set ) == 90 );
-  for( uint64_t i = 0; i < 120; ++i )
+  for( int i = 0; i < 120; ++i )
   {
     if( i % 4 == 0 )
       ALWAYS_ASSERT( !get( &our_set, i ) );
@@ -1796,7 +1796,7 @@ void test_set_erase_itr( void )
   ALWAYS_ASSERT( n_iterations == 90 );
   ALWAYS_ASSERT( size( &our_set ) == 60 );
 
-  for( uint64_t i = 0; i < 120; ++i )
+  for( int i = 0; i < 120; ++i )
   {
     if( i % 2 == 0 )
       ALWAYS_ASSERT( !get( &our_set, i ) );

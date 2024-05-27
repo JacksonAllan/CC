@@ -1,6 +1,6 @@
 /*
 
-CC/tests/tests_against_stl.cpp - v1.1.0
+CC/tests/tests_against_stl.cpp - v1.1.1
 
 This file tests CC containers against equivalent C++ STL containers.
 Primarily, it checks that a CC container and its equivalent STL container end up in the same state after a random
@@ -78,11 +78,11 @@ void *unreliable_tracking_realloc( void *ptr, size_t size )
   }
 #endif
 
-  void *new_ptr = realloc( ptr, size );
-  ALWAYS_ASSERT( new_ptr );
-
   if( ptr )
     oustanding_allocs.erase( ptr );
+
+  void *new_ptr = realloc( ptr, size );
+  ALWAYS_ASSERT( new_ptr );
 
   oustanding_allocs.insert( new_ptr );
 
