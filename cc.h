@@ -514,6 +514,8 @@ API:
 
 Version history:
 
+  27/05/2024 1.1.1: Fixed a bug in map and set that could theoretically cause a crash on rehash (triggerable in testing
+                    using NAME_shrink with a maximum load factor significantly higher than 1.0).
   18/03/2024 1.1.0: Replaced the Robin Hood implementations of map and set with Verstable implementations.
                     Added branch-prediction optimizations.
                     Improved documentation.
