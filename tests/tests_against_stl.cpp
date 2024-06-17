@@ -1,6 +1,6 @@
 /*
 
-CC/tests/tests_against_stl.cpp - v1.1.1
+Convenient Containers v1.2.0 - tests/tests_against_stl.cpp
 
 This file tests CC containers against equivalent C++ STL containers.
 Primarily, it checks that a CC container and its equivalent STL container end up in the same state after a random
@@ -39,8 +39,8 @@ License (MIT):
 #include "../cc.h"
 
 // Assert macro that is not disabled by NDEBUG.
-#define ALWAYS_ASSERT( xp )                                                                               \
-( (xp) ? (void)0 : ( fprintf( stderr, "Assertion failed at line %d: %s\n", __LINE__, #xp ), exit( 0 ) ) ) \
+#define ALWAYS_ASSERT( xp )                                                                                     \
+( (xp) ? (void)0 : ( std::cerr << "Assertion failed at line " << __LINE__ << ": " << #xp << '\n', exit( 0 ) ) ) \
 
 // Macros to control the number of random operations to perform in each container test and the number of tests to
 // perform on each container.

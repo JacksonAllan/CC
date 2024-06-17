@@ -1,6 +1,6 @@
 /*
 
-CC/tests/unit_tests.c - v1.1.1
+Convenient Containers v1.2.0 - tests/unit_tests.c
 
 This file tests CC containers.
 It aims to cover the full API and to check corner cases, particularly transitions between placeholder containers and
