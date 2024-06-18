@@ -1,4 +1,4 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.1.1 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.2.0 -------------------------------------------
 
 This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, and unordered sets).
 
