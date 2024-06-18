@@ -603,12 +603,28 @@ License (MIT):
 #define CC_H
 
 #include <limits.h>
-#include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#if defined( _MSC_VER ) && !defined( __clang__ )
+#include <intrin.h>
+// <stdalign.h> may be not recognized under some condition.
+// As the header file is very small, we just emulate it here.
+#ifndef __cplusplus
+#define alignas _Alignas
+#define alignof _Alignof
+#endif
+#define __alignas_is_defined 1
+#define __alignof_is_defined 1
+// MSVC doesn't define max_align_t in <stddef.h>.
+typedef long double cc_max_align_t;
+#else
+#include <stdalign.h>
+typedef max_align_t cc_max_align_t;
+#endif
 
 #ifdef __cplusplus
 #include <type_traits>
@@ -645,9 +661,10 @@ template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (
 #endif
 
 // Ensures inlining if possible.
-// TODO: Adding MSVC attribute once that compiler supports typeof (C23).
-#ifdef __GNUC__
+#if defined( __GNUC__ )
 #define CC_ALWAYS_INLINE __attribute__((always_inline))
+#elif defined( _MSC_VER )
+#define CC_ALWAYS_INLINE __forceinline
 #else
 #define CC_ALWAYS_INLINE
 #endif
@@ -659,6 +676,15 @@ template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (
 #else
 #define CC_LIKELY( xp )   ( xp )
 #define CC_UNLIKELY( xp ) ( xp )
+#endif
+
+// Marks a point where the program never reaches.
+#if defined( __GNUC__ )
+#define CC_UNREACHABLE() __builtin_unreachable()
+#elif defined( _MSC_VER )
+#define CC_UNREACHABLE() __assume(0)
+#else
+#define CC_UNREACHABLE() abort()
 #endif
 
 // CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2 is the same as above, except that it selects the type to which to cast based on
@@ -715,8 +741,10 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #ifdef __cplusplus
 #define CC_TYPEOF_XP( xp ) std::decay<std::remove_reference<decltype( xp )>::type>::type
 #define CC_TYPEOF_TY( ty ) std::decay<std::remove_reference<decltype( std::declval<ty>() )>::type>::type
+#elif __STDC_VERSION__ >= 202311L /* C23 */
+#define CC_TYPEOF_XP( xp ) typeof( xp )
+#define CC_TYPEOF_TY( ty ) typeof( ty )
 #else
-// TODO: Add C23 check once C23 is supported by major compilers.
 #define CC_TYPEOF_XP( xp ) __typeof__( xp )
 #define CC_TYPEOF_TY( ty ) __typeof__( ty )
 #endif
@@ -762,7 +790,7 @@ CC_CAST_MAYBE_UNUSED(                                               \
 // that return a pointer (primarily cc_erase).
 // While any suitably aligned pointer - e.g. the container handle - would do, we declare a global cc_dummy_true_ptr for
 // the sake of code readability.
-static max_align_t cc_dummy_true;
+static cc_max_align_t cc_dummy_true;
 static void *cc_dummy_true_ptr = &cc_dummy_true;
 
 // Default max load factor for maps and sets.
@@ -857,7 +885,6 @@ CC_TYPEOF_XP(                                                                   
     default: _Generic( (**cntr),                                                                  \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               ( char ){ 0 },               \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      ( unsigned char ){ 0 },      \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        ( signed char ){ 0 },        \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     ( unsigned short ){ 0 },     \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              ( short ){ 0 },              \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       ( unsigned int ){ 0 },       \
@@ -869,7 +896,10 @@ CC_TYPEOF_XP(                                                                   
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    ( size_t ){ 0 },             \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             ( char * ){ 0 },             \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), void * ):             ( void * ){ 0 },             \
-      default: (char){ 0 } /* Nothing. */                                                         \
+      default: _Generic( (**cntr),                                                                \
+        CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):      ( signed char ){ 0 },        \
+        default: (char){ 0 } /* Nothing. */                                                       \
+      )                                                                                           \
     )                                                                                             \
   )                                                                                               \
 )                                                                                                 \
@@ -976,7 +1006,7 @@ static inline CC_ALWAYS_INLINE uint64_t cc_layout(
 // CC_POINT_HNDL_TO_ALLOCING_FN_RESULT below).
 typedef struct
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_t )
   void *new_cntr;
   void *other_ptr;
 } cc_allocing_fn_result_ty;
@@ -1025,14 +1055,14 @@ cc_memcpy_and_return_ptr(                                                       
 // These functions are used when we scan four buckets at a time while iterating over maps and sets.
 // They rely on compiler intrinsics if possible.
 
-#if defined( __GNUC__ ) && ULLONG_MAX == 0xFFFFFFFFFFFFFFFF
-
 // The compiler will optimize away the endian check at -O1 and above.
 static inline bool cc_is_little_endian( void )
 {
   const uint16_t endian_checker = 0x0001;
   return *(const char *)&endian_checker;
 }
+
+#if defined( __GNUC__ ) && ULLONG_MAX == 0xFFFFFFFFFFFFFFFF
 
 static inline int cc_first_nonzero_uint16( uint64_t a )
 {
@@ -1048,6 +1078,35 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
     return __builtin_clzll( a ) / 16;
   
   return __builtin_ctzll( a ) / 16;
+}
+
+#elif defined( _MSC_VER ) && defined( _WIN64 )
+
+// Apart from the signature, _BitScanForward64() works the same as GCC's __builtin_ctzll() on the
+// 64-bit environment. Note that _BitScanReverse64() counts from the MSB but the index starts from
+// the LSB, unlike __builtin_clzll().
+static inline int cc_first_nonzero_uint16( uint64_t a )
+{
+  unsigned long index;
+  if( cc_is_little_endian() )
+  {
+    _BitScanForward64(&index, a);
+    return (int)(index / 16);
+  }
+  _BitScanReverse64(&index, a);
+  return (int)((index ^ 63) / 16);
+}
+
+static inline int cc_last_nonzero_uint16( uint64_t a )
+{
+  unsigned long index;
+  if( cc_is_little_endian() )
+  {
+    _BitScanReverse64(&index, a);
+    return (int)((index ^ 63) / 16);
+  }
+  _BitScanForward64(&index, a);
+  return (int)(index / 16);
 }
 
 #else
@@ -1095,7 +1154,7 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
 // Vector header.
 typedef struct
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_t )
   size_t size;
   size_t cap;
 } cc_vec_hdr_ty;
@@ -1496,7 +1555,7 @@ static inline void *cc_vec_last(
 // Node header.
 typedef struct cc_listnode_hdr_ty
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_t )
   struct cc_listnode_hdr_ty *prev;
   struct cc_listnode_hdr_ty *next;
 } cc_listnode_hdr_ty;
@@ -2000,7 +2059,7 @@ static inline size_t cc_quadratic( uint16_t displacement )
 // Map header.
 typedef struct
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_t )
   size_t size;
   size_t cap_mask; // Rather than storing the capacity (i.e. bucket count) directly, we store the bit mask used to
                    // reduce a hash code or displacement-derived bucket index to the buckets array, i.e. the capacity
@@ -2662,7 +2721,7 @@ static inline void *cc_map_leap_backward( void *cntr, void *itr, size_t el_size,
     }
 
     if( cc_map_hdr( cntr )->metadata == &cc_map_placeholder_metadatum )
-      __builtin_unreachable();
+      CC_UNREACHABLE();
 
     uint64_t metadatum;
     memcpy( &metadatum, cc_map_hdr( cntr )->metadata + bucket - 4, sizeof( uint64_t ) );
@@ -4171,7 +4230,6 @@ _Generic( (**cntr),                                                             
   default: _Generic( (**cntr),                                                                        \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               cc_cmpr_char_select,               \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_cmpr_unsigned_char_select,      \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_cmpr_signed_char_select,        \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_cmpr_unsigned_short_select,     \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              cc_cmpr_short_select,              \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       cc_cmpr_unsigned_int_select,       \
@@ -4182,7 +4240,10 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_cmpr_long_long_select,          \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_cmpr_size_t_select,             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_cmpr_c_string_select,           \
-    default: cc_cmpr_dummy_select                                                                     \
+    default: _Generic( (**cntr),                                                                      \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):      cc_cmpr_signed_char_select,        \
+      default: cc_cmpr_dummy_select                                                                   \
+    )                                                                                                 \
   )                                                                                                   \
 )( CC_CNTR_ID( cntr ) )                                                                               \
 
@@ -4193,7 +4254,6 @@ _Generic( (**cntr),                                                             
   default: _Generic( (**cntr),                                                                 \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               cc_hash_char,               \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_hash_unsigned_char,      \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_hash_signed_char,        \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_hash_unsigned_short,     \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              cc_hash_short,              \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       cc_hash_unsigned_int,       \
@@ -4204,7 +4264,10 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_hash_long_long,          \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_hash_size_t,             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_hash_c_string,           \
-    default: (cc_hash_fnptr_ty)NULL                                                            \
+    default: _Generic( (**cntr),                                                               \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):      cc_hash_signed_char,        \
+      default: (cc_hash_fnptr_ty)NULL                                                          \
+    )                                                                                          \
   )                                                                                            \
 )                                                                                              \
 
@@ -4215,7 +4278,6 @@ _Generic( (ty){ 0 },                    \
   default: _Generic( (ty){ 0 },         \
     char:               true,           \
     unsigned char:      true,           \
-    signed char:        true,           \
     unsigned short:     true,           \
     short:              true,           \
     unsigned int:       true,           \
@@ -4226,7 +4288,10 @@ _Generic( (ty){ 0 },                    \
     long long:          true,           \
     cc_maybe_size_t:    true,           \
     char *:             true,           \
-    default:            false           \
+    default: _Generic( (ty){ 0 },       \
+      signed char:      true,           \
+      default:          false           \
+    )                                   \
   )                                     \
 )                                       \
 
@@ -4237,7 +4302,6 @@ _Generic( (ty){ 0 },                    \
   default: _Generic( (ty){ 0 },         \
     char:               true,           \
     unsigned char:      true,           \
-    signed char:        true,           \
     unsigned short:     true,           \
     short:              true,           \
     unsigned int:       true,           \
@@ -4248,7 +4312,10 @@ _Generic( (ty){ 0 },                    \
     long long:          true,           \
     cc_maybe_size_t:    true,           \
     char *:             true,           \
-    default:            false           \
+    default: _Generic( (ty){ 0 },       \
+      signed char:      true,           \
+      default:          false           \
+    )                                   \
   )                                     \
 )                                       \
 
@@ -4271,8 +4338,6 @@ _Generic( (**cntr),                                                             
       ( cc_key_details_ty ){ sizeof( char ), alignof( char ) },                             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ) :                              \
       ( cc_key_details_ty ){ sizeof( unsigned char ), alignof( unsigned char ) },           \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ) :                                \
-      ( cc_key_details_ty ){ sizeof( signed char ), alignof( signed char ) },               \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ) :                             \
       ( cc_key_details_ty ){ sizeof( unsigned short ), alignof( unsigned short ) },         \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ) :                                      \
@@ -4293,7 +4358,11 @@ _Generic( (**cntr),                                                             
       ( cc_key_details_ty ){ sizeof( cc_maybe_size_t ), alignof( cc_maybe_size_t ) },       \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):                                      \
       ( cc_key_details_ty ){ sizeof( char * ), alignof( char * ) },                         \
-    default: ( cc_key_details_ty ){ 0 }                                                     \
+    default: _Generic( (**cntr),                                                            \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ) :                              \
+        ( cc_key_details_ty ){ sizeof( signed char ), alignof( signed char ) },             \
+      default: ( cc_key_details_ty ){ 0 }                                                   \
+    )                                                                                       \
   )                                                                                         \
 )                                                                                           \
 
