@@ -14,7 +14,7 @@ Features:
 
 Requires C23, or C11 and compiler support for __typeof__, or C++11.
 
-Tested with GCC, MinGW, and Clang.
+Tested with GCC, MinGW, Clang, and MSVC.
 
 #including the library:
 
@@ -603,28 +603,12 @@ License (MIT):
 #define CC_H
 
 #include <limits.h>
+#include <stdalign.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#if defined( _MSC_VER ) && !defined( __clang__ )
-#include <intrin.h>
-// <stdalign.h> may be not recognized under some condition.
-// As the header file is very small, we just emulate it here.
-#ifndef __cplusplus
-#define alignas _Alignas
-#define alignof _Alignof
-#endif
-#define __alignas_is_defined 1
-#define __alignof_is_defined 1
-// MSVC doesn't define max_align_t in <stddef.h>.
-typedef long double cc_max_align_t;
-#else
-#include <stdalign.h>
-typedef max_align_t cc_max_align_t;
-#endif
 
 #ifdef __cplusplus
 #include <type_traits>
@@ -636,6 +620,33 @@ typedef max_align_t cc_max_align_t;
 
 // _Static_assert alternative that can be used inside an expression.
 #define CC_STATIC_ASSERT( xp ) (void)sizeof( char[ (xp) ? 1 : -1 ] )
+
+// Ensures inlining if possible.
+#if defined( __GNUC__ )
+#define CC_ALWAYS_INLINE __attribute__((always_inline))
+#elif defined( _MSC_VER )
+#define CC_ALWAYS_INLINE __forceinline
+#else
+#define CC_ALWAYS_INLINE
+#endif
+
+// Branch optimization macros.
+#ifdef __GNUC__
+#define CC_LIKELY( xp )   __builtin_expect( (bool)( xp ), true )
+#define CC_UNLIKELY( xp ) __builtin_expect( (bool)( xp ), false )
+#else
+#define CC_LIKELY( xp )   ( xp )
+#define CC_UNLIKELY( xp ) ( xp )
+#endif
+
+// Marks a point where the program never reaches.
+#if defined( __GNUC__ )
+#define CC_UNREACHABLE __builtin_unreachable()
+#elif defined( _MSC_VER )
+#define CC_UNREACHABLE __assume( false )
+#else
+#define CC_UNREACHABLE (void)0
+#endif
 
 // CC_MAKE_LVAL_COPY macro for making an addressable temporary copy of a variable or expression.
 // The copy is valid until at least the end of full expression surrounding the macro call.
@@ -660,33 +671,6 @@ template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (
 #define CC_CAST_MAYBE_UNUSED( ty, xp ) ( ( ty ){ 0 } = ( (ty)( xp ) ) )
 #endif
 
-// Ensures inlining if possible.
-#if defined( __GNUC__ )
-#define CC_ALWAYS_INLINE __attribute__((always_inline))
-#elif defined( _MSC_VER )
-#define CC_ALWAYS_INLINE __forceinline
-#else
-#define CC_ALWAYS_INLINE
-#endif
-
-// Branch optimization macros.
-#ifdef __GNUC__
-#define CC_LIKELY( xp )   __builtin_expect( (bool)( xp ), true )
-#define CC_UNLIKELY( xp ) __builtin_expect( (bool)( xp ), false )
-#else
-#define CC_LIKELY( xp )   ( xp )
-#define CC_UNLIKELY( xp ) ( xp )
-#endif
-
-// Marks a point where the program never reaches.
-#if defined( __GNUC__ )
-#define CC_UNREACHABLE() __builtin_unreachable()
-#elif defined( _MSC_VER )
-#define CC_UNREACHABLE() __assume(0)
-#else
-#define CC_UNREACHABLE() abort()
-#endif
-
 // CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2 is the same as above, except that it selects the type to which to cast based on
 // a condition.
 // This is necessary because some API macros (e.g. cc_erase) return either a pointer-iterator or a bool depending on the
@@ -709,8 +693,8 @@ cc_if_then_cast_ty_1_else_cast_ty_2<cond, ty_1, ty_2>( xp )         \
 CC_CAST_MAYBE_UNUSED(                                               \
   CC_TYPEOF_XP(                                                     \
     _Generic( (char (*)[ 1 + (bool)( cond ) ]){ 0 },                \
-        char (*)[ 1 ]: (ty_2){ 0 },                                 \
-        char (*)[ 2 ]: (ty_1){ 0 }                                  \
+      char (*)[ 1 ]: (ty_2){ 0 },                                   \
+      char (*)[ 2 ]: (ty_1){ 0 }                                    \
     )                                                               \
   ),                                                                \
   ( xp )                                                            \
@@ -741,10 +725,10 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #ifdef __cplusplus
 #define CC_TYPEOF_XP( xp ) std::decay<std::remove_reference<decltype( xp )>::type>::type
 #define CC_TYPEOF_TY( ty ) std::decay<std::remove_reference<decltype( std::declval<ty>() )>::type>::type
-#elif __STDC_VERSION__ >= 202311L /* C23 */
+#elif __STDC_VERSION__ >= 202311L // C23.
 #define CC_TYPEOF_XP( xp ) typeof( xp )
 #define CC_TYPEOF_TY( ty ) typeof( ty )
-#else
+#else // GNU.
 #define CC_TYPEOF_XP( xp ) __typeof__( xp )
 #define CC_TYPEOF_TY( ty ) __typeof__( ty )
 #endif
@@ -785,12 +769,22 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #endif
 #endif
 
+// MSVC does not define max_align_t in stddef.h, contrary to the C11 Standard.
+// Moreover, even in C++, the alignment of std::max_align_t under MSVC is only 8, not 16, even though
+// __STDCPP_DEFAULT_NEW_ALIGNMENT__ is 16 on x64.
+// Hence, we define our own version of the type.
+#if defined( _MSC_VER ) && !defined( __clang__ )
+typedef struct { alignas( 16 ) char nothing[ 16 ]; } cc_max_align_ty;
+#else
+typedef max_align_t cc_max_align_ty;
+#endif
+
 // Some functions that must return true or false must return the value in the form of a pointer.
 // This is because they are paired in ternary expressions inside API macros with other functions for other containers
 // that return a pointer (primarily cc_erase).
 // While any suitably aligned pointer - e.g. the container handle - would do, we declare a global cc_dummy_true_ptr for
 // the sake of code readability.
-static cc_max_align_t cc_dummy_true;
+static cc_max_align_ty cc_dummy_true;
 static void *cc_dummy_true_ptr = &cc_dummy_true;
 
 // Default max load factor for maps and sets.
@@ -883,8 +877,9 @@ CC_TYPEOF_XP(                                                                   
   _Generic( (**cntr),                                                                             \
     CC_FOR_EACH_CMPR( CC_KEY_TY_SLOT, cntr )                                                      \
     default: _Generic( (**cntr),                                                                  \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               ( char ){ 0 },               \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):      ( char ){ 0 },               \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      ( unsigned char ){ 0 },      \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        ( signed char ){ 0 },        \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     ( unsigned short ){ 0 },     \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              ( short ){ 0 },              \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       ( unsigned int ){ 0 },       \
@@ -896,10 +891,7 @@ CC_TYPEOF_XP(                                                                   
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    ( size_t ){ 0 },             \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             ( char * ){ 0 },             \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), void * ):             ( void * ){ 0 },             \
-      default: _Generic( (**cntr),                                                                \
-        CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):      ( signed char ){ 0 },        \
-        default: (char){ 0 } /* Nothing. */                                                       \
-      )                                                                                           \
+      default: (char){ 0 } /* Nothing. */                                                         \
     )                                                                                             \
   )                                                                                               \
 )                                                                                                 \
@@ -1006,7 +998,7 @@ static inline CC_ALWAYS_INLINE uint64_t cc_layout(
 // CC_POINT_HNDL_TO_ALLOCING_FN_RESULT below).
 typedef struct
 {
-  alignas( cc_max_align_t )
+  alignas( cc_max_align_ty )
   void *new_cntr;
   void *other_ptr;
 } cc_allocing_fn_result_ty;
@@ -1080,33 +1072,40 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
   return __builtin_ctzll( a ) / 16;
 }
 
-#elif defined( _MSC_VER ) && defined( _WIN64 )
+#elif defined( _MSC_VER ) && ( defined( _M_X64 ) || defined( _M_ARM64 ) )
 
-// Apart from the signature, _BitScanForward64() works the same as GCC's __builtin_ctzll() on the
-// 64-bit environment. Note that _BitScanReverse64() counts from the MSB but the index starts from
-// the LSB, unlike __builtin_clzll().
+#include <intrin.h>
+#pragma intrinsic(_BitScanForward64)
+#pragma intrinsic(_BitScanReverse64)
+
 static inline int cc_first_nonzero_uint16( uint64_t a )
 {
-  unsigned long index;
+  unsigned long result;
+
   if( cc_is_little_endian() )
+    _BitScanForward64( &result, a );
+  else
   {
-    _BitScanForward64(&index, a);
-    return (int)(index / 16);
+    _BitScanReverse64( &result, a );
+    result = 63 - result;
   }
-  _BitScanReverse64(&index, a);
-  return (int)((index ^ 63) / 16);
+
+  return result / 16;
 }
 
 static inline int cc_last_nonzero_uint16( uint64_t a )
 {
-  unsigned long index;
+  unsigned long result;
+
   if( cc_is_little_endian() )
   {
-    _BitScanReverse64(&index, a);
-    return (int)((index ^ 63) / 16);
+    _BitScanReverse64( &result, a );
+    result = 63 - result;
   }
-  _BitScanForward64(&index, a);
-  return (int)(index / 16);
+  else
+    _BitScanForward64( &result, a );
+
+  return result / 16;
 }
 
 #else
@@ -1154,7 +1153,7 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
 // Vector header.
 typedef struct
 {
-  alignas( cc_max_align_t )
+  alignas( cc_max_align_ty )
   size_t size;
   size_t cap;
 } cc_vec_hdr_ty;
@@ -1555,13 +1554,13 @@ static inline void *cc_vec_last(
 // Node header.
 typedef struct cc_listnode_hdr_ty
 {
-  alignas( cc_max_align_t )
+  alignas( cc_max_align_ty )
   struct cc_listnode_hdr_ty *prev;
   struct cc_listnode_hdr_ty *next;
 } cc_listnode_hdr_ty;
 
 // List header.
-// It does not need to be aligned to alignof( max_align_t ) because no memory is allocated after the header.
+// It does not need to be aligned to alignof( cc_max_align_ty ) because no memory is allocated after the header.
 typedef struct
 {
   size_t size;
@@ -2059,7 +2058,7 @@ static inline size_t cc_quadratic( uint16_t displacement )
 // Map header.
 typedef struct
 {
-  alignas( cc_max_align_t )
+  alignas( cc_max_align_ty )
   size_t size;
   size_t cap_mask; // Rather than storing the capacity (i.e. bucket count) directly, we store the bit mask used to
                    // reduce a hash code or displacement-derived bucket index to the buckets array, i.e. the capacity
@@ -2720,8 +2719,10 @@ static inline void *cc_map_leap_backward( void *cntr, void *itr, size_t el_size,
       return cc_map_r_end( cntr );
     }
 
+    // This check is only necessary to silence a superfluous array-bounds warning under GCC.
+    // In practice, the case of a placeholder map is caught by the above check for bucket < 4.
     if( cc_map_hdr( cntr )->metadata == &cc_map_placeholder_metadatum )
-      CC_UNREACHABLE();
+      CC_UNREACHABLE;
 
     uint64_t metadatum;
     memcpy( &metadatum, cc_map_hdr( cntr )->metadata + bucket - 4, sizeof( uint64_t ) );
@@ -4228,8 +4229,9 @@ _Generic( (**cntr),                                      \
 _Generic( (**cntr),                                                                                   \
   CC_FOR_EACH_CMPR( CC_KEY_CMPR_SLOT, CC_EL_TY( cntr ) )                                              \
   default: _Generic( (**cntr),                                                                        \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               cc_cmpr_char_select,               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):      cc_cmpr_char_select,               \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_cmpr_unsigned_char_select,      \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_cmpr_signed_char_select,        \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_cmpr_unsigned_short_select,     \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              cc_cmpr_short_select,              \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       cc_cmpr_unsigned_int_select,       \
@@ -4240,10 +4242,7 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_cmpr_long_long_select,          \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_cmpr_size_t_select,             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_cmpr_c_string_select,           \
-    default: _Generic( (**cntr),                                                                      \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):      cc_cmpr_signed_char_select,        \
-      default: cc_cmpr_dummy_select                                                                   \
-    )                                                                                                 \
+    default: cc_cmpr_dummy_select                                                                     \
   )                                                                                                   \
 )( CC_CNTR_ID( cntr ) )                                                                               \
 
@@ -4252,8 +4251,9 @@ _Generic( (**cntr),                                                             
 _Generic( (**cntr),                                                                            \
   CC_FOR_EACH_HASH( CC_KEY_HASH_SLOT, CC_EL_TY( cntr ) )                                       \
   default: _Generic( (**cntr),                                                                 \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               cc_hash_char,               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):      cc_hash_char,               \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_hash_unsigned_char,      \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_hash_signed_char,        \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_hash_unsigned_short,     \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              cc_hash_short,              \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       cc_hash_unsigned_int,       \
@@ -4264,10 +4264,7 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_hash_long_long,          \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_hash_size_t,             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_hash_c_string,           \
-    default: _Generic( (**cntr),                                                               \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):      cc_hash_signed_char,        \
-      default: (cc_hash_fnptr_ty)NULL                                                          \
-    )                                                                                          \
+    default: (cc_hash_fnptr_ty)NULL                                                            \
   )                                                                                            \
 )                                                                                              \
 
@@ -4276,8 +4273,9 @@ _Generic( (**cntr),                                                             
 _Generic( (ty){ 0 },                    \
   CC_FOR_EACH_CMPR( CC_HAS_CMPR_SLOT, ) \
   default: _Generic( (ty){ 0 },         \
-    char:               true,           \
+    cc_maybe_char:      true,           \
     unsigned char:      true,           \
+    signed char:        true,           \
     unsigned short:     true,           \
     short:              true,           \
     unsigned int:       true,           \
@@ -4288,10 +4286,7 @@ _Generic( (ty){ 0 },                    \
     long long:          true,           \
     cc_maybe_size_t:    true,           \
     char *:             true,           \
-    default: _Generic( (ty){ 0 },       \
-      signed char:      true,           \
-      default:          false           \
-    )                                   \
+    default:            false           \
   )                                     \
 )                                       \
 
@@ -4300,8 +4295,9 @@ _Generic( (ty){ 0 },                    \
 _Generic( (ty){ 0 },                    \
   CC_FOR_EACH_HASH( CC_HAS_HASH_SLOT, ) \
   default: _Generic( (ty){ 0 },         \
-    char:               true,           \
+    cc_maybe_char:      true,           \
     unsigned char:      true,           \
+    signed char:        true,           \
     unsigned short:     true,           \
     short:              true,           \
     unsigned int:       true,           \
@@ -4312,10 +4308,7 @@ _Generic( (ty){ 0 },                    \
     long long:          true,           \
     cc_maybe_size_t:    true,           \
     char *:             true,           \
-    default: _Generic( (ty){ 0 },       \
-      signed char:      true,           \
-      default:          false           \
-    )                                   \
+    default:            false           \
   )                                     \
 )                                       \
 
@@ -4334,10 +4327,12 @@ CC_MAKE_BASE_FNPTR_TY( arg, cc_cmpr_##n##_ty ):                                 
 _Generic( (**cntr),                                                                         \
   CC_FOR_EACH_CMPR( CC_KEY_DETAILS_SLOT, CC_EL_TY( cntr ) )                                 \
   default: _Generic( (**cntr),                                                              \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):                                        \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):                               \
       ( cc_key_details_ty ){ sizeof( char ), alignof( char ) },                             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ) :                              \
       ( cc_key_details_ty ){ sizeof( unsigned char ), alignof( unsigned char ) },           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ) :                                \
+      ( cc_key_details_ty ){ sizeof( signed char ), alignof( signed char ) },               \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ) :                             \
       ( cc_key_details_ty ){ sizeof( unsigned short ), alignof( unsigned short ) },         \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ) :                                      \
@@ -4355,14 +4350,10 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):                                   \
       ( cc_key_details_ty ){ sizeof( long long ), alignof( long long ) },                   \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):                             \
-      ( cc_key_details_ty ){ sizeof( cc_maybe_size_t ), alignof( cc_maybe_size_t ) },       \
+      ( cc_key_details_ty ){ sizeof( size_t ), alignof( size_t ) },                         \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):                                      \
       ( cc_key_details_ty ){ sizeof( char * ), alignof( char * ) },                         \
-    default: _Generic( (**cntr),                                                            \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ) :                              \
-        ( cc_key_details_ty ){ sizeof( signed char ), alignof( signed char ) },             \
-      default: ( cc_key_details_ty ){ 0 }                                                   \
-    )                                                                                       \
+    default: ( cc_key_details_ty ){ 0 }                                                     \
   )                                                                                         \
 )                                                                                           \
 
@@ -4441,13 +4432,29 @@ CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( unsigned long, unsigned_long )
 CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( long, long )
 CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( unsigned long long, unsigned_long_long )
 CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( long long, long_long )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( size_t, size_t )
 
-// size_t could be an alias for a fundamental integer type or a distinct type.
-// Hence, in C we have to handle it as a special case so that it doesn't clash with another type in _Generic statements.
-// If size_t is an alias, cc_maybe_size_t will be a dummy type used in no other context.
-// Otherwise, cc_maybe_size_t will be an alias for size_t.
+// In MSVC under C, char is an alias for unsigned char or signed char, contrary to the C Standard, which requires all
+// three to be distinct types.
+// To accomodate this bug, we have to ensure that char doesn't clash with either of the other two types in _Generic
+// statements.
+// If char is an alias, cc_maybe_char will be a dummy type used in no other context.
+// Otherwise, it will be an alias for char.
+
+// size_t needs to be handled in a similar way because it could be an alias for a fundamental integer type or a distinct
+// builtin type.
 
 #ifndef __cplusplus
+
+typedef struct { char nothing; } cc_char_dummy;
+
+typedef CC_TYPEOF_XP(
+  _Generic( (char){ 0 },
+    unsigned char: (cc_char_dummy){ 0 },
+    signed char:   (cc_char_dummy){ 0 },
+    default:       (char){ 0 }
+  )
+) cc_maybe_char;
 
 typedef struct { char nothing; } cc_size_t_dummy;
 
@@ -4466,8 +4473,6 @@ typedef CC_TYPEOF_XP(
 ) cc_maybe_size_t;
 
 #endif
-
-CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( size_t, size_t )
 
 // Null-terminated C strings.
 // We use FNV-1a because newer, faster alternatives that process word-sized chunks require prior knowledge of the
