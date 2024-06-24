@@ -103,7 +103,7 @@ void tracking_free( void *ptr )
 
 int main()
 {
-  srand( std::time( nullptr ) );
+  srand( (unsigned int)std::time( nullptr ) );
 
   // Vector.
   for( int test = 0; test < N_TESTS; ++test )
@@ -529,7 +529,7 @@ int main()
           if( rand() % 2 )
             UNTIL_SUCCESS( cc_reserve( &our_map, cc_cap( &our_map ) ) ); // Reserve above the current capacity.
           else if( cc_cap( &our_map ) * CC_DEFAULT_LOAD  >= 5 ) // Reserve below the current capacity.
-            UNTIL_SUCCESS( cc_reserve( &our_map, cc_cap( &our_map ) * CC_DEFAULT_LOAD - 5 ) );
+            UNTIL_SUCCESS( cc_reserve( &our_map, (size_t)( cc_cap( &our_map ) * CC_DEFAULT_LOAD - 5 ) ) );
         }
         break;
         case 5: // cc_shrink.
@@ -634,7 +634,7 @@ int main()
           if( rand() % 2 )
             UNTIL_SUCCESS( cc_reserve( &our_set, cc_cap( &our_set ) ) );
           else if( cc_cap( &our_set ) * CC_DEFAULT_LOAD  >= 5 )
-            UNTIL_SUCCESS( cc_reserve( &our_set, cc_cap( &our_set ) * CC_DEFAULT_LOAD - 5 ) );
+            UNTIL_SUCCESS( cc_reserve( &our_set, (size_t)( cc_cap( &our_set ) * CC_DEFAULT_LOAD - 5 ) ) );
         }
         break;
         case 5: // cc_shrink.

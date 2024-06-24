@@ -514,9 +514,9 @@ API:
 
 Version history:
 
-  --/--/---- 1.2.0: ...
+  --/--/---- 1.2.0: Added MSVC support.
   27/05/2024 1.1.1: Fixed a bug in map and set that could theoretically cause a crash on rehash (triggerable in testing
-                    using NAME_shrink with a maximum load factor significantly higher than 1.0).
+                    using cc_shrink with a maximum load factor significantly higher than 1.0).
   18/03/2024 1.1.0: Replaced the Robin Hood implementations of map and set with Verstable implementations.
                     Added branch-prediction optimizations.
                     Improved documentation.
@@ -564,44 +564,11 @@ License (MIT):
 /*                                                                                                                    */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-#ifndef CC_NO_SHORT_NAMES
-#define vec( ... )           cc_vec( __VA_ARGS__ )
-#define list( ... )          cc_list( __VA_ARGS__ )
-#define map( ... )           cc_map( __VA_ARGS__ )
-#define set( ... )           cc_set( __VA_ARGS__ )
-#define init( ... )          cc_init( __VA_ARGS__ )
-#define init_clone( ... )    cc_init_clone( __VA_ARGS__ )
-#define size( ... )          cc_size( __VA_ARGS__ )
-#define cap( ... )           cc_cap( __VA_ARGS__ )
-#define reserve( ... )       cc_reserve( __VA_ARGS__ )
-#define resize( ... )        cc_resize( __VA_ARGS__ )
-#define shrink( ... )        cc_shrink( __VA_ARGS__ )
-#define insert( ... )        cc_insert( __VA_ARGS__ )
-#define insert_n( ... )      cc_insert_n( __VA_ARGS__ )
-#define get_or_insert( ... ) cc_get_or_insert( __VA_ARGS__ )
-#define push( ... )          cc_push( __VA_ARGS__ )
-#define push_n( ... )        cc_push_n( __VA_ARGS__ )
-#define splice( ... )        cc_splice( __VA_ARGS__ )
-#define get( ... )           cc_get( __VA_ARGS__ )
-#define key_for( ... )       cc_key_for( __VA_ARGS__ )
-#define erase( ... )         cc_erase( __VA_ARGS__ )
-#define erase_n( ... )       cc_erase_n( __VA_ARGS__ )
-#define erase_itr( ... )     cc_erase_itr( __VA_ARGS__ )
-#define clear( ... )         cc_clear( __VA_ARGS__ ) 
-#define cleanup( ... )       cc_cleanup( __VA_ARGS__ )
-#define first( ... )         cc_first( __VA_ARGS__ )
-#define last( ... )          cc_last( __VA_ARGS__ )
-#define r_end( ... )         cc_r_end( __VA_ARGS__ )
-#define end( ... )           cc_end( __VA_ARGS__ )
-#define next( ... )          cc_next( __VA_ARGS__ )
-#define prev( ... )          cc_prev( __VA_ARGS__ )
-#define for_each( ... )      cc_for_each( __VA_ARGS__ )
-#define r_for_each( ... )    cc_r_for_each( __VA_ARGS__ )
-#endif
-
+// Standard headers must be included before the unprefixed names are defined below in case they clash with identifiers
+// used in those headers.
+// This does not prevent clashes with identifiers used in headers that the user includes after including cc.h.
+// In that case, CC_NO_SHORT_NAMES is a necessity.
 #ifndef CC_H
-#define CC_H
-
 #include <limits.h>
 #include <stdalign.h>
 #include <stdbool.h>
@@ -609,10 +576,48 @@ License (MIT):
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
 #ifdef __cplusplus
 #include <type_traits>
 #endif
+#endif
+
+#ifndef CC_NO_SHORT_NAMES
+#define vec( ... )           CC_MSVC_PP_FIX( cc_vec( __VA_ARGS__ ) )
+#define list( ... )          CC_MSVC_PP_FIX( cc_list( __VA_ARGS__ ) )
+#define map( ... )           CC_MSVC_PP_FIX( cc_map( __VA_ARGS__ ) )
+#define set( ... )           CC_MSVC_PP_FIX( cc_set( __VA_ARGS__ ) )
+#define init( ... )          CC_MSVC_PP_FIX( cc_init( __VA_ARGS__ ) )
+#define init_clone( ... )    CC_MSVC_PP_FIX( cc_init_clone( __VA_ARGS__ ) )
+#define size( ... )          CC_MSVC_PP_FIX( cc_size( __VA_ARGS__ ) )
+#define cap( ... )           CC_MSVC_PP_FIX( cc_cap( __VA_ARGS__ ) )
+#define reserve( ... )       CC_MSVC_PP_FIX( cc_reserve( __VA_ARGS__ ) )
+#define resize( ... )        CC_MSVC_PP_FIX( cc_resize( __VA_ARGS__ ) )
+#define shrink( ... )        CC_MSVC_PP_FIX( cc_shrink( __VA_ARGS__ ) )
+#define insert( ... )        CC_MSVC_PP_FIX( cc_insert( __VA_ARGS__ ) )
+#define insert_n( ... )      CC_MSVC_PP_FIX( cc_insert_n( __VA_ARGS__ ) )
+#define get_or_insert( ... ) CC_MSVC_PP_FIX( cc_get_or_insert( __VA_ARGS__ ) )
+#define push( ... )          CC_MSVC_PP_FIX( cc_push( __VA_ARGS__ ) )
+#define push_n( ... )        CC_MSVC_PP_FIX( cc_push_n( __VA_ARGS__ ) )
+#define splice( ... )        CC_MSVC_PP_FIX( cc_splice( __VA_ARGS__ ) )
+#define get( ... )           CC_MSVC_PP_FIX( cc_get( __VA_ARGS__ ) )
+#define key_for( ... )       CC_MSVC_PP_FIX( cc_key_for( __VA_ARGS__ ) )
+#define erase( ... )         CC_MSVC_PP_FIX( cc_erase( __VA_ARGS__ ) )
+#define erase_n( ... )       CC_MSVC_PP_FIX( cc_erase_n( __VA_ARGS__ ) )
+#define erase_itr( ... )     CC_MSVC_PP_FIX( cc_erase_itr( __VA_ARGS__ ) )
+#define clear( ... )         CC_MSVC_PP_FIX( cc_clear( __VA_ARGS__ ) )
+#define cleanup( ... )       CC_MSVC_PP_FIX( cc_cleanup( __VA_ARGS__ ) )
+#define first( ... )         CC_MSVC_PP_FIX( cc_first( __VA_ARGS__ ) )
+#define last( ... )          CC_MSVC_PP_FIX( cc_last( __VA_ARGS__ ) )
+#define r_end( ... )         CC_MSVC_PP_FIX( cc_r_end( __VA_ARGS__ ) )
+#define end( ... )           CC_MSVC_PP_FIX( cc_end( __VA_ARGS__ ) )
+#define next( ... )          CC_MSVC_PP_FIX( cc_next( __VA_ARGS__ ) )
+#define prev( ... )          CC_MSVC_PP_FIX( cc_prev( __VA_ARGS__ ) )
+#define for_each( ... )      CC_MSVC_PP_FIX( cc_for_each( __VA_ARGS__ ) )
+#define r_for_each( ... )    CC_MSVC_PP_FIX( cc_r_for_each( __VA_ARGS__ ) )
+#endif
+
+#ifndef CC_H
+#define CC_H
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /*                                                    Preliminary                                                     */
@@ -671,6 +676,18 @@ template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (
 #define CC_CAST_MAYBE_UNUSED( ty, xp ) ( ( ty ){ 0 } = ( (ty)( xp ) ) )
 #endif
 
+// Typeof for expressions and abstract declarators.
+#ifdef __cplusplus
+#define CC_TYPEOF_XP( xp ) std::decay<std::remove_reference<decltype( xp )>::type>::type
+#define CC_TYPEOF_TY( ty ) std::decay<std::remove_reference<decltype( std::declval<ty>() )>::type>::type
+#elif __STDC_VERSION__ >= 202311L // C23.
+#define CC_TYPEOF_XP( xp ) typeof( xp )
+#define CC_TYPEOF_TY( ty ) typeof( ty )
+#else // GNU.
+#define CC_TYPEOF_XP( xp ) __typeof__( xp )
+#define CC_TYPEOF_TY( ty ) __typeof__( ty )
+#endif
+
 // CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2 is the same as above, except that it selects the type to which to cast based on
 // a condition.
 // This is necessary because some API macros (e.g. cc_erase) return either a pointer-iterator or a bool depending on the
@@ -721,33 +738,29 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #define CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ) (void)0
 #endif
 
-// Typeof for expressions and abstract declarators.
-#ifdef __cplusplus
-#define CC_TYPEOF_XP( xp ) std::decay<std::remove_reference<decltype( xp )>::type>::type
-#define CC_TYPEOF_TY( ty ) std::decay<std::remove_reference<decltype( std::declval<ty>() )>::type>::type
-#elif __STDC_VERSION__ >= 202311L // C23.
-#define CC_TYPEOF_XP( xp ) typeof( xp )
-#define CC_TYPEOF_TY( ty ) typeof( ty )
-#else // GNU.
-#define CC_TYPEOF_XP( xp ) __typeof__( xp )
-#define CC_TYPEOF_TY( ty ) __typeof__( ty )
-#endif
+// MSVC has traditionally provided a nonconforming preprocessor, which requires an extra level of expansion in some
+// variadic macros.
+// While the compiler uses a newer, conforming preprocessor by default in C11 mode or later, the traditional
+// preprocessor remains the default for C++ builds.
+// For user convenience, we support the traditional preprocessor, although enabling the conforming preprocessor via
+// /Zc:preprocessor is recommended.
+#define CC_MSVC_PP_FIX( xp ) xp
 
 // CC_SELECT_ON_NUM_ARGS macro for overloading API macros based on the number of arguments.
 #define CC_CAT_2_( a, b ) a##b
 #define CC_CAT_2( a, b ) CC_CAT_2_( a, b )
 #define CC_N_ARGS_( _1, _2, _3, _4, _5, _6, n, ... ) n
-#define CC_N_ARGS( ... ) CC_N_ARGS_( __VA_ARGS__, _6, _5, _4, _3, _2, _1, x )
+#define CC_N_ARGS( ... ) CC_MSVC_PP_FIX( CC_N_ARGS_( __VA_ARGS__, _6, _5, _4, _3, _2, _1, x ) )
 #define CC_SELECT_ON_NUM_ARGS( func, ... ) CC_CAT_2( func, CC_N_ARGS( __VA_ARGS__ ) )( __VA_ARGS__ )
 
 // If the user has defined CC_REALLOC and CC_FREE, then CC_GET_REALLOC and CC_GET_FREE are replaced with those macros.
 // Otherwise, they are replaced by realloc and free from the standard library.
-#define CC_ARG_2_( _1, _2, ... ) _2
-#define CC_ARG_2( ... ) CC_ARG_2_( __VA_ARGS__ )
+#define CC_2ND_ARG_( _1, _2, ... ) _2
+#define CC_2ND_ARG( ... ) CC_MSVC_PP_FIX( CC_2ND_ARG_( __VA_ARGS__ ) )
 #define CC_REALLOC_COMMA ,
-#define CC_REALLOC_FN CC_ARG_2( CC_CAT_2( CC_REALLOC, _COMMA ) realloc, CC_REALLOC, )
+#define CC_REALLOC_FN CC_2ND_ARG( CC_CAT_2( CC_REALLOC, _COMMA ) realloc, CC_REALLOC, )
 #define CC_FREE_COMMA ,
-#define CC_FREE_FN CC_ARG_2( CC_CAT_2( CC_FREE, _COMMA ) free, CC_FREE, )
+#define CC_FREE_FN CC_2ND_ARG( CC_CAT_2( CC_FREE, _COMMA ) free, CC_FREE, )
 
 // Macro used with CC_STATIC_ASSERT to provide type safety in cc_init_clone and cc_splice calls.
 #ifdef __cplusplus
@@ -2792,7 +2805,7 @@ static inline bool cc_map_erase_raw(
   size_t erase_bucket,
   size_t home_bucket, // SIZE_MAX if unknown.
   size_t el_size,
-  size_t layout,
+  uint64_t layout,
   cc_hash_fnptr_ty hash,
   cc_dtor_fnptr_ty el_dtor,
   cc_dtor_fnptr_ty key_dtor
@@ -3376,7 +3389,7 @@ static inline void *cc_set_next(
     /* Function arguments */                                                                 \
     (                                                                                        \
       *(cntr),                                                                               \
-      n,                                                                                     \
+      (n),                                                                                   \
       CC_EL_SIZE( *(cntr) ),                                                                 \
       CC_LAYOUT( *(cntr) ),                                                                  \
       CC_KEY_HASH( *(cntr) ),                                                                \
@@ -3658,7 +3671,7 @@ static inline void *cc_set_next(
   CC_STATIC_ASSERT( CC_IS_SAME_TY( (cntr), (src) ) ),                       \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                      \
     *(cntr),                                                                \
-    cc_list_splice( *(cntr), (itr), *(src), src_itr, CC_REALLOC_FN )        \
+    cc_list_splice( *(cntr), (itr), *(src), (src_itr), CC_REALLOC_FN )      \
   ),                                                                        \
   CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                           \
@@ -4364,9 +4377,9 @@ cc_layout( CC_CNTR_ID( cntr ), CC_EL_SIZE( cntr ), alignof( CC_EL_TY( cntr ) ), 
 
 // Macros for extracting the type and function body or load factor from user-defined DTOR, CMPR, HASH, and LOAD macros. 
 #define CC_1ST_ARG_( _1, ... )    _1
-#define CC_1ST_ARG( ... )         CC_1ST_ARG_( __VA_ARGS__ )
+#define CC_1ST_ARG( ... )         CC_MSVC_PP_FIX( CC_1ST_ARG_( __VA_ARGS__ ) )
 #define CC_OTHER_ARGS_( _1, ... ) __VA_ARGS__
-#define CC_OTHER_ARGS( ... )      CC_OTHER_ARGS_( __VA_ARGS__ )
+#define CC_OTHER_ARGS( ... )      CC_MSVC_PP_FIX( CC_OTHER_ARGS_( __VA_ARGS__ ) )
 
 // Default hash and comparison functions for fundamental types.
 
