@@ -4,31 +4,149 @@ This library provides usability-oriented generic containers (vectors, linked lis
 
 Features:
 
-- Fully generic API (no need to specify element or key type except when first declaring a container).
-- No need to pre-declare container types per element or key/element pair.
-- Type safety.
-- User-defined destructor, comparison, and hash functions associated with element and key types.
-- Handles memory allocation failure.
-- Single header.
-- Compiles in C and C++.
+* Fully generic API (no need to specify element or key type except when first declaring a container).
+* No need to pre-declare container types per element or key/element pair.
+* Type safety.
+* User-defined destructor, comparison, and hash functions associated with element and key types.
+* Handles memory allocation failure.
+* Single header.
+* Compiles in C and C++.
 
-Requires C23, or C11 and compiler support for __typeof__, or C++11.
+It requires C23, or C11 and compiler support for __typeof__, or C++11.
 
-Tested with GCC, MinGW, Clang, and MSVC.
+It has been tested with GCC, Clang, MinGW, and MSVC.
 
-#including the library:
+Usage example:
+
+  +---------------------------------------------------------+----------------------------------------------------------+
+  | Vector:                                                 | List:                                                    |
+  +---------------------------------------------------------+----------------------------------------------------------+
+  | #include <stdio.h>                                      | #include <stdio.h>                                       |
+  | #include "cc.h"                                         | #include "cc.h"                                          |
+  |                                                         |                                                          |
+  | int main( void )                                        | int main( void )                                         |
+  | {                                                       | {                                                        |
+  |   vec( int ) our_vec;                                   |   list( int ) our_list;                                  |
+  |   init( &our_vec );                                     |   init( &our_list );                                     |
+  |                                                         |                                                          |
+  |   // Adding elements to end.                            |   // Adding elements to end.                             |
+  |   for( int i = 0; i < 10; ++i )                         |   for( int i = 0; i < 10; ++i )                          |
+  |     if( !push( &our_vec, i ) )                          |     if( !push( &our_list, i ) )                          |
+  |     {                                                   |     {                                                    |
+  |       // Out of memory, so abort.                       |       // Out of memory, so abort.                        |
+  |       cleanup( &our_vec );                              |       cleanup( &our_list );                              |
+  |       return 1;                                         |       return 1;                                          |
+  |     }                                                   |     }                                                    |
+  |                                                         |                                                          |
+  |   // Inserting an element at an index.                  |   // Inserting an element before another element.        |
+  |   for( int i = 0; i < 10; ++i )                         |   for(                                                   |
+  |     if( !insert( &our_vec, i * 2, i ) )                 |     int *el = first( &our_list );                        |
+  |     {                                                   |     el != end( &our_list );                              |
+  |       // Out of memory, so abort.                       |     el = next( &our_list, el )                           |
+  |       cleanup( &our_vec );                              |   )                                                      |
+  |       return 1;                                         |     if( !insert( &our_list, el, *el ) )                  |
+  |     }                                                   |     {                                                    |
+  |                                                         |       // Out of memory, so abort.                        |
+  |   // Retrieving and erasing elements.                   |       cleanup( &our_list );                              |
+  |   for( int i = 0; i < size( &our_vec ); )               |       return 1;                                          |
+  |     if( *get( &our_vec, i ) % 3 == 0 )                  |     }                                                    |
+  |       erase( &our_vec, i );                             |                                                          |
+  |     else                                                |   // Erasing elements.                                   |
+  |       ++i;                                              |   for(                                                   |
+  |                                                         |     int *el = first( &our_list );                        |
+  |   // Iteration #1.                                      |     el != end( &our_list );                              |
+  |   for_each( &our_vec, el )                              |   )                                                      |
+  |     printf( "%d ", *el );                               |     if( *el % 3 == 0 )                                   |
+  |   // Printed: 1 1 2 2 4 4 5 5 7 7 8 8                   |       el = erase( &our_list, el );                       |
+  |                                                         |     else                                                 |
+  |   // Iteration #2.                                      |       el = next( &our_list, el );                        |
+  |   for(                                                  |                                                          |
+  |     int *el = first( &our_vec );                        |   // Iteration #1.                                       |
+  |     el != end( &our_vec );                              |   for_each( &our_list, el )                              |
+  |     el = next( &our_vec, el )                           |     printf( "%d ", *el );                                |
+  |   )                                                     |   // Printed: 1 1 2 2 4 4 5 5 7 7 8 8                    |
+  |     printf( "%d ", *el );                               |                                                          |
+  |   // Printed: Same as above.                            |   // Iteration #2.                                       |
+  |                                                         |   for(                                                   |
+  |   cleanup( &our_vec );                                  |     int *el = first( &our_list );                        |
+  | }                                                       |     el != end( &our_list );                              |
+  |                                                         |     el = next( &our_list, el )                           |
+  |                                                         |   )                                                      |
+  |                                                         |     printf( "%d ", *el );                                |
+  |                                                         |   // Printed: Same as above.                             |
+  |                                                         |                                                          |
+  |                                                         |   cleanup( &our_list );                                  |
+  |                                                         | }                                                        |
+  +---------------------------------------------------------+----------------------------------------------------------+
+  | Map:                                                    | Set:                                                     |
+  +---------------------------------------------------------+----------------------------------------------------------+
+  | #include <stdio.h>                                      | #include <stdio.h>                                       |
+  | #include "cc.h"                                         | #include "cc.h"                                          |
+  |                                                         |                                                          |
+  | int main( void )                                        | int main( void )                                         |
+  | {                                                       | {                                                        |
+  |   // Declare a map with int keys and short elements.    |   set( int ) our_set;                                    |
+  |   map( int, short ) our_map;                            |   init( &our_set );                                      |
+  |   init( &our_map );                                     |                                                          |
+  |                                                         |   // Inserting elements.                                 |
+  |   // Inserting elements.                                |   for( int i = 0; i < 10; ++i )                          |
+  |   for( int i = 0; i < 10; ++i )                         |     if( !insert( &our_set, i ) )                         |
+  |     if( !insert( &our_map, i, i + 1 ) )                 |     {                                                    |
+  |     {                                                   |       // Out of memory, so abort.                        |
+  |       // Out of memory, so abort.                       |       cleanup( &our_set );                               |
+  |       cleanup( &our_map );                              |       return 1;                                          |
+  |       return 1;                                         |     }                                                    |
+  |     }                                                   |                                                          |
+  |                                                         |   // Erasing elements.                                   |
+  |   // Erasing elements.                                  |   for( int i = 0; i < 10; i += 3 )                       |
+  |   for( int i = 0; i < 10; i += 3 )                      |     erase( &our_set, i );                                |
+  |     erase( &our_map, i );                               |                                                          |
+  |                                                         |   // Retrieving elements.                                |
+  |   // Retrieving elements.                               |   for( int i = 0; i < 10; ++i )                          |
+  |   for( int i = 0; i < 10; ++i )                         |   {                                                      |
+  |   {                                                     |     int *el = get( &our_set, i );                        |
+  |     short *el = get( &our_map, i );                     |     if( el )                                             |
+  |     if( el )                                            |       printf( "%d ", *el );                              |
+  |       printf( "%d:%d ", i, *el );                       |   }                                                      |
+  |   }                                                     |   // Printed: 1 2 4 5 7 8                                |
+  |   // Printed: 1:2 2:3 4:5 5:6 7:8 8:9                   |                                                          |
+  |                                                         |   // Iteration #1.                                       |
+  |   // Iteration #1 (elements only).                      |   for_each( &our_set, el )                               |
+  |   for_each( &our_map, el )                              |     printf( "%d ", *el );                                |
+  |     printf( "%d ", *el );                               |   // Printed: 2 4 7 1 5 8                                |
+  |   // Printed: 3 5 8 2 6 9                               |                                                          |
+  |                                                         |   // Iteration #2.                                       |
+  |   // Iteration #2 (elements and keys).                  |   for(                                                   |
+  |   for_each( &our_map, key, el )                         |     int *el = first( &our_set );                         |
+  |     printf( "%d:%d ", *key, *el );                      |     el != end( &our_set );                               |
+  |   // Printed: 2:3 4:5 7:8 1:2 5:6 8:9                   |     el = next( &our_set, el )                            |
+  |                                                         |   )                                                      |
+  |   // Iteration #3.                                      |     printf( "%d ", *el );                                |
+  |   for(                                                  |   // Printed: Same as above.                             |
+  |     short *el = first( &our_map );                      |                                                          |
+  |     el != end( &our_map );                              |   cleanup( &our_set );                                   |
+  |     el = next( &our_map, el )                           | }                                                        |
+  |   )                                                     |                                                          |
+  |     printf( "%d:%d ", *key_for( &our_map, el ), *el );  |                                                          |
+  |   // Printed: Same as above.                            |                                                          |
+  |                                                         |                                                          |
+  |   cleanup( &our_map );                                  |                                                          |
+  | }                                                       |                                                          |
+  +---------------------------------------------------------+----------------------------------------------------------+
+
+Including the library:
 
   Place this at the top of your file/s:
 
     #include "cc.h"
 
-  The following can be #defined before #including the library in any file:
+  The following can be defined before including the library in any file:
 
     #define CC_NO_SHORT_NAMES
       By default, CC exposes API macros without the "cc_" prefix.
       Define this flag to withhold the unprefixed names.
 
-  The following can be #defined anywhere and affect all calls to API macros where the definition is visible:
+  The following can be defined anywhere and affect all calls to API macros where the definition is visible:
   
     #define CC_REALLOC our_realloc
       Causes API macros to use a custom realloc function rather than the one in the standard library.
@@ -40,16 +158,16 @@ API:
 
   General notes:
 
-  - API macros may evaluate their first argument - the pointer to the container - multiple times, so never use
+  * API macros may evaluate their first argument - the pointer to the container - multiple times, so never use
     expressions with side effects (e.g. &our_containers[ ++i ] ) for that argument. In GCC and Clang, attempting to do
     so will cause a compiler warning. All other arguments are only evaluated once.
-  - If CC_NO_SHORT_NAMES was declared, all API macros are prefixed with "cc_".
-  - Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original.
+  * If CC_NO_SHORT_NAMES was declared, all API macros are prefixed with "cc_".
+  * Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original.
     Hence, only create a duplicate via assignment (including through function parameters and return values) if you have
     finished with the original.
-  - An iterator is a pointer to an element in the container or to the associated end (or r_end, if the container
+  * An iterator is a pointer to an element in the container or to the associated end (or r_end, if the container
     supports it). In the documentation below, these pointers are referred to as "pointer-iterators".
-  - In the documentation below, el_ty is the container's element type and key_ty is the container's key type (where
+  * In the documentation below, el_ty is the container's element type and key_ty is the container's key type (where
     applicable).
 
   All containers:
@@ -173,7 +291,7 @@ API:
       points to the last element.
 
     Notes:
-    - Vector pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
+    * Vector pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
 
   List (a doubly linked list with sentinels):
 
@@ -244,7 +362,7 @@ API:
       and should be followed by the body of the loop.
 
     Notes:
-    - List pointer-iterators (including r_end and end) are not invalidated by any API calls besides init and cleanup,
+    * List pointer-iterators (including r_end and end) are not invalidated by any API calls besides init and cleanup,
       unless they point to erased elements.
 
   Map (an unordered associative container mapping elements to keys, implemented as a hybird open-addressing, chained
@@ -357,7 +475,7 @@ API:
       It should be followed by the body of the loop.
 
     Notes:
-    - Map pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
+    * Map pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
       reallocation.
 
   Set (an unordered associative container for elements without a separate key, implemented as a hybird open-addressing,
@@ -452,7 +570,7 @@ API:
       and should be followed by the body of the loop.
 
     Notes:
-    - Set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
+    * Set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
       reallocation.
 
   Destructor, comparison, and hash functions and custom max load factors:
@@ -501,13 +619,13 @@ API:
       #include "cc.h"
 
     Notes:
-    - These functions are inline and have static scope, so you need to either redefine them in each translation unit
+    * These functions are inline and have static scope, so you need to either redefine them in each translation unit
       from which they should be called or (preferably) define them in a shared header. For structs or unions, a sensible
       place to define them would be immediately after the definition of the struct or union.
-    - Only one destructor, comparison, or hash function or max load factor should be defined by the user for each type.
-    - #including cc.h in these cases does not #include the full header, so you still need to #include it separately
-      at the top of your files.
-    - In-built comparison and hash functions are already defined for the following types: char, unsigned char, signed
+    * Only one destructor, comparison, or hash function or max load factor should be defined by the user for each type.
+    * Including cc.h in these cases does not include the full header, so you still need to include it separately at the
+      top of your files.
+    * In-built comparison and hash functions are already defined for the following types: char, unsigned char, signed
       char, unsigned short, short, unsigned int, int, unsigned long, long, unsigned long long, long long, size_t, and
       char * (a NULL-terminated string). Defining a comparsion or hash function for one of these types will overwrite
       the in-built function.
@@ -515,6 +633,7 @@ API:
 Version history:
 
   --/--/---- 1.2.0: Added MSVC support.
+                    Added README examines to the documentation in the header.
   27/05/2024 1.1.1: Fixed a bug in map and set that could theoretically cause a crash on rehash (triggerable in testing
                     using cc_shrink with a maximum load factor significantly higher than 1.0).
   18/03/2024 1.1.0: Replaced the Robin Hood implementations of map and set with Verstable implementations.
@@ -524,10 +643,10 @@ Version history:
                     Fixed formatting inconsistencies and improved code comments.
   04/05/2023 1.0.3: Completed refractor that reduces compile speed by approximately 53% in C with GCC.
                     This was achieved by:
-                    - Reducing the number of _Generic expressions in API calls by extracting multiple key-related data
+                    * Reducing the number of _Generic expressions in API calls by extracting multiple key-related data
                       from a single expression).
-                    - Reducing the work done inside _Generic expressions (this seemed to be a bottleneck).
-                    - Changing the API macro function-selection mechanism so that only the function itself varies based
+                    * Reducing the work done inside _Generic expressions (this seemed to be a bottleneck).
+                    * Changing the API macro function-selection mechanism so that only the function itself varies based
                       on container type (all parallel functions now use the same parameter interface) and each macro
                       contains only one argument list (unused arguments are discarded).
                     Also introduced performance improvements into maps and sets, changed the default integer hash
@@ -2000,17 +2119,14 @@ static inline void cc_list_cleanup(
 // As explained in its documentation, Verstable is an open-addressing hash table using quadratic probing and the
 // following additions:
 //
-// - All keys that hash (i.e. "belong") to the same bucket (their "home bucket") are linked together by an 11-bit
+// * All keys that hash (i.e. "belong") to the same bucket (their "home bucket") are linked together by an 11-bit
 //   integer specifying the quadratic displacement, relative to that bucket, of the next key in the chain.
-//
-// - If a chain of keys exists for a given bucket, then it always begins at that bucket. To maintain this policy, a
+// * If a chain of keys exists for a given bucket, then it always begins at that bucket. To maintain this policy, a
 //   1-bit flag is used to mark whether the key occupying a bucket belongs there. When inserting a new key, if the
 //   bucket it belongs to is occupied by a key that does not belong there, then the occupying key is evicted and the new
 //   key takes the bucket.
-//
-// - A 4-bit fragment of each key's hash code is also stored.
-//
-// - The aforementioned metadata associated with each bucket (the 4-bit hash fragment, the 1-bit flag, and the 11-bit
+// * A 4-bit fragment of each key's hash code is also stored.
+// * The aforementioned metadata associated with each bucket (the 4-bit hash fragment, the 1-bit flag, and the 11-bit
 //   link to the next key in the chain) are stored together in a uint16_t array rather than in the bucket alongside the
 //   key and (optionally) the value.
 //
@@ -2020,27 +2136,23 @@ static inline void cc_list_cleanup(
 //
 // Advantages of this scheme include:
 //
-// - Fast lookups impervious to load factor: If the table contains any key belonging to the lookup key's home bucket,
+// * Fast lookups impervious to load factor: If the table contains any key belonging to the lookup key's home bucket,
 //   then that bucket contains the first in a traversable chain of all keys belonging to it. Hence, only the home bucket
 //   and other buckets containing keys belonging to it are ever probed. Moreover, the stored hash fragments allow
 //   skipping most non-matching keys in the chain without accessing the actual buckets array or calling the (potentially
 //   expensive) key comparison function.
-//
-// - Fast insertions: Insertions are faster than they are in other schemes that move keys around (e.g. Robin Hood)
+// * Fast insertions: Insertions are faster than they are in other schemes that move keys around (e.g. Robin Hood)
 //   because they only move, at most, one existing key.
-//
-// - Fast, tombstone-free deletions: Deletions, which usually require tombstones in quadratic-probing hash tables, are
+// * Fast, tombstone-free deletions: Deletions, which usually require tombstones in quadratic-probing hash tables, are
 //   tombstone-free and only move, at most, one existing key.
-//
-// - Fast iteration: The separate metadata array allows keys in sparsely populated tables to be found without incurring
+// * Fast iteration: The separate metadata array allows keys in sparsely populated tables to be found without incurring
 //   the frequent cache misses that would result from traversing the buckets array.
 //
 // Adapting Verstable to the CC API necessitates some compromises, including:
 //
-// - Slower iteration: As a pointer-iterator in CC cannot store a pointer to the metadatum associated with the bucket to
+// * Slower iteration: As a pointer-iterator in CC cannot store a pointer to the metadatum associated with the bucket to
 //   which it points, the metadatum's address must be calculated every iteration.
-//
-// - Slower iterator-based erasure: As CC pointer-iterators cannot store a key's home bucket, CC must rehash the key
+// * Slower iterator-based erasure: As CC pointer-iterators cannot store a key's home bucket, CC must rehash the key
 //   being deleted in cases wherein Verstable does not need to.
 
 // Masks for manipulating and extracting data from a bucket's uint16_t metadatum.
@@ -2239,12 +2351,12 @@ static inline size_t cc_map_find_insert_location_in_chain(
 // Frees up a bucket occupied by a key-element pair not belonging there so that a new key-element pair belonging there
 // can be placed there as the beginning of a new chain.
 // This requires:
-// - Finding the previous key-element pair in the chain to which the occupying key-element pair belongs by rehashing the
+// * Finding the previous key-element pair in the chain to which the occupying key-element pair belongs by rehashing the
 //   key and traversing the chain.
-// - Disconnecting the key-element pair from the chain.
-// - Finding the appropriate empty bucket to which to move the key-element pair.
-// - Moving the key-element pair to the empty bucket.
-// - Re-linking the key-element pair to the chain.
+// * Disconnecting the key-element pair from the chain.
+// * Finding the appropriate empty bucket to which to move the key-element pair.
+// * Moving the key-element pair to the empty bucket.
+// * Re-linking the key-element pair to the chain.
 // Returns true if the eviction succeeded, or false if no empty bucket to which to evict the occupying key-element pair
 // could be found within the displacement limit.
 static inline bool cc_map_evict(
@@ -2300,9 +2412,9 @@ static inline bool cc_map_evict(
 
 // Inserts a key-element pair, optionally replacing the existing key-element pair containing the same key if it exists.
 // There are two main cases that must be handled:
-// - If the key-element pair's home bucket is empty or occupied by a key-element pair that does not belong there, then
+// * If the key-element pair's home bucket is empty or occupied by a key-element pair that does not belong there, then
 //   the key-element pair is inserted there, evicting the occupying key-element pair if there is one.
-// - Otherwise, the chain of key-element pairs beginning at the home bucket is traversed in search of a matching key.
+// * Otherwise, the chain of key-element pairs beginning at the home bucket is traversed in search of a matching key.
 //   If none is found, then the new key-element pair is inserted at the earliest available bucket, per quadratic probing
 //   from the home bucket, and then linked to the chain in a manner that maintains its quadratic order.
 // The replace argument tells the function whether to replace an existing key-element pair.
@@ -3091,9 +3203,9 @@ static inline void cc_map_cleanup(
 
 // A set is implemented as a map where the key and element are combined into one space in memory.
 // Hence, it reuses the functions for map, except:
-// - The key offset inside the bucket is zero.
+// * The key offset inside the bucket is zero.
 //   This is handled at the API-macro level via the cc_layout function and associated macros.
-// - The element size passed into map functions is zero in order to avoid double memcpy-ing.
+// * The element size passed into map functions is zero in order to avoid double memcpy-ing.
 
 static inline size_t cc_set_size( void *cntr )
 {
