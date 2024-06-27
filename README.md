@@ -21,16 +21,16 @@ Try it online [here](https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAa
 
 Traditionally, C container libraries require users to define types for every container/content type combination and to specify the container type and (often) the content types (whether by casting, type-specific function names, or some other mechanism) at every API call. This causes verbosity and syntax noise.
 
-In contrast, **CC** requires no type definitions and provides an API agnostic to container and content types. The result is simpler, more readable code. The following table compares **CC** usage to other container library paradigms:
+In contrast, **CC** requires no type definitions and provides an API agnostic to container and content types. The result is simpler, more readable code. The following table compares **CC** usage to other container library paradigms.
 
 <table>
 <tr>
 </tr>
 <tr>
 <td valign="top">
+**CC**:
 
 ```c
-// CC
 #include <stdio.h>
 #include "cc.h"
 
@@ -52,9 +52,9 @@ int main( void )
 
 </td>
 <td valign="top">
+Template-instantiation paradigm:
 
 ```c
-// Template-instantiation paradigm
 #include <stdio.h>
 #include "other_container_lib.h"
 
@@ -82,9 +82,9 @@ int main( void )
 </tr>
 <tr>
 <td valign="top">
+Typed-pointer/hidden-metadata paradigm:
 
 ```c
-// Typed-pointer/hidden-metadata paradigm
 #include <stdio.h>
 #include "other_container_lib.h"
 
@@ -110,9 +110,9 @@ int main( void )
 
 </td>
 <td valign="top">
+`void`-pointers paradigm:
 
 ```c
-// void-pointers paradigm
 #include <stdio.h>
 #include "other_container_lib.h"
 
