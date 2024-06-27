@@ -28,8 +28,7 @@ In contrast, **CC** requires no type definitions and provides an API agnostic to
 </tr>
 <tr>
 <td valign="top">
-
-**CC**:
+<b>CC</b>:
 
 ```c
 #include <stdio.h>
@@ -53,7 +52,6 @@ int main( void )
 
 </td>
 <td valign="top">
-
 Template-instantiation paradigm:
 
 ```c
@@ -84,7 +82,6 @@ int main( void )
 </tr>
 <tr>
 <td valign="top">
-
 Typed-pointer/hidden-metadata paradigm:
 
 ```c
@@ -113,8 +110,7 @@ int main( void )
 
 </td>
 <td valign="top">
-
-`void`-pointers paradigm:
+<code>void</code>-pointers paradigm:
 
 ```c
 #include <stdio.h>
