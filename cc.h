@@ -632,8 +632,8 @@ API:
 
 Version history:
 
-  --/--/---- 1.2.0: Added MSVC support.
-                    Added README examines to the documentation in the header.
+  12/07/2024 1.2.0: Added MSVC support.
+                    Added README examples to the documentation in the header.
   27/05/2024 1.1.1: Fixed a bug in map and set that could theoretically cause a crash on rehash (triggerable in testing
                     using cc_shrink with a maximum load factor significantly higher than 1.0).
   18/03/2024 1.1.0: Replaced the Robin Hood implementations of map and set with Verstable implementations.
@@ -4506,12 +4506,12 @@ static inline size_t cc_hash_uint64( uint64_t val )
   val *= 0x2127599BF4325C37ULL;
   val ^= val >> 47;
 #if SIZE_MAX == 0xFFFFFFFFFFFFFFFF
-  return val;
+  return (size_t)( val );
 #elif SIZE_MAX == 0xFFFFFFFF
-  return val - ( val >> 32 );
+  return (size_t)( val - ( val >> 32 ) );
 #endif
 #else // Unknown size_t, fall back on Knuth.
-  return val * 2654435761ULL;
+  return (size_t)( val * 2654435761ULL );
 #endif
 }
 
