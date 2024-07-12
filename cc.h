@@ -1,34 +1,152 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.1.1 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.2.0 -------------------------------------------
 
 This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, and unordered sets).
 
 Features:
 
-- Fully generic API (no need to specify element or key type except when first declaring a container).
-- No need to pre-declare container types per element or key/element pair.
-- Type safety.
-- User-defined destructor, comparison, and hash functions associated with element and key types.
-- Handles memory allocation failure.
-- Single header.
-- Compiles in C and C++.
+* Fully generic API (no need to specify element or key type except when first declaring a container).
+* No need to pre-declare container types per element or key/element pair.
+* Type safety.
+* User-defined destructor, comparison, and hash functions associated with element and key types.
+* Handles memory allocation failure.
+* Single header.
+* Compiles in C and C++.
 
-Requires C23, or C11 and compiler support for __typeof__, or C++11.
+It requires C23, or C11 and compiler support for __typeof__, or C++11.
 
-Tested with GCC, MinGW, and Clang.
+It has been tested with GCC, Clang, MinGW, and MSVC.
 
-#including the library:
+Usage example:
+
+  +---------------------------------------------------------+----------------------------------------------------------+
+  | Vector:                                                 | List:                                                    |
+  +---------------------------------------------------------+----------------------------------------------------------+
+  | #include <stdio.h>                                      | #include <stdio.h>                                       |
+  | #include "cc.h"                                         | #include "cc.h"                                          |
+  |                                                         |                                                          |
+  | int main( void )                                        | int main( void )                                         |
+  | {                                                       | {                                                        |
+  |   vec( int ) our_vec;                                   |   list( int ) our_list;                                  |
+  |   init( &our_vec );                                     |   init( &our_list );                                     |
+  |                                                         |                                                          |
+  |   // Adding elements to end.                            |   // Adding elements to end.                             |
+  |   for( int i = 0; i < 10; ++i )                         |   for( int i = 0; i < 10; ++i )                          |
+  |     if( !push( &our_vec, i ) )                          |     if( !push( &our_list, i ) )                          |
+  |     {                                                   |     {                                                    |
+  |       // Out of memory, so abort.                       |       // Out of memory, so abort.                        |
+  |       cleanup( &our_vec );                              |       cleanup( &our_list );                              |
+  |       return 1;                                         |       return 1;                                          |
+  |     }                                                   |     }                                                    |
+  |                                                         |                                                          |
+  |   // Inserting an element at an index.                  |   // Inserting an element before another element.        |
+  |   for( int i = 0; i < 10; ++i )                         |   for(                                                   |
+  |     if( !insert( &our_vec, i * 2, i ) )                 |     int *el = first( &our_list );                        |
+  |     {                                                   |     el != end( &our_list );                              |
+  |       // Out of memory, so abort.                       |     el = next( &our_list, el )                           |
+  |       cleanup( &our_vec );                              |   )                                                      |
+  |       return 1;                                         |     if( !insert( &our_list, el, *el ) )                  |
+  |     }                                                   |     {                                                    |
+  |                                                         |       // Out of memory, so abort.                        |
+  |   // Retrieving and erasing elements.                   |       cleanup( &our_list );                              |
+  |   for( int i = 0; i < size( &our_vec ); )               |       return 1;                                          |
+  |     if( *get( &our_vec, i ) % 3 == 0 )                  |     }                                                    |
+  |       erase( &our_vec, i );                             |                                                          |
+  |     else                                                |   // Erasing elements.                                   |
+  |       ++i;                                              |   for(                                                   |
+  |                                                         |     int *el = first( &our_list );                        |
+  |   // Iteration #1.                                      |     el != end( &our_list );                              |
+  |   for_each( &our_vec, el )                              |   )                                                      |
+  |     printf( "%d ", *el );                               |     if( *el % 3 == 0 )                                   |
+  |   // Printed: 1 1 2 2 4 4 5 5 7 7 8 8                   |       el = erase( &our_list, el );                       |
+  |                                                         |     else                                                 |
+  |   // Iteration #2.                                      |       el = next( &our_list, el );                        |
+  |   for(                                                  |                                                          |
+  |     int *el = first( &our_vec );                        |   // Iteration #1.                                       |
+  |     el != end( &our_vec );                              |   for_each( &our_list, el )                              |
+  |     el = next( &our_vec, el )                           |     printf( "%d ", *el );                                |
+  |   )                                                     |   // Printed: 1 1 2 2 4 4 5 5 7 7 8 8                    |
+  |     printf( "%d ", *el );                               |                                                          |
+  |   // Printed: Same as above.                            |   // Iteration #2.                                       |
+  |                                                         |   for(                                                   |
+  |   cleanup( &our_vec );                                  |     int *el = first( &our_list );                        |
+  | }                                                       |     el != end( &our_list );                              |
+  |                                                         |     el = next( &our_list, el )                           |
+  |                                                         |   )                                                      |
+  |                                                         |     printf( "%d ", *el );                                |
+  |                                                         |   // Printed: Same as above.                             |
+  |                                                         |                                                          |
+  |                                                         |   cleanup( &our_list );                                  |
+  |                                                         | }                                                        |
+  +---------------------------------------------------------+----------------------------------------------------------+
+  | Map:                                                    | Set:                                                     |
+  +---------------------------------------------------------+----------------------------------------------------------+
+  | #include <stdio.h>                                      | #include <stdio.h>                                       |
+  | #include "cc.h"                                         | #include "cc.h"                                          |
+  |                                                         |                                                          |
+  | int main( void )                                        | int main( void )                                         |
+  | {                                                       | {                                                        |
+  |   // Declare a map with int keys and short elements.    |   set( int ) our_set;                                    |
+  |   map( int, short ) our_map;                            |   init( &our_set );                                      |
+  |   init( &our_map );                                     |                                                          |
+  |                                                         |   // Inserting elements.                                 |
+  |   // Inserting elements.                                |   for( int i = 0; i < 10; ++i )                          |
+  |   for( int i = 0; i < 10; ++i )                         |     if( !insert( &our_set, i ) )                         |
+  |     if( !insert( &our_map, i, i + 1 ) )                 |     {                                                    |
+  |     {                                                   |       // Out of memory, so abort.                        |
+  |       // Out of memory, so abort.                       |       cleanup( &our_set );                               |
+  |       cleanup( &our_map );                              |       return 1;                                          |
+  |       return 1;                                         |     }                                                    |
+  |     }                                                   |                                                          |
+  |                                                         |   // Erasing elements.                                   |
+  |   // Erasing elements.                                  |   for( int i = 0; i < 10; i += 3 )                       |
+  |   for( int i = 0; i < 10; i += 3 )                      |     erase( &our_set, i );                                |
+  |     erase( &our_map, i );                               |                                                          |
+  |                                                         |   // Retrieving elements.                                |
+  |   // Retrieving elements.                               |   for( int i = 0; i < 10; ++i )                          |
+  |   for( int i = 0; i < 10; ++i )                         |   {                                                      |
+  |   {                                                     |     int *el = get( &our_set, i );                        |
+  |     short *el = get( &our_map, i );                     |     if( el )                                             |
+  |     if( el )                                            |       printf( "%d ", *el );                              |
+  |       printf( "%d:%d ", i, *el );                       |   }                                                      |
+  |   }                                                     |   // Printed: 1 2 4 5 7 8                                |
+  |   // Printed: 1:2 2:3 4:5 5:6 7:8 8:9                   |                                                          |
+  |                                                         |   // Iteration #1.                                       |
+  |   // Iteration #1 (elements only).                      |   for_each( &our_set, el )                               |
+  |   for_each( &our_map, el )                              |     printf( "%d ", *el );                                |
+  |     printf( "%d ", *el );                               |   // Printed: 2 4 7 1 5 8                                |
+  |   // Printed: 3 5 8 2 6 9                               |                                                          |
+  |                                                         |   // Iteration #2.                                       |
+  |   // Iteration #2 (elements and keys).                  |   for(                                                   |
+  |   for_each( &our_map, key, el )                         |     int *el = first( &our_set );                         |
+  |     printf( "%d:%d ", *key, *el );                      |     el != end( &our_set );                               |
+  |   // Printed: 2:3 4:5 7:8 1:2 5:6 8:9                   |     el = next( &our_set, el )                            |
+  |                                                         |   )                                                      |
+  |   // Iteration #3.                                      |     printf( "%d ", *el );                                |
+  |   for(                                                  |   // Printed: Same as above.                             |
+  |     short *el = first( &our_map );                      |                                                          |
+  |     el != end( &our_map );                              |   cleanup( &our_set );                                   |
+  |     el = next( &our_map, el )                           | }                                                        |
+  |   )                                                     |                                                          |
+  |     printf( "%d:%d ", *key_for( &our_map, el ), *el );  |                                                          |
+  |   // Printed: Same as above.                            |                                                          |
+  |                                                         |                                                          |
+  |   cleanup( &our_map );                                  |                                                          |
+  | }                                                       |                                                          |
+  +---------------------------------------------------------+----------------------------------------------------------+
+
+Including the library:
 
   Place this at the top of your file/s:
 
     #include "cc.h"
 
-  The following can be #defined before #including the library in any file:
+  The following can be defined before including the library in any file:
 
     #define CC_NO_SHORT_NAMES
       By default, CC exposes API macros without the "cc_" prefix.
       Define this flag to withhold the unprefixed names.
 
-  The following can be #defined anywhere and affect all calls to API macros where the definition is visible:
+  The following can be defined anywhere and affect all calls to API macros where the definition is visible:
   
     #define CC_REALLOC our_realloc
       Causes API macros to use a custom realloc function rather than the one in the standard library.
@@ -40,16 +158,16 @@ API:
 
   General notes:
 
-  - API macros may evaluate their first argument - the pointer to the container - multiple times, so never use
+  * API macros may evaluate their first argument - the pointer to the container - multiple times, so never use
     expressions with side effects (e.g. &our_containers[ ++i ] ) for that argument. In GCC and Clang, attempting to do
     so will cause a compiler warning. All other arguments are only evaluated once.
-  - If CC_NO_SHORT_NAMES was declared, all API macros are prefixed with "cc_".
-  - Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original.
+  * If CC_NO_SHORT_NAMES was declared, all API macros are prefixed with "cc_".
+  * Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original.
     Hence, only create a duplicate via assignment (including through function parameters and return values) if you have
     finished with the original.
-  - An iterator is a pointer to an element in the container or to the associated end (or r_end, if the container
+  * An iterator is a pointer to an element in the container or to the associated end (or r_end, if the container
     supports it). In the documentation below, these pointers are referred to as "pointer-iterators".
-  - In the documentation below, el_ty is the container's element type and key_ty is the container's key type (where
+  * In the documentation below, el_ty is the container's element type and key_ty is the container's key type (where
     applicable).
 
   All containers:
@@ -173,7 +291,7 @@ API:
       points to the last element.
 
     Notes:
-    - Vector pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
+    * Vector pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
 
   List (a doubly linked list with sentinels):
 
@@ -244,7 +362,7 @@ API:
       and should be followed by the body of the loop.
 
     Notes:
-    - List pointer-iterators (including r_end and end) are not invalidated by any API calls besides init and cleanup,
+    * List pointer-iterators (including r_end and end) are not invalidated by any API calls besides init and cleanup,
       unless they point to erased elements.
 
   Map (an unordered associative container mapping elements to keys, implemented as a hybird open-addressing, chained
@@ -357,7 +475,7 @@ API:
       It should be followed by the body of the loop.
 
     Notes:
-    - Map pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
+    * Map pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
       reallocation.
 
   Set (an unordered associative container for elements without a separate key, implemented as a hybird open-addressing,
@@ -452,7 +570,7 @@ API:
       and should be followed by the body of the loop.
 
     Notes:
-    - Set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
+    * Set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
       reallocation.
 
   Destructor, comparison, and hash functions and custom max load factors:
@@ -501,19 +619,21 @@ API:
       #include "cc.h"
 
     Notes:
-    - These functions are inline and have static scope, so you need to either redefine them in each translation unit
+    * These functions are inline and have static scope, so you need to either redefine them in each translation unit
       from which they should be called or (preferably) define them in a shared header. For structs or unions, a sensible
       place to define them would be immediately after the definition of the struct or union.
-    - Only one destructor, comparison, or hash function or max load factor should be defined by the user for each type.
-    - #including cc.h in these cases does not #include the full header, so you still need to #include it separately
-      at the top of your files.
-    - In-built comparison and hash functions are already defined for the following types: char, unsigned char, signed
+    * Only one destructor, comparison, or hash function or max load factor should be defined by the user for each type.
+    * Including cc.h in these cases does not include the full header, so you still need to include it separately at the
+      top of your files.
+    * In-built comparison and hash functions are already defined for the following types: char, unsigned char, signed
       char, unsigned short, short, unsigned int, int, unsigned long, long, unsigned long long, long long, size_t, and
       char * (a NULL-terminated string). Defining a comparsion or hash function for one of these types will overwrite
       the in-built function.
 
 Version history:
 
+  12/07/2024 1.2.0: Added MSVC support.
+                    Added README examples to the documentation in the header.
   27/05/2024 1.1.1: Fixed a bug in map and set that could theoretically cause a crash on rehash (triggerable in testing
                     using cc_shrink with a maximum load factor significantly higher than 1.0).
   18/03/2024 1.1.0: Replaced the Robin Hood implementations of map and set with Verstable implementations.
@@ -523,10 +643,10 @@ Version history:
                     Fixed formatting inconsistencies and improved code comments.
   04/05/2023 1.0.3: Completed refractor that reduces compile speed by approximately 53% in C with GCC.
                     This was achieved by:
-                    - Reducing the number of _Generic expressions in API calls by extracting multiple key-related data
+                    * Reducing the number of _Generic expressions in API calls by extracting multiple key-related data
                       from a single expression).
-                    - Reducing the work done inside _Generic expressions (this seemed to be a bottleneck).
-                    - Changing the API macro function-selection mechanism so that only the function itself varies based
+                    * Reducing the work done inside _Generic expressions (this seemed to be a bottleneck).
+                    * Changing the API macro function-selection mechanism so that only the function itself varies based
                       on container type (all parallel functions now use the same parameter interface) and each macro
                       contains only one argument list (unused arguments are discarded).
                     Also introduced performance improvements into maps and sets, changed the default integer hash
@@ -563,44 +683,11 @@ License (MIT):
 /*                                                                                                                    */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-#ifndef CC_NO_SHORT_NAMES
-#define vec( ... )           cc_vec( __VA_ARGS__ )
-#define list( ... )          cc_list( __VA_ARGS__ )
-#define map( ... )           cc_map( __VA_ARGS__ )
-#define set( ... )           cc_set( __VA_ARGS__ )
-#define init( ... )          cc_init( __VA_ARGS__ )
-#define init_clone( ... )    cc_init_clone( __VA_ARGS__ )
-#define size( ... )          cc_size( __VA_ARGS__ )
-#define cap( ... )           cc_cap( __VA_ARGS__ )
-#define reserve( ... )       cc_reserve( __VA_ARGS__ )
-#define resize( ... )        cc_resize( __VA_ARGS__ )
-#define shrink( ... )        cc_shrink( __VA_ARGS__ )
-#define insert( ... )        cc_insert( __VA_ARGS__ )
-#define insert_n( ... )      cc_insert_n( __VA_ARGS__ )
-#define get_or_insert( ... ) cc_get_or_insert( __VA_ARGS__ )
-#define push( ... )          cc_push( __VA_ARGS__ )
-#define push_n( ... )        cc_push_n( __VA_ARGS__ )
-#define splice( ... )        cc_splice( __VA_ARGS__ )
-#define get( ... )           cc_get( __VA_ARGS__ )
-#define key_for( ... )       cc_key_for( __VA_ARGS__ )
-#define erase( ... )         cc_erase( __VA_ARGS__ )
-#define erase_n( ... )       cc_erase_n( __VA_ARGS__ )
-#define erase_itr( ... )     cc_erase_itr( __VA_ARGS__ )
-#define clear( ... )         cc_clear( __VA_ARGS__ ) 
-#define cleanup( ... )       cc_cleanup( __VA_ARGS__ )
-#define first( ... )         cc_first( __VA_ARGS__ )
-#define last( ... )          cc_last( __VA_ARGS__ )
-#define r_end( ... )         cc_r_end( __VA_ARGS__ )
-#define end( ... )           cc_end( __VA_ARGS__ )
-#define next( ... )          cc_next( __VA_ARGS__ )
-#define prev( ... )          cc_prev( __VA_ARGS__ )
-#define for_each( ... )      cc_for_each( __VA_ARGS__ )
-#define r_for_each( ... )    cc_r_for_each( __VA_ARGS__ )
-#endif
-
+// Standard headers must be included before the unprefixed names are defined below in case they clash with identifiers
+// used in those headers.
+// This does not prevent clashes with identifiers used in headers that the user includes after including cc.h.
+// In that case, CC_NO_SHORT_NAMES is a necessity.
 #ifndef CC_H
-#define CC_H
-
 #include <limits.h>
 #include <stdalign.h>
 #include <stdbool.h>
@@ -608,10 +695,48 @@ License (MIT):
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
 #ifdef __cplusplus
 #include <type_traits>
 #endif
+#endif
+
+#ifndef CC_NO_SHORT_NAMES
+#define vec( ... )           CC_MSVC_PP_FIX( cc_vec( __VA_ARGS__ ) )
+#define list( ... )          CC_MSVC_PP_FIX( cc_list( __VA_ARGS__ ) )
+#define map( ... )           CC_MSVC_PP_FIX( cc_map( __VA_ARGS__ ) )
+#define set( ... )           CC_MSVC_PP_FIX( cc_set( __VA_ARGS__ ) )
+#define init( ... )          CC_MSVC_PP_FIX( cc_init( __VA_ARGS__ ) )
+#define init_clone( ... )    CC_MSVC_PP_FIX( cc_init_clone( __VA_ARGS__ ) )
+#define size( ... )          CC_MSVC_PP_FIX( cc_size( __VA_ARGS__ ) )
+#define cap( ... )           CC_MSVC_PP_FIX( cc_cap( __VA_ARGS__ ) )
+#define reserve( ... )       CC_MSVC_PP_FIX( cc_reserve( __VA_ARGS__ ) )
+#define resize( ... )        CC_MSVC_PP_FIX( cc_resize( __VA_ARGS__ ) )
+#define shrink( ... )        CC_MSVC_PP_FIX( cc_shrink( __VA_ARGS__ ) )
+#define insert( ... )        CC_MSVC_PP_FIX( cc_insert( __VA_ARGS__ ) )
+#define insert_n( ... )      CC_MSVC_PP_FIX( cc_insert_n( __VA_ARGS__ ) )
+#define get_or_insert( ... ) CC_MSVC_PP_FIX( cc_get_or_insert( __VA_ARGS__ ) )
+#define push( ... )          CC_MSVC_PP_FIX( cc_push( __VA_ARGS__ ) )
+#define push_n( ... )        CC_MSVC_PP_FIX( cc_push_n( __VA_ARGS__ ) )
+#define splice( ... )        CC_MSVC_PP_FIX( cc_splice( __VA_ARGS__ ) )
+#define get( ... )           CC_MSVC_PP_FIX( cc_get( __VA_ARGS__ ) )
+#define key_for( ... )       CC_MSVC_PP_FIX( cc_key_for( __VA_ARGS__ ) )
+#define erase( ... )         CC_MSVC_PP_FIX( cc_erase( __VA_ARGS__ ) )
+#define erase_n( ... )       CC_MSVC_PP_FIX( cc_erase_n( __VA_ARGS__ ) )
+#define erase_itr( ... )     CC_MSVC_PP_FIX( cc_erase_itr( __VA_ARGS__ ) )
+#define clear( ... )         CC_MSVC_PP_FIX( cc_clear( __VA_ARGS__ ) )
+#define cleanup( ... )       CC_MSVC_PP_FIX( cc_cleanup( __VA_ARGS__ ) )
+#define first( ... )         CC_MSVC_PP_FIX( cc_first( __VA_ARGS__ ) )
+#define last( ... )          CC_MSVC_PP_FIX( cc_last( __VA_ARGS__ ) )
+#define r_end( ... )         CC_MSVC_PP_FIX( cc_r_end( __VA_ARGS__ ) )
+#define end( ... )           CC_MSVC_PP_FIX( cc_end( __VA_ARGS__ ) )
+#define next( ... )          CC_MSVC_PP_FIX( cc_next( __VA_ARGS__ ) )
+#define prev( ... )          CC_MSVC_PP_FIX( cc_prev( __VA_ARGS__ ) )
+#define for_each( ... )      CC_MSVC_PP_FIX( cc_for_each( __VA_ARGS__ ) )
+#define r_for_each( ... )    CC_MSVC_PP_FIX( cc_r_for_each( __VA_ARGS__ ) )
+#endif
+
+#ifndef CC_H
+#define CC_H
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /*                                                    Preliminary                                                     */
@@ -619,6 +744,33 @@ License (MIT):
 
 // _Static_assert alternative that can be used inside an expression.
 #define CC_STATIC_ASSERT( xp ) (void)sizeof( char[ (xp) ? 1 : -1 ] )
+
+// Ensures inlining if possible.
+#if defined( __GNUC__ )
+#define CC_ALWAYS_INLINE __attribute__((always_inline))
+#elif defined( _MSC_VER )
+#define CC_ALWAYS_INLINE __forceinline
+#else
+#define CC_ALWAYS_INLINE
+#endif
+
+// Branch optimization macros.
+#ifdef __GNUC__
+#define CC_LIKELY( xp )   __builtin_expect( (bool)( xp ), true )
+#define CC_UNLIKELY( xp ) __builtin_expect( (bool)( xp ), false )
+#else
+#define CC_LIKELY( xp )   ( xp )
+#define CC_UNLIKELY( xp ) ( xp )
+#endif
+
+// Marks a point where the program never reaches.
+#if defined( __GNUC__ )
+#define CC_UNREACHABLE __builtin_unreachable()
+#elif defined( _MSC_VER )
+#define CC_UNREACHABLE __assume( false )
+#else
+#define CC_UNREACHABLE (void)0
+#endif
 
 // CC_MAKE_LVAL_COPY macro for making an addressable temporary copy of a variable or expression.
 // The copy is valid until at least the end of full expression surrounding the macro call.
@@ -643,21 +795,16 @@ template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (
 #define CC_CAST_MAYBE_UNUSED( ty, xp ) ( ( ty ){ 0 } = ( (ty)( xp ) ) )
 #endif
 
-// Ensures inlining if possible.
-// TODO: Adding MSVC attribute once that compiler supports typeof (C23).
-#ifdef __GNUC__
-#define CC_ALWAYS_INLINE __attribute__((always_inline))
-#else
-#define CC_ALWAYS_INLINE
-#endif
-
-// Branch optimization macros.
-#ifdef __GNUC__
-#define CC_LIKELY( xp )   __builtin_expect( (bool)( xp ), true )
-#define CC_UNLIKELY( xp ) __builtin_expect( (bool)( xp ), false )
-#else
-#define CC_LIKELY( xp )   ( xp )
-#define CC_UNLIKELY( xp ) ( xp )
+// Typeof for expressions and abstract declarators.
+#ifdef __cplusplus
+#define CC_TYPEOF_XP( xp ) std::decay<std::remove_reference<decltype( xp )>::type>::type
+#define CC_TYPEOF_TY( ty ) std::decay<std::remove_reference<decltype( std::declval<ty>() )>::type>::type
+#elif __STDC_VERSION__ >= 202311L // C23.
+#define CC_TYPEOF_XP( xp ) typeof( xp )
+#define CC_TYPEOF_TY( ty ) typeof( ty )
+#else // GNU.
+#define CC_TYPEOF_XP( xp ) __typeof__( xp )
+#define CC_TYPEOF_TY( ty ) __typeof__( ty )
 #endif
 
 // CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2 is the same as above, except that it selects the type to which to cast based on
@@ -682,8 +829,8 @@ cc_if_then_cast_ty_1_else_cast_ty_2<cond, ty_1, ty_2>( xp )         \
 CC_CAST_MAYBE_UNUSED(                                               \
   CC_TYPEOF_XP(                                                     \
     _Generic( (char (*)[ 1 + (bool)( cond ) ]){ 0 },                \
-        char (*)[ 1 ]: (ty_2){ 0 },                                 \
-        char (*)[ 2 ]: (ty_1){ 0 }                                  \
+      char (*)[ 1 ]: (ty_2){ 0 },                                   \
+      char (*)[ 2 ]: (ty_1){ 0 }                                    \
     )                                                               \
   ),                                                                \
   ( xp )                                                            \
@@ -710,31 +857,29 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #define CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ) (void)0
 #endif
 
-// Typeof for expressions and abstract declarators.
-#ifdef __cplusplus
-#define CC_TYPEOF_XP( xp ) std::decay<std::remove_reference<decltype( xp )>::type>::type
-#define CC_TYPEOF_TY( ty ) std::decay<std::remove_reference<decltype( std::declval<ty>() )>::type>::type
-#else
-// TODO: Add C23 check once C23 is supported by major compilers.
-#define CC_TYPEOF_XP( xp ) __typeof__( xp )
-#define CC_TYPEOF_TY( ty ) __typeof__( ty )
-#endif
+// MSVC has traditionally provided a nonconforming preprocessor, which requires an extra level of expansion in some
+// variadic macros.
+// While the compiler uses a newer, conforming preprocessor by default in C11 mode or later, the traditional
+// preprocessor remains the default for C++ builds.
+// For user convenience, we support the traditional preprocessor, although enabling the conforming preprocessor via
+// /Zc:preprocessor is recommended.
+#define CC_MSVC_PP_FIX( xp ) xp
 
 // CC_SELECT_ON_NUM_ARGS macro for overloading API macros based on the number of arguments.
 #define CC_CAT_2_( a, b ) a##b
 #define CC_CAT_2( a, b ) CC_CAT_2_( a, b )
 #define CC_N_ARGS_( _1, _2, _3, _4, _5, _6, n, ... ) n
-#define CC_N_ARGS( ... ) CC_N_ARGS_( __VA_ARGS__, _6, _5, _4, _3, _2, _1, x )
+#define CC_N_ARGS( ... ) CC_MSVC_PP_FIX( CC_N_ARGS_( __VA_ARGS__, _6, _5, _4, _3, _2, _1, x ) )
 #define CC_SELECT_ON_NUM_ARGS( func, ... ) CC_CAT_2( func, CC_N_ARGS( __VA_ARGS__ ) )( __VA_ARGS__ )
 
 // If the user has defined CC_REALLOC and CC_FREE, then CC_GET_REALLOC and CC_GET_FREE are replaced with those macros.
 // Otherwise, they are replaced by realloc and free from the standard library.
-#define CC_ARG_2_( _1, _2, ... ) _2
-#define CC_ARG_2( ... ) CC_ARG_2_( __VA_ARGS__ )
+#define CC_2ND_ARG_( _1, _2, ... ) _2
+#define CC_2ND_ARG( ... ) CC_MSVC_PP_FIX( CC_2ND_ARG_( __VA_ARGS__ ) )
 #define CC_REALLOC_COMMA ,
-#define CC_REALLOC_FN CC_ARG_2( CC_CAT_2( CC_REALLOC, _COMMA ) realloc, CC_REALLOC, )
+#define CC_REALLOC_FN CC_2ND_ARG( CC_CAT_2( CC_REALLOC, _COMMA ) realloc, CC_REALLOC, )
 #define CC_FREE_COMMA ,
-#define CC_FREE_FN CC_ARG_2( CC_CAT_2( CC_FREE, _COMMA ) free, CC_FREE, )
+#define CC_FREE_FN CC_2ND_ARG( CC_CAT_2( CC_FREE, _COMMA ) free, CC_FREE, )
 
 // Macro used with CC_STATIC_ASSERT to provide type safety in cc_init_clone and cc_splice calls.
 #ifdef __cplusplus
@@ -756,12 +901,22 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #endif
 #endif
 
+// MSVC does not define max_align_t in stddef.h, contrary to the C11 Standard.
+// Moreover, even in C++, the alignment of std::max_align_t under MSVC is only 8, not 16, even though
+// __STDCPP_DEFAULT_NEW_ALIGNMENT__ is 16 on x64.
+// Hence, we define our own version of the type.
+#if defined( _MSC_VER ) && !defined( __clang__ )
+typedef struct { alignas( 16 ) char nothing[ 16 ]; } cc_max_align_ty;
+#else
+typedef max_align_t cc_max_align_ty;
+#endif
+
 // Some functions that must return true or false must return the value in the form of a pointer.
 // This is because they are paired in ternary expressions inside API macros with other functions for other containers
 // that return a pointer (primarily cc_erase).
 // While any suitably aligned pointer - e.g. the container handle - would do, we declare a global cc_dummy_true_ptr for
 // the sake of code readability.
-static max_align_t cc_dummy_true;
+static cc_max_align_ty cc_dummy_true;
 static void *cc_dummy_true_ptr = &cc_dummy_true;
 
 // Default max load factor for maps and sets.
@@ -854,7 +1009,7 @@ CC_TYPEOF_XP(                                                                   
   _Generic( (**cntr),                                                                             \
     CC_FOR_EACH_CMPR( CC_KEY_TY_SLOT, cntr )                                                      \
     default: _Generic( (**cntr),                                                                  \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               ( char ){ 0 },               \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):      ( char ){ 0 },               \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      ( unsigned char ){ 0 },      \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        ( signed char ){ 0 },        \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     ( unsigned short ){ 0 },     \
@@ -975,7 +1130,7 @@ static inline CC_ALWAYS_INLINE uint64_t cc_layout(
 // CC_POINT_HNDL_TO_ALLOCING_FN_RESULT below).
 typedef struct
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_ty )
   void *new_cntr;
   void *other_ptr;
 } cc_allocing_fn_result_ty;
@@ -1024,14 +1179,14 @@ cc_memcpy_and_return_ptr(                                                       
 // These functions are used when we scan four buckets at a time while iterating over maps and sets.
 // They rely on compiler intrinsics if possible.
 
-#if defined( __GNUC__ ) && ULLONG_MAX == 0xFFFFFFFFFFFFFFFF
-
 // The compiler will optimize away the endian check at -O1 and above.
 static inline bool cc_is_little_endian( void )
 {
   const uint16_t endian_checker = 0x0001;
   return *(const char *)&endian_checker;
 }
+
+#if defined( __GNUC__ ) && ULLONG_MAX == 0xFFFFFFFFFFFFFFFF
 
 static inline int cc_first_nonzero_uint16( uint64_t a )
 {
@@ -1047,6 +1202,42 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
     return __builtin_clzll( a ) / 16;
   
   return __builtin_ctzll( a ) / 16;
+}
+
+#elif defined( _MSC_VER ) && ( defined( _M_X64 ) || defined( _M_ARM64 ) )
+
+#include <intrin.h>
+#pragma intrinsic(_BitScanForward64)
+#pragma intrinsic(_BitScanReverse64)
+
+static inline int cc_first_nonzero_uint16( uint64_t a )
+{
+  unsigned long result;
+
+  if( cc_is_little_endian() )
+    _BitScanForward64( &result, a );
+  else
+  {
+    _BitScanReverse64( &result, a );
+    result = 63 - result;
+  }
+
+  return result / 16;
+}
+
+static inline int cc_last_nonzero_uint16( uint64_t a )
+{
+  unsigned long result;
+
+  if( cc_is_little_endian() )
+  {
+    _BitScanReverse64( &result, a );
+    result = 63 - result;
+  }
+  else
+    _BitScanForward64( &result, a );
+
+  return result / 16;
 }
 
 #else
@@ -1094,7 +1285,7 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
 // Vector header.
 typedef struct
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_ty )
   size_t size;
   size_t cap;
 } cc_vec_hdr_ty;
@@ -1495,13 +1686,13 @@ static inline void *cc_vec_last(
 // Node header.
 typedef struct cc_listnode_hdr_ty
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_ty )
   struct cc_listnode_hdr_ty *prev;
   struct cc_listnode_hdr_ty *next;
 } cc_listnode_hdr_ty;
 
 // List header.
-// It does not need to be aligned to alignof( max_align_t ) because no memory is allocated after the header.
+// It does not need to be aligned to alignof( cc_max_align_ty ) because no memory is allocated after the header.
 typedef struct
 {
   size_t size;
@@ -1928,17 +2119,14 @@ static inline void cc_list_cleanup(
 // As explained in its documentation, Verstable is an open-addressing hash table using quadratic probing and the
 // following additions:
 //
-// - All keys that hash (i.e. "belong") to the same bucket (their "home bucket") are linked together by an 11-bit
+// * All keys that hash (i.e. "belong") to the same bucket (their "home bucket") are linked together by an 11-bit
 //   integer specifying the quadratic displacement, relative to that bucket, of the next key in the chain.
-//
-// - If a chain of keys exists for a given bucket, then it always begins at that bucket. To maintain this policy, a
+// * If a chain of keys exists for a given bucket, then it always begins at that bucket. To maintain this policy, a
 //   1-bit flag is used to mark whether the key occupying a bucket belongs there. When inserting a new key, if the
 //   bucket it belongs to is occupied by a key that does not belong there, then the occupying key is evicted and the new
 //   key takes the bucket.
-//
-// - A 4-bit fragment of each key's hash code is also stored.
-//
-// - The aforementioned metadata associated with each bucket (the 4-bit hash fragment, the 1-bit flag, and the 11-bit
+// * A 4-bit fragment of each key's hash code is also stored.
+// * The aforementioned metadata associated with each bucket (the 4-bit hash fragment, the 1-bit flag, and the 11-bit
 //   link to the next key in the chain) are stored together in a uint16_t array rather than in the bucket alongside the
 //   key and (optionally) the value.
 //
@@ -1948,27 +2136,23 @@ static inline void cc_list_cleanup(
 //
 // Advantages of this scheme include:
 //
-// - Fast lookups impervious to load factor: If the table contains any key belonging to the lookup key's home bucket,
+// * Fast lookups impervious to load factor: If the table contains any key belonging to the lookup key's home bucket,
 //   then that bucket contains the first in a traversable chain of all keys belonging to it. Hence, only the home bucket
 //   and other buckets containing keys belonging to it are ever probed. Moreover, the stored hash fragments allow
 //   skipping most non-matching keys in the chain without accessing the actual buckets array or calling the (potentially
 //   expensive) key comparison function.
-//
-// - Fast insertions: Insertions are faster than they are in other schemes that move keys around (e.g. Robin Hood)
+// * Fast insertions: Insertions are faster than they are in other schemes that move keys around (e.g. Robin Hood)
 //   because they only move, at most, one existing key.
-//
-// - Fast, tombstone-free deletions: Deletions, which usually require tombstones in quadratic-probing hash tables, are
+// * Fast, tombstone-free deletions: Deletions, which usually require tombstones in quadratic-probing hash tables, are
 //   tombstone-free and only move, at most, one existing key.
-//
-// - Fast iteration: The separate metadata array allows keys in sparsely populated tables to be found without incurring
+// * Fast iteration: The separate metadata array allows keys in sparsely populated tables to be found without incurring
 //   the frequent cache misses that would result from traversing the buckets array.
 //
 // Adapting Verstable to the CC API necessitates some compromises, including:
 //
-// - Slower iteration: As a pointer-iterator in CC cannot store a pointer to the metadatum associated with the bucket to
+// * Slower iteration: As a pointer-iterator in CC cannot store a pointer to the metadatum associated with the bucket to
 //   which it points, the metadatum's address must be calculated every iteration.
-//
-// - Slower iterator-based erasure: As CC pointer-iterators cannot store a key's home bucket, CC must rehash the key
+// * Slower iterator-based erasure: As CC pointer-iterators cannot store a key's home bucket, CC must rehash the key
 //   being deleted in cases wherein Verstable does not need to.
 
 // Masks for manipulating and extracting data from a bucket's uint16_t metadatum.
@@ -1999,7 +2183,7 @@ static inline size_t cc_quadratic( uint16_t displacement )
 // Map header.
 typedef struct
 {
-  alignas( max_align_t )
+  alignas( cc_max_align_ty )
   size_t size;
   size_t cap_mask; // Rather than storing the capacity (i.e. bucket count) directly, we store the bit mask used to
                    // reduce a hash code or displacement-derived bucket index to the buckets array, i.e. the capacity
@@ -2167,12 +2351,12 @@ static inline size_t cc_map_find_insert_location_in_chain(
 // Frees up a bucket occupied by a key-element pair not belonging there so that a new key-element pair belonging there
 // can be placed there as the beginning of a new chain.
 // This requires:
-// - Finding the previous key-element pair in the chain to which the occupying key-element pair belongs by rehashing the
+// * Finding the previous key-element pair in the chain to which the occupying key-element pair belongs by rehashing the
 //   key and traversing the chain.
-// - Disconnecting the key-element pair from the chain.
-// - Finding the appropriate empty bucket to which to move the key-element pair.
-// - Moving the key-element pair to the empty bucket.
-// - Re-linking the key-element pair to the chain.
+// * Disconnecting the key-element pair from the chain.
+// * Finding the appropriate empty bucket to which to move the key-element pair.
+// * Moving the key-element pair to the empty bucket.
+// * Re-linking the key-element pair to the chain.
 // Returns true if the eviction succeeded, or false if no empty bucket to which to evict the occupying key-element pair
 // could be found within the displacement limit.
 static inline bool cc_map_evict(
@@ -2228,9 +2412,9 @@ static inline bool cc_map_evict(
 
 // Inserts a key-element pair, optionally replacing the existing key-element pair containing the same key if it exists.
 // There are two main cases that must be handled:
-// - If the key-element pair's home bucket is empty or occupied by a key-element pair that does not belong there, then
+// * If the key-element pair's home bucket is empty or occupied by a key-element pair that does not belong there, then
 //   the key-element pair is inserted there, evicting the occupying key-element pair if there is one.
-// - Otherwise, the chain of key-element pairs beginning at the home bucket is traversed in search of a matching key.
+// * Otherwise, the chain of key-element pairs beginning at the home bucket is traversed in search of a matching key.
 //   If none is found, then the new key-element pair is inserted at the earliest available bucket, per quadratic probing
 //   from the home bucket, and then linked to the chain in a manner that maintains its quadratic order.
 // The replace argument tells the function whether to replace an existing key-element pair.
@@ -2660,8 +2844,10 @@ static inline void *cc_map_leap_backward( void *cntr, void *itr, size_t el_size,
       return cc_map_r_end( cntr );
     }
 
+    // This check is only necessary to silence a superfluous array-bounds warning under GCC.
+    // In practice, the case of a placeholder map is caught by the above check for bucket < 4.
     if( cc_map_hdr( cntr )->metadata == &cc_map_placeholder_metadatum )
-      __builtin_unreachable();
+      CC_UNREACHABLE;
 
     uint64_t metadatum;
     memcpy( &metadatum, cc_map_hdr( cntr )->metadata + bucket - 4, sizeof( uint64_t ) );
@@ -2731,7 +2917,7 @@ static inline bool cc_map_erase_raw(
   size_t erase_bucket,
   size_t home_bucket, // SIZE_MAX if unknown.
   size_t el_size,
-  size_t layout,
+  uint64_t layout,
   cc_hash_fnptr_ty hash,
   cc_dtor_fnptr_ty el_dtor,
   cc_dtor_fnptr_ty key_dtor
@@ -3017,9 +3203,9 @@ static inline void cc_map_cleanup(
 
 // A set is implemented as a map where the key and element are combined into one space in memory.
 // Hence, it reuses the functions for map, except:
-// - The key offset inside the bucket is zero.
+// * The key offset inside the bucket is zero.
 //   This is handled at the API-macro level via the cc_layout function and associated macros.
-// - The element size passed into map functions is zero in order to avoid double memcpy-ing.
+// * The element size passed into map functions is zero in order to avoid double memcpy-ing.
 
 static inline size_t cc_set_size( void *cntr )
 {
@@ -3315,7 +3501,7 @@ static inline void *cc_set_next(
     /* Function arguments */                                                                 \
     (                                                                                        \
       *(cntr),                                                                               \
-      n,                                                                                     \
+      (n),                                                                                   \
       CC_EL_SIZE( *(cntr) ),                                                                 \
       CC_LAYOUT( *(cntr) ),                                                                  \
       CC_KEY_HASH( *(cntr) ),                                                                \
@@ -3597,7 +3783,7 @@ static inline void *cc_set_next(
   CC_STATIC_ASSERT( CC_IS_SAME_TY( (cntr), (src) ) ),                       \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                      \
     *(cntr),                                                                \
-    cc_list_splice( *(cntr), (itr), *(src), src_itr, CC_REALLOC_FN )        \
+    cc_list_splice( *(cntr), (itr), *(src), (src_itr), CC_REALLOC_FN )      \
   ),                                                                        \
   CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                           \
@@ -4168,7 +4354,7 @@ _Generic( (**cntr),                                      \
 _Generic( (**cntr),                                                                                   \
   CC_FOR_EACH_CMPR( CC_KEY_CMPR_SLOT, CC_EL_TY( cntr ) )                                              \
   default: _Generic( (**cntr),                                                                        \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               cc_cmpr_char_select,               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):      cc_cmpr_char_select,               \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_cmpr_unsigned_char_select,      \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_cmpr_signed_char_select,        \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_cmpr_unsigned_short_select,     \
@@ -4190,7 +4376,7 @@ _Generic( (**cntr),                                                             
 _Generic( (**cntr),                                                                            \
   CC_FOR_EACH_HASH( CC_KEY_HASH_SLOT, CC_EL_TY( cntr ) )                                       \
   default: _Generic( (**cntr),                                                                 \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):               cc_hash_char,               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):      cc_hash_char,               \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_hash_unsigned_char,      \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_hash_signed_char,        \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_hash_unsigned_short,     \
@@ -4212,7 +4398,7 @@ _Generic( (**cntr),                                                             
 _Generic( (ty){ 0 },                    \
   CC_FOR_EACH_CMPR( CC_HAS_CMPR_SLOT, ) \
   default: _Generic( (ty){ 0 },         \
-    char:               true,           \
+    cc_maybe_char:      true,           \
     unsigned char:      true,           \
     signed char:        true,           \
     unsigned short:     true,           \
@@ -4234,7 +4420,7 @@ _Generic( (ty){ 0 },                    \
 _Generic( (ty){ 0 },                    \
   CC_FOR_EACH_HASH( CC_HAS_HASH_SLOT, ) \
   default: _Generic( (ty){ 0 },         \
-    char:               true,           \
+    cc_maybe_char:      true,           \
     unsigned char:      true,           \
     signed char:        true,           \
     unsigned short:     true,           \
@@ -4266,7 +4452,7 @@ CC_MAKE_BASE_FNPTR_TY( arg, cc_cmpr_##n##_ty ):                                 
 _Generic( (**cntr),                                                                         \
   CC_FOR_EACH_CMPR( CC_KEY_DETAILS_SLOT, CC_EL_TY( cntr ) )                                 \
   default: _Generic( (**cntr),                                                              \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char ):                                        \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):                               \
       ( cc_key_details_ty ){ sizeof( char ), alignof( char ) },                             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ) :                              \
       ( cc_key_details_ty ){ sizeof( unsigned char ), alignof( unsigned char ) },           \
@@ -4289,7 +4475,7 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):                                   \
       ( cc_key_details_ty ){ sizeof( long long ), alignof( long long ) },                   \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):                             \
-      ( cc_key_details_ty ){ sizeof( cc_maybe_size_t ), alignof( cc_maybe_size_t ) },       \
+      ( cc_key_details_ty ){ sizeof( size_t ), alignof( size_t ) },                         \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):                                      \
       ( cc_key_details_ty ){ sizeof( char * ), alignof( char * ) },                         \
     default: ( cc_key_details_ty ){ 0 }                                                     \
@@ -4303,9 +4489,9 @@ cc_layout( CC_CNTR_ID( cntr ), CC_EL_SIZE( cntr ), alignof( CC_EL_TY( cntr ) ), 
 
 // Macros for extracting the type and function body or load factor from user-defined DTOR, CMPR, HASH, and LOAD macros. 
 #define CC_1ST_ARG_( _1, ... )    _1
-#define CC_1ST_ARG( ... )         CC_1ST_ARG_( __VA_ARGS__ )
+#define CC_1ST_ARG( ... )         CC_MSVC_PP_FIX( CC_1ST_ARG_( __VA_ARGS__ ) )
 #define CC_OTHER_ARGS_( _1, ... ) __VA_ARGS__
-#define CC_OTHER_ARGS( ... )      CC_OTHER_ARGS_( __VA_ARGS__ )
+#define CC_OTHER_ARGS( ... )      CC_MSVC_PP_FIX( CC_OTHER_ARGS_( __VA_ARGS__ ) )
 
 // Default hash and comparison functions for fundamental types.
 
@@ -4320,12 +4506,12 @@ static inline size_t cc_hash_uint64( uint64_t val )
   val *= 0x2127599BF4325C37ULL;
   val ^= val >> 47;
 #if SIZE_MAX == 0xFFFFFFFFFFFFFFFF
-  return val;
+  return (size_t)( val );
 #elif SIZE_MAX == 0xFFFFFFFF
-  return val - ( val >> 32 );
+  return (size_t)( val - ( val >> 32 ) );
 #endif
 #else // Unknown size_t, fall back on Knuth.
-  return val * 2654435761ULL;
+  return (size_t)( val * 2654435761ULL );
 #endif
 }
 
@@ -4371,13 +4557,29 @@ CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( unsigned long, unsigned_long )
 CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( long, long )
 CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( unsigned long long, unsigned_long_long )
 CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( long long, long_long )
+CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( size_t, size_t )
 
-// size_t could be an alias for a fundamental integer type or a distinct type.
-// Hence, in C we have to handle it as a special case so that it doesn't clash with another type in _Generic statements.
-// If size_t is an alias, cc_maybe_size_t will be a dummy type used in no other context.
-// Otherwise, cc_maybe_size_t will be an alias for size_t.
+// In MSVC under C, char is an alias for unsigned char or signed char, contrary to the C Standard, which requires all
+// three to be distinct types.
+// To accomodate this bug, we have to ensure that char doesn't clash with either of the other two types in _Generic
+// statements.
+// If char is an alias, cc_maybe_char will be a dummy type used in no other context.
+// Otherwise, it will be an alias for char.
+
+// size_t needs to be handled in a similar way because it could be an alias for a fundamental integer type or a distinct
+// builtin type.
 
 #ifndef __cplusplus
+
+typedef struct { char nothing; } cc_char_dummy;
+
+typedef CC_TYPEOF_XP(
+  _Generic( (char){ 0 },
+    unsigned char: (cc_char_dummy){ 0 },
+    signed char:   (cc_char_dummy){ 0 },
+    default:       (char){ 0 }
+  )
+) cc_maybe_char;
 
 typedef struct { char nothing; } cc_size_t_dummy;
 
@@ -4396,8 +4598,6 @@ typedef CC_TYPEOF_XP(
 ) cc_maybe_size_t;
 
 #endif
-
-CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( size_t, size_t )
 
 // Null-terminated C strings.
 // We use FNV-1a because newer, faster alternatives that process word-sized chunks require prior knowledge of the

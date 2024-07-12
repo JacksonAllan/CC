@@ -1,6 +1,6 @@
 /*
 
-CC/tests/tests_against_stl.cpp - v1.1.1
+Convenient Containers v1.2.0 - tests/tests_against_stl.cpp
 
 This file tests CC containers against equivalent C++ STL containers.
 Primarily, it checks that a CC container and its equivalent STL container end up in the same state after a random
@@ -39,8 +39,8 @@ License (MIT):
 #include "../cc.h"
 
 // Assert macro that is not disabled by NDEBUG.
-#define ALWAYS_ASSERT( xp )                                                                               \
-( (xp) ? (void)0 : ( fprintf( stderr, "Assertion failed at line %d: %s\n", __LINE__, #xp ), exit( 0 ) ) ) \
+#define ALWAYS_ASSERT( xp )                                                                                     \
+( (xp) ? (void)0 : ( std::cerr << "Assertion failed at line " << __LINE__ << ": " << #xp << '\n', exit( 0 ) ) ) \
 
 // Macros to control the number of random operations to perform in each container test and the number of tests to
 // perform on each container.
@@ -103,7 +103,7 @@ void tracking_free( void *ptr )
 
 int main()
 {
-  srand( std::time( nullptr ) );
+  srand( (unsigned int)std::time( nullptr ) );
 
   // Vector.
   for( int test = 0; test < N_TESTS; ++test )
@@ -529,7 +529,7 @@ int main()
           if( rand() % 2 )
             UNTIL_SUCCESS( cc_reserve( &our_map, cc_cap( &our_map ) ) ); // Reserve above the current capacity.
           else if( cc_cap( &our_map ) * CC_DEFAULT_LOAD  >= 5 ) // Reserve below the current capacity.
-            UNTIL_SUCCESS( cc_reserve( &our_map, cc_cap( &our_map ) * CC_DEFAULT_LOAD - 5 ) );
+            UNTIL_SUCCESS( cc_reserve( &our_map, (size_t)( cc_cap( &our_map ) * CC_DEFAULT_LOAD - 5 ) ) );
         }
         break;
         case 5: // cc_shrink.
@@ -634,7 +634,7 @@ int main()
           if( rand() % 2 )
             UNTIL_SUCCESS( cc_reserve( &our_set, cc_cap( &our_set ) ) );
           else if( cc_cap( &our_set ) * CC_DEFAULT_LOAD  >= 5 )
-            UNTIL_SUCCESS( cc_reserve( &our_set, cc_cap( &our_set ) * CC_DEFAULT_LOAD - 5 ) );
+            UNTIL_SUCCESS( cc_reserve( &our_set, (size_t)( cc_cap( &our_set ) * CC_DEFAULT_LOAD - 5 ) ) );
         }
         break;
         case 5: // cc_shrink.

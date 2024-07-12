@@ -1,6 +1,6 @@
 /*
 
-CC/tests/unit_tests.c - v1.1.1
+Convenient Containers v1.2.0 - tests/unit_tests.c
 
 This file tests CC containers.
 It aims to cover the full API and to check corner cases, particularly transitions between placeholder containers and
@@ -1214,12 +1214,12 @@ void test_map_erase_itr( void )
   ALWAYS_ASSERT( size( &our_map ) == 120 );
 
   // Test with iterator from get.
-  for( uint64_t i = 0; i < 120; i += 4 )
+  for( int i = 0; i < 120; i += 4 )
     erase_itr( &our_map, get( &our_map, i ) );
 
   // Check.
   ALWAYS_ASSERT( size( &our_map ) == 90 );
-  for( uint64_t i = 0; i < 120; ++i )
+  for( int i = 0; i < 120; ++i )
   {
     if( i % 4 == 0 )
       ALWAYS_ASSERT( !get( &our_map, i ) );
@@ -1246,7 +1246,7 @@ void test_map_erase_itr( void )
   ALWAYS_ASSERT( n_iterations == 90 );
   ALWAYS_ASSERT( size( &our_map ) == 60 );
 
-  for( uint64_t i = 0; i < 120; ++i )
+  for( int i = 0; i < 120; ++i )
   {
     if( i % 2 == 0 )
       ALWAYS_ASSERT( !get( &our_map, i ) );
@@ -1764,7 +1764,7 @@ void test_set_erase_itr( void )
   ALWAYS_ASSERT( size( &our_set ) == 120 );
 
   // Test with iterator from get.
-  for( uint64_t i = 0; i < 120; i += 4 )
+  for( int i = 0; i < 120; i += 4 )
     erase_itr( &our_set, get( &our_set, i ) );
 
   // Check.
@@ -2078,7 +2078,7 @@ void test_set_default_integer_types( void )
 
 int main( void )
 {
-  srand( time( NULL ) );
+  srand( (unsigned int)time( NULL ) );
 
   // Repeat 1000 times since realloc failures are random.
   for( int i = 0; i < 1000; ++i )

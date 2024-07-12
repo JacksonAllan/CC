@@ -15,22 +15,22 @@ It requires C23, or C11 and compiler support for `typeof`, or C++11.
 
 It is distributed under the MIT license.
 
-Try it online [here](https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAaPECAMzwBtMA7AQwFtMQByARg9KtQYEAysib0QXACx8BBAKoBnTAAUAHpwAMvAFYTStJg1AB9U8lJL6yAngGVG6AMKpaAVxYMJATlIOAMngMmABy7gBGmMR6AA6oCoS2DM5uHt6ksfE2AgFBoSwRUVwWmFZZDEIETMQEye6eXD6WmNaJFVUEOSHhkXoKldW1qQ0W/R2BXfk9XACUFqiuxMjsHACkAEwAzIHIblgA1Csbjn34qAB0CIfYKxoAgutbDDuu%2B4eOCAQE0QogAPS/xCYAHczsBCAhXGFXEpFrJGAQzmgWL8AFJMZAAawUAlutAMDF%2BjkcvxYTECv2QyAuVxu9zugQIe1JgQgewAbqg8Og9tNaSsAOwAIVpez20WIDKorPWawAas0QAc1mseYdhXdRWzmqyGTy9vNiMYtcg1SK9oFCNK1gA2A1G5qqjbqum3UX/Pa3dD4Ix7EqYNiCBR7Ii%2BhjoM5m/jEHWCc0HDYAET2GjVcbeey4KadSuFa0FeFVGtF5qlezAYGi0IQVttC3t5jj00LruLoswqktGcdgr27oA8q5GagqEz/SQAJ6kPbYvbaaGMphhEgIvlF90ASQYMJsPsMvvoAYXC4Y5rD7YjRajMcZBcOSazPdvRwzD5z63zzdbeFL5cC25rdrGlOBYAFR7GswF6ryRatu2nZcN2va/HsA5DiObAsBOF4um6yEAEqYAQEqYGygTAHshjcpETDxD6fqHgo2Gilep43vG96pk%2BjjTngABemAAXWxqIdBLYCs6X6liBwCEYJhpAY2SoAKx7Bs7F3smn6tr6gJKHJ9aQbyTpmm2tBKCZxbvu%2BeCmkWAoJquLYbgQ1FlEqGxcExexRsYmDotWSq1vJzRTiUWmiuKkpWms6xKdyMpTiBYVGRJSF7MoEqCJg6CKghCEqiqkh7EVKkqfyezlQAHHslWObhezri5gJuQ8axeSxupJbQ7HeXgxB9PpwkpfuZZgBpDiDQ6w1hRpQSqAQk0Nsl4ViplBCljKsXxcqiXJbZTnIRlDLZYqQisJgFFBouqBathZo7H5DCuNEi3dnVq1RUqMVKY4DABH0ioym9Ra0HgA2sXqdqg30%2B2ihaC2BVDYOMil73up63rkfR8JBiGDjtSQ15pomyacfG3GZqmVl5gWomSay5aVgoAXrEFxjQwQhkrW2HYIwhw39oO%2BroWOxDjnda7IZu25kRRJ7Y7GERRhdhioAQCCRPu/rwgT0YQ11PU0P1COs0jfSIWF5bjWG%2Bkcxb3Wze2Js2mbnMjU2dPFt%2BDNgH%2BkTO2zHOhbQu3dR7Fk8/BiGC2ho6YWLEsHXs2C6bLCsEIxkaE/rM0k0b4Om3WdvTd1VskxNiNF8jIlmuJFne3sBuxap6kkxo3MjeNukCZXhpB%2B7sPFiU5kwUPDsk3NAeu8HwNifyDl3GazmuYk7meVnhp%2BcgLMu1XfQz57EVrRtypbV9oez/VR1ZTlXb5eBxWP6VFUv9VtWL5LDVNUwLWbG1G9EybnnPqBdd592riXUa1t0C2wgamXOSZJ6wP3u7FakVBAnximsOK59G57WMp/a%2BLlb5nTYJdCiS5brvQeoYZ6yCUb7TNOg9a0UVg/QYAAWSYNEQGypL5pQTM0AwxAVZMm4XsIE4IIYYkwOOK6YZpwIGXFrBiXlSQvVYlOZmyimx2nUYPeG%2Bl1GzyXlLLc/s04HhxrrImT4OLZi4i%2BKmeZrIrQbr%2Bcx1QjHcOApBd8XZw6j0jnzaOyFULCzjlhNGyEU40UsdrQMNiIZ2NJg48mTi0lWRJmpQ%2BOkaI90LoadRhlGGfwIkRPAJF4mqIAcknqr5HGU2zNTD8ns66j20dUPB48kwySnnWYpjZB5w1LHtIJH0MGsOwTlM%2BCVzQX1RnZeepj0prROhmEABUQBqUkCAUqIBrQVRAG/EAXholfxXgINeewIDpyDAIWg45pi618v5bx0QD4WWYZg2ZO1un8PdEQ9ZKo1IqUOdVM5H8k6NUuSeVqNy7ly25DIuRzyN6vO3u8qcKLPmj2%2BVMuKIBfkQUbji/5iyk5AtvlwTZ4FtnFT2XsJSByjknMhThNKMLmqrweBsJJnTGRAKTPnfpRTxGQLLkmCuhTjDGMgY7eaWLUG5PxV9LaRLpm4JAii4wLEZWDOSgswegK1kkPOuQ66VCoWihoU9DR%2BrxWlJbKqza7ChCEV4SqCloolAI11LousvqDEME7DK31JjP7SwsXRKxiTam6hSQ09JTSewtNpvXH8vtPGiuML6rmuTgmsn5qmGOESMJROtWlWJtEsaxozkkhN9SybphTWmFx2SVrUT0r3XNhESkEI5e6cpxFSIxoSfW%2BNsZE3NufK2tNWl2ktjhrGIVew%2Bn6TzUMgd9MB7jJdafTVcyDbeoOMswhprcoPxKq/c5XKf48s2OvS8JAMU7zZpusZS6JksLVYev5x7jWHQvV2QqTKb2VuXtyq5rUG0roQb1Y2G7CL2ygeXG2Pbw3yonk7JDbtloquPgS7aJKAPbrSlS065qaIUJupgRONr6C0PtWA3tDCB32Q4LMWgnAlK8E8BwLQpBUCcG4tiBYSw168AIJoTjswNZMCwFECAswMQHK8GcLgaxKpeAaJVa0GhrRrH5FwSq%2BhOCSD4zJoTnBeA/A0KQaTAnOOkDgLAJA7ZmiDhIOQSgVRgAKGUIYEoQglFAn4zwUgSJoh0HvQIQLQRaAhdQGFqzUW6A9GQMATTEE0v0GIKhJLKWnO%2BFUM0W4xB/M2ZK80Co3oqv8EECIMQ7ApAyEEIoFQ6hiu6CKPiEwZh9B4DCD8SAsxUDRDKD8DgtmDRLF6AQb08XguhfC1JkRywItAkBDw7gznuMcF46QfjgnhMcGwKV5AXniB7FUHpgAtNaIqwBKQZjaiqCAjgpy4EICQNe0wpMyemHJvyinKAqe2RoM4lVjMaEqhoLgGwvAbH5FpiC%2B2LNHas6d2zIB7OOa0EDszHA1iWeK9jhzgPZhan6okEAkggA).
+Try it online [here](https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAaPECAMzwBtMA7AQwFtMQByARg9KtQYEAysib0QXACx8BBAKoBnTAAUAHpwAMvAFYTStJg1AB9U8lJL6yAngGVG6AMKpaAVxYMQAJgCcpBwAyeAyYAHLuAEaYxBIapAAOqAqEtgzObh7efonJNgJBIeEsUTFccZaY1qlCBEzEBOnunr4WmFZ5DDV1BAVhkdGxFrX1jZktCsM9wX3FA2UAlBaorsTI7BwApF4AzMHIblgA1BvbjhP4qAB0CCfYGxoAglu7DPuuRyeOCAQE8QogAHoAcQmAB3S7AQgIVwRVxKVayRgES5oFgAgBSTGQAGsFAIHrQDAwAY5HACWExggDkMhrrd7k9HsECIcKcEIIcAG6oPDoQ7zBkbADsACEGYdDvFiMyqBytl4AGqVEDHLxefknMWPCWcyoc5n8w7LYjGXXITXiw7BQhyrwANmNpsqGu2WsZDwlQMOD3Q%2BCMhzamDYggUhyIAYY6Eulv4xH1gitx22ABFDhpNYnPocyhmtmKvCK8BrtRKrbLDmAwPE4QhbQ6Vk7zIn5sWPaXhW7S6WvQB5Vws1BUVlBkgAT1IhzxhyYERIyMtXf2mEMrnidcdZpdna7h2ImAIKwY2YtJYlwuTgpLXoAkgx4TZ/YYA/RgyymG%2Bj8EsKpoyXY/GWSLE5U3TV1M1ObNQJFVV80LVsuzwctK2Ce91wbM0JyLAAqQ4vEww0BVPY5RQXbsAUOPsByHNgWDHCcpxnOdfzbRd6BXNdVXrE1NwFV1SIlPcD2II8uBPFjiIvR5LS9AAlfdpUwTlgmAadIwDEFkn9QNXwUZiJX/K0EyAlM0wzYzHEnPAAC9MDQ7jnV46DCPExCOSw4B9zsxt8JbLYAFZDm2JMLxMjR4J3aImCULyMObMSuzaJR%2BJgvM8DE6TyOvAhIo6VVti4PTDljYxl2QWtOI3SoJzacKJSlGVbS8fy%2BXlCcsJqxyMsOZRpUETB0BVLhs1wkbJEOMaAoCoVDmmgAOQ5ZsvNsb2ykFcueLxCoMg12toYKirwYgJhihyMxqytgIjdATuQLdn32kJVAIG7qr2ltnK7erBHLeVmtVPDDl2rcup65l%2BpVIRWEwadQ0Y3VmMtJd2Ju4GpJLL6CB%2BtUNj8xwGCCCYVXlVG21oPBjsMlkW0dMmJniwybQqhtaap9Kr3In0/RU7SkVDcMHC2kgAPAkCzKTCyczAvNUtqssOUrasFHKrYuOMFmfNljtkt7fsjWokdiHHSdUGnWd6kK1jlwYVcvJZkmd13fdD2PPiiPPJbPUyu9ogfFSnx5hMoljaHDFQAgEGiZ8gyRQW40pwGasumgjuepmTTtxz7oukyHFt8nWbAxOTMe1OVZp/PXoI0jXIrMAUJ9vOJletqOs1kiiM9ijdcHYdaMN%2BiTcY83kqR62OLL5n8/tndBOd0TXfE920eW8jsA05So502PhaBpPDopif06nzPzrAS7c7TtXj4zD7Sxr3evACoLgMusLb4Svbz402zL/V%2B7OqIolTAyUi6phLo3AglcAHuk7llHKqQ8oFRjCQEqWJlb2nLk3f%2BpEMZYyao/FqaoW5vXpl6UGfUBrDSGuqdUY0JqHCmjNBaC0PaHBWvAgQeVNrILjjtUBB0U4QLuqfc%2BkYhEn0/sXTAT0IFQNlrgxqf1WoJxIQvTu5DsqUMhmwGGptUDw1YaPG2v9r4L0tAo/6OM8YAFkmDxCJmqaeXpkyVAMHuacrI7GHFBFCeO2JMCjlhmpJWc5N680KhSDizJ6IIFCdTBskT6bWlLhghJXjoFdVvPeDeAcCC6R4cLYyoswLmUgrmAsMt35y1rvXeoXlImYXwnmYa71SJaw7mw8ilE9a9zosbPRw8OlGPHqkk0kTp5dlnsJF224zxCkkjAzphw15RRyS%2BcJBT45FNMiU8WZTdnSxMkFKpkVoqXwaXFMx7NDhyQIApJSWl1khm3ls/aUFwIS3edLAsRZb7tPEiE%2BoKj9oeRSarC5vz6YShrh1ZKFjfoEJAEoohVpiHTyXivbqvVNGDW8LhEAQVJAgEmiAO0M0QDzVmiAHwrD2FrQQc8IaEBcmhgELQUc8xY6oLKvUuxUCcHYrwcigGQNoHqOxeDQKDDmHqjJTS5esDVrvgZTsdUzKnl5NUnyfxgTOU8O5eg8FfLDg6v5UReF2NEXCraqa4FYqlkaMlV4Al41iXkvmlwPFflSULWpbSzKSr1o7G2C8wFLJd4mWTgfUZxhxkSNrqI665z0lnUkWA6RYLHQXNblUi1%2BC/IDWtYDHVxgDKH1jcajqaL7VkIlVoqGui4aYARiWYZvL4gk3MYKxRuNOj7gceqe1ShU4GniSaYdSSGCM3LcOzt1ysk%2BzWdHZ5myDTbPeaUyW0FvlwSqTXZC3s6mX2HRrKp/yHY6yor0/u/Sh7ziGWxMeXlZ32smU7aZ89ZkSX9cs9ejzl15JeWut5YssxbszBUo5stTk/xnfuHybNMW3PuUureq6jIgYORBcDO7IUlnPXfBMEbUyguffBy5X6YUkI6Xmotor6YYvFWDSh1DxrSrmj%2BuB9LOGMq5aVQ1joT3YPNd2yxBD/rVtIeRR1lDaFMKGgFRaCqllceVTx1VQGiP8KjZmhsL7U0JpzmI49%2B5hFpsOOAkzkD/7yNEwigtEm7VSaxcxiGDaop6IMcpttVnO3zIZBwRYtBOB%2BV4J4bgvBUCcAsniFYaxEG8AIJoQLiwI5MCwDECAixsSkp8JcLgXhZo%2BC4D4WadoNB2i8EKLgs19CcEkGF5LpAoscF4P8OISWOBaEWHAWASBpGVH7CQcglA6jAAUMoQwbQhCxNBOFngpBUTxDoGphgk2Qi0Bm6gObTWlt0AGMgYABW8J7foMQUIUNOC8FO9ESiW2dtdd4AN5ADxiDjau/4VQlQah%2Bg%2B/wQQIgxDsCkDIQQigVDqEe6QXQXB9CGBMGYfQeAIj/EgIsVA8QOj/Fa813UxBpRYFR1l0gxBXCCDwGwAAKqgFwRPFixdWMDoYfp1vTdm/NxLe51gLdBCCexEWgshca1Dlr2AvvICG8QQ4qgysAFo7RjWADSbMm01WOAnLgQgJBEHzES8l%2BYqXlwZcoNlglGhLizWqxoWaGguDbB8NsIUhW8LBY4A10g4WtDNY%2B%2B10gnXuuC44F4YXXuWt68ewb0gePkh2EkEAA%3D%3D).
 
 ## Rationale
 
 Traditionally, C container libraries require users to define types for every container/content type combination and to specify the container type and (often) the content types (whether by casting, type-specific function names, or some other mechanism) at every API call. This causes verbosity and syntax noise.
 
-In contrast, **CC** requires no type definitions and provides an API agnostic to container and content types. The result is simpler, more readable code. The following table compares **CC** usage to other container library paradigms:
+In contrast, **CC** requires no type definitions and provides an API agnostic to container and content types. The result is simpler, more readable code. The following table compares **CC** usage to other container library paradigms.
 
 <table>
 <tr>
 </tr>
 <tr>
 <td valign="top">
+<b>CC</b>:
 
 ```c
-// CC
 #include <stdio.h>
 #include "cc.h"
 
@@ -52,9 +52,9 @@ int main( void )
 
 </td>
 <td valign="top">
+Template-instantiation paradigm:
 
 ```c
-// Template-instantiation paradigm
 #include <stdio.h>
 #include "other_container_lib.h"
 
@@ -82,9 +82,9 @@ int main( void )
 </tr>
 <tr>
 <td valign="top">
+Typed-pointer/hidden-metadata paradigm:
 
 ```c
-// Typed-pointer/hidden-metadata paradigm
 #include <stdio.h>
 #include "other_container_lib.h"
 
@@ -110,9 +110,9 @@ int main( void )
 
 </td>
 <td valign="top">
+<code>void</code>-pointers paradigm:
 
 ```c
-// void-pointers paradigm
 #include <stdio.h>
 #include "other_container_lib.h"
 
@@ -158,21 +158,27 @@ int main( void )
   // Adding elements to end.
   for( int i = 0; i < 10; ++i )
     if( !push( &our_vec, i ) )
-      exit( 1 ); // Out of memory, so just abort.
+    {
+      // Out of memory, so abort.
+      cleanup( &our_vec );
+      return 1;
+    }
 
   // Inserting an element at an index.
   for( int i = 0; i < 10; ++i )
     if( !insert( &our_vec, i * 2, i ) )
-      exit( 1 ); // Out of memory.
+    {
+      // Out of memory, so abort.
+      cleanup( &our_vec );
+      return 1;
+    }
 
   // Retrieving and erasing elements.
   for( int i = 0; i < size( &our_vec ); )
-  {
     if( *get( &our_vec, i ) % 3 == 0 )
       erase( &our_vec, i );
     else
       ++i;
-  }
 
   // Iteration #1.
   for_each( &our_vec, el )
@@ -205,21 +211,27 @@ int main( void )
   // Adding elements to end.
   for( int i = 0; i < 10; ++i )
     if( !push( &our_list, i ) )
-      exit( 1 ); // Out of memory.
+    {
+      // Out of memory, so abort.
+      cleanup( &our_list );
+      return 1;
+    }
 
   // Inserting an element before another element.
   for( int *el = first( &our_list ); el != end( &our_list ); el = next( &our_list, el ) )
     if( !insert( &our_list, el, *el ) )
-      exit( 1 ); // Out of memory.
+    {
+      // Out of memory, so abort.
+      cleanup( &our_list );
+      return 1;
+    }
 
   // Erasing elements.
   for( int *el = first( &our_list ); el != end( &our_list ); )
-  {
     if( *el % 3 == 0 )
       el = erase( &our_list, el );
     else
       el = next( &our_list, el );
-  }
 
   // Iteration #1.
   for_each( &our_list, el )
@@ -253,7 +265,11 @@ int main( void )
   // Inserting elements.
   for( int i = 0; i < 10; ++i )
     if( !insert( &our_map, i, i + 1 ) )
-      exit( 1 ); // Out of memory.
+    {
+      // Out of memory, so abort.
+      cleanup( &our_map );
+      return 1;
+    }
 
   // Erasing elements.
   for( int i = 0; i < 10; i += 3 )
@@ -271,12 +287,12 @@ int main( void )
   // Iteration #1 (elements only).
   for_each( &our_map, el )
     printf( "%d ", *el );
-  // Printed: 2 3 5 6 8 9
+  // Printed: 3 5 8 2 6 9
 
   // Iteration #2 (elements and keys).
   for_each( &our_map, key, el )
     printf( "%d:%d ", *key, *el );
-  // Printed: 1:2 2:3 4:5 5:6 7:8 8:9
+  // Printed: 2:3 4:5 7:8 1:2 5:6 8:9
 
   // Iteration #3.
   for( short *el = first( &our_map ); el != end( &our_map ); el = next( &our_map, el ) )
@@ -304,7 +320,11 @@ int main( void )
   // Inserting elements.
   for( int i = 0; i < 10; ++i )
     if( !insert( &our_set, i ) )
-      exit( 1 ); // Out of memory.
+    {
+      // Out of memory, so abort.
+      cleanup( &our_set );
+      return 1;
+    }
 
   // Erasing elements.
   for( int i = 0; i < 10; i += 3 )
@@ -322,7 +342,7 @@ int main( void )
   // Iteration #1.
   for_each( &our_set, el )
     printf( "%d ", *el );
-  // Printed: 1 2 4 5 7 8
+  // Printed: 2 4 7 1 5 8
 
   // Iteration #2.
   for( int *el = first( &our_set ); el != end( &our_set ); el = next( &our_set, el ) )
@@ -349,7 +369,11 @@ int main( void )
   cc_init( &our_vec );
   
   if( !cc_push( &our_vec, 5 ) )
-    exit( 1 ); // Out of memory.
+  {
+    // Out of memory, so abort.
+    cc_cleanup( &our_vec );
+    return 1;
+  }
 
   cc_cleanup( &our_vec );
 }
@@ -373,7 +397,11 @@ int main( void )
   init( &our_vec );
   
   if( !push( &our_vec, 5 ) )
-    exit( 1 ); // Out of memory.
+  {
+    // Out of memory, so abort.
+    cleanup( &our_vec );
+    return 1;
+  }
   
   cleanup( &our_vec );
   // Printed: 5
@@ -398,7 +426,11 @@ int main( void )
   init( &our_vec );
   
   if( !push( &our_list, our_vec ) )
-    exit( 1 ); // Out of memory.
+  {
+    // Out of memory, so abort.
+    cleanup( &our_list );
+    return 1;
+  }
   
   cleanup( &our_list ); // our_vec is cleaned-up automatically.
 }
@@ -441,6 +473,7 @@ By default, **CC** uses `realloc` and `free` to manage memory. Overwrite these f
 
 ```c
 #include <stdio.h>
+#include <stdlib.h>
 #include "cc.h"
 
 void *our_realloc( void *ptr, size_t size )
@@ -486,7 +519,7 @@ Destructor, comparison, and hash functions are also deduced via a novel techniqu
 
 ### How is it tested?
 
-**CC** has been tested under GCC, MinGW, and Clang. `tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivalent **CC** and C++ STL containers and then check that they remain in sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
+**CC** has been tested under GCC, Clang, MinGW, and MSVC. `tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivalent **CC** and C++ STL containers and then check that they remain in sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
 
 ### What's next?
 
