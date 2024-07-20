@@ -4015,8 +4015,6 @@ void cc_omap_post_erase_fixup(
     bool dir = ( node == parent->children[ 0 ] );
     cc_omapnode_hdr_ty *sibling = parent->children[ dir ];
 
-    assert( sibling != cc_omap_hdr( cntr )->sentinel );
-
     if( sibling->is_red )
     {
       sibling->is_red = false;
@@ -5089,21 +5087,37 @@ static inline void *cc_omap_init_clone(
 
 #define cc_for_each( ... ) CC_SELECT_ON_NUM_ARGS( cc_for_each, __VA_ARGS__ )
 
-#define cc_for_each_2( cntr, i_name )                                                                                 \
-  for( CC_EL_TY( *(cntr) ) *i_name = cc_first( cntr ); i_name != cc_end( cntr ); i_name = cc_next( (cntr), i_name ) ) \
+#define cc_for_each_2( cntr, i_name )                 \
+  for(                                                \
+    CC_EL_TY( *(cntr) ) *i_name = cc_first_1( cntr ); \
+    i_name != cc_end( cntr );                         \
+    i_name = cc_next( (cntr), i_name )                \
+  )                                                   \
 
 #define cc_for_each_3( cntr, key_ptr_name, i_name )                                                                   \
-  for( CC_EL_TY( *(cntr) ) *i_name = cc_first( cntr ); i_name != cc_end( cntr ); i_name = cc_next( (cntr), i_name ) ) \
+  for(                                                                                                                \
+    CC_EL_TY( *(cntr) ) *i_name = cc_first_1( cntr );                                                                 \
+    i_name != cc_end( cntr );                                                                                         \
+    i_name = cc_next( (cntr), i_name )                                                                                \
+  )                                                                                                                   \
     for( const CC_KEY_TY( *(cntr) ) *key_ptr_name = cc_key_for( (cntr), i_name ); key_ptr_name; key_ptr_name = NULL ) \
 
 #define cc_r_for_each( ... ) CC_SELECT_ON_NUM_ARGS( cc_r_for_each, __VA_ARGS__ )
 
-#define cc_r_for_each_2( cntr, i_name )                                                                                \
-  for( CC_EL_TY( *(cntr) ) *i_name = cc_last( cntr ); i_name != cc_r_end( cntr ); i_name = cc_prev( (cntr), i_name ) ) \
+#define cc_r_for_each_2( cntr, i_name )              \
+  for(                                               \
+    CC_EL_TY( *(cntr) ) *i_name = cc_last_1( cntr ); \
+    i_name != cc_r_end( cntr );                      \
+    i_name = cc_prev( (cntr), i_name )               \
+  )                                                  \
 
-#define cc_r_for_each_3( cntr, key_ptr_name, i_name )                                                                  \
-  for( CC_EL_TY( *(cntr) ) *i_name = cc_last( cntr ); i_name != cc_r_end( cntr ); i_name = cc_prev( (cntr), i_name ) ) \
-    for( const CC_KEY_TY( *(cntr) ) *key_ptr_name = cc_key_for( (cntr), i ); key_ptr_name; key_ptr_name = NULL )       \
+#define cc_r_for_each_3( cntr, key_ptr_name, i_name )                                                            \
+  for(                                                                                                           \
+    CC_EL_TY( *(cntr) ) *i_name = cc_last_1( cntr );                                                             \
+    i_name != cc_r_end( cntr );                                                                                  \
+    i_name = cc_prev( (cntr), i_name )                                                                           \
+  )                                                                                                              \
+    for( const CC_KEY_TY( *(cntr) ) *key_ptr_name = cc_key_for( (cntr), i ); key_ptr_name; key_ptr_name = NULL ) \
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /*                         Destructor, comparison, and hash functions and custom load factors                         */

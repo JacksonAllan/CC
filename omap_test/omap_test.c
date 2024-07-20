@@ -106,7 +106,8 @@ int main( void )
     unsigned long long iterations = 0;
     unsigned long long total_ = 0;
     int last = 0;
-    for( int *itr = first( &tree ); itr != end( &tree ); itr = next( &tree, itr ) )
+    // for( int *itr = first( &tree ); itr != end( &tree ); itr = next( &tree, itr ) )
+    for_each( &tree, itr )
     {
       assert( last == 0 || *key_for( &tree, itr ) > last );
       last = *key_for( &tree, itr );
