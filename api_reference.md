@@ -360,7 +360,7 @@ el_ty * erase_itr( map( key_ty, el_ty ) *cntr, el_ty *i )
 ```
 
 Erases the element pointed to by pointer-iterator `i`.  
-Returns an iterator to the next element in the map, or an end pointer-iterator if the erased element was the last one.
+Returns an iterator to the next element in the map, or an `end` pointer-iterator if the erased element was the last one.
 
 ```c
 el_ty *first( map( key_ty, el_ty ) *cntr )
@@ -497,7 +497,7 @@ el_ty * erase_itr( set( el_ty ) *cntr, el_ty *i )
 ```
 
 Erases the element pointed to by pointer-iterator `i`.  
-Returns an iterator to the next element in the set, or an end pointer-iterator if the erased element was the last one.
+Returns an iterator to the next element in the set, or an `end` pointer-iterator if the erased element was the last one.
 
 ```c
 el_ty *first( set( el_ty ) *cntr )
@@ -549,6 +549,140 @@ It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr );
 
 > **Note**
 > Set pointer-iterators (including `r_end` and `end`) may be invalidated by any API calls that cause memory reallocation.
+
+## Ordered map
+
+An `omap` is an ordered associative container mapping elements to keys, implemented as a red-black tree.
+
+```c
+omap( key_ty, el_ty ) cntr
+```
+
+Declares an uninitialized ordered map named `cntr`.  
+`key_ty` must be a type, or alias for a type, for which a comparison function has been defined.  
+This requirement is enforced internally such that neglecting it causes a compiler error.  
+For types with in-built comparison functions, and for details on how to declare new comparison functions, see _Destructor, comparison, and hash functions and custom max load factors_ below.
+
+```c
+el_ty *insert( omap( key_ty, el_ty ) *cntr, key_ty key, el_ty el )
+```
+
+Inserts element `el` with the specified key.  
+If an element with the same key already exists, the existing element is replaced.  
+Returns a pointer-iterator to the new element, or NULL in the case of memory allocation failure.
+
+```c
+el_ty *get( omap( key_ty, el_ty ) *cntr, key_ty key )
+```
+
+Returns a pointer-iterator to the element with the specified key, or `NULL` if no such element exists.
+
+```c
+el_ty *get_or_insert( omap( key_ty, el_ty ) *cntr, key_ty key, el_ty el )
+```
+
+Inserts element `el` if no element with the specified key already exist.  
+Returns a pointer-iterator to the new element if it was inserted, or a pointer-iterator to the existing element with the same key, or `NULL` in the case of memory allocation failure.  
+Determine whether an element was inserted by comparing the ordered map's size before and after the call.
+
+```c
+const key_ty *key_for( omap( key_ty, el_ty ) *cntr, el_ty *i )
+```
+
+Returns a `const` pointer to the key for the element pointed to by pointer-iterator `i`.
+
+```c
+bool erase( omap( key_ty, el_ty ) *cntr, key_ty key )
+```
+
+Erases the element with the specified key, if it exists.  
+Returns `true` if an element was erased, or `false` if no such element exists.
+
+```c
+el_ty *erase_itr( omap( key_ty, el_ty ) *cntr, el_ty *i )
+```
+
+Erases the element pointed to by pointer-iterator `i`.  
+Returns a pointer-iterator to the next element in the ordered map, or an `end` pointer-iterator if the erased element was the last one.
+
+```c
+el_ty *first( omap( key_ty, el_ty ) *cntr )
+```
+
+Returns a pointer-iterator to the first element, or an `end` pointer-iterator if the ordered map is empty.
+
+```c
+el_ty *first( omap( key_ty, el_ty ) *cntr, key_ty key )
+```
+
+Returns a pointer-iterator to the first element with a key greater than or equal to the specified key, or an `end` pointer-iterator if no such element exists.
+
+```c
+el_ty *last( omap( key_ty, el_ty ) *cntr )
+```
+
+Returns a pointer-iterator to the last element, or an `r_end` pointer-iterator if the ordered map is empty.
+
+```c
+el_ty *last( omap( key_ty, el_ty ) *cntr, key_ty key )
+```
+
+Returns a pointer-iterator to the last element with a key less than or equal to the specified key, or an `r_end` pointer-iterator if the ordered map is empty.
+
+```c
+el_ty *r_end( omap( key_ty, el_ty ) *cntr )
+```
+
+Returns an `r_end` (reverse end) pointer-iterator for the ordered map.
+
+```c
+el_ty *end( omap( key_ty, el_ty ) *cntr )
+```
+
+Returns an `end` pointer-iterator for the ordered map.
+
+```c
+el_ty *next( omap( key_ty, el_ty ) *cntr, el_ty *i )
+```
+
+Returns a pointer-iterator to the element after the one pointed to by `i`.  
+If `i` points to the last element, the value returned is an `end` pointer-iterator.  
+If `i` points to `r_end`, the value returned points to the first element, or is an `end` pointer-iterator if the ordered map is empty.
+
+```c
+el_ty *prev( omap( key_ty, el_ty ) *cntr, el_ty *i )
+```
+
+Returns a pointer-iterator to the element before the one pointed to by `i`.  
+If `i` points to the first element, the value returned is an `r_end` pointer-iterator.  
+If `i` points to `end`, then the value returned points to the last element, or is an `r_end` pointer-iterator if the ordered map is empty.
+
+```c
+for_each( omap( key_ty, el_ty ) *cntr, key_ptr_name, i_name )
+```
+
+Creates a loop iterating over all elements from first to last, with easy access to the corresponding keys.  
+This macro declares a pointer to the key (`const key_ty *`) named `key_ptr_name` and a pointer-iterator (`el_ty *`) named `i_name`.  
+It should be followed by the body of the loop.
+
+```c
+r_for_each( omap( key_ty, el_ty ) *cntr, i_name )
+```
+
+Creates a loop iterating over all elements from last to first.  
+This macro declares an `el_ty *` pointer-iterator named `i_name`.  
+It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )` and should be followed by the body of the loop.
+
+```c
+r_for_each( omap( key_ty, el_ty ) *cntr, key_ptr_name, i_name )
+```
+
+Creates a loop iterating over all elements from last to first, with easy access to the corresponding keys.  
+This macro declares a pointer to the key `(const key_ty *)` named `key_ptr_name` and a pointer-iterator `(el_ty *)` named `i_name`.  
+It should be followed by the body of the loop.
+
+> **Note**
+> Ordered map pointer-iterators (including `r_end` and `end`) are not invalidated by any API calls besides init and cleanup, unless they point to erased elements.
 
 ## Destructor, comparison, and hash functions and custom max load factors
 

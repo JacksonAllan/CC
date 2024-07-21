@@ -380,6 +380,7 @@ API:
     map( key_ty, el_ty ) cntr
 
       Declares an uninitialized map named cntr.
+      TODO
       For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash
       functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
 
@@ -493,6 +494,7 @@ API:
     set( el_ty ) cntr
 
       Declares an uninitialized set named cntr.
+      TODO
       For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash
       functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
 
@@ -587,6 +589,8 @@ API:
     omap( key_ty, el_ty ) cntr
 
       Declares an uninitialized ordered map named cntr.
+      key_ty must be a type, or alias for a type, for which a comparison function has been defined.
+      This requirement is enforced internally such that neglecting it causes a compiler error.
       For types with in-built comparison functions, and for details on how to declare new comparison functions, see
       "Destructor, comparison, and hash functions and custom max load factors" below.
 
