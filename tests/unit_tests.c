@@ -1,6 +1,6 @@
 /*
 
-Convenient Containers v1.2.0 - tests/unit_tests.c
+Convenient Containers v1.3.0 - tests/unit_tests.c
 
 This file tests CC containers.
 It aims to cover the full API and to check corner cases, particularly transitions between placeholder containers and
@@ -29,6 +29,7 @@ License (MIT):
 #define TEST_LIST
 #define TEST_MAP
 #define TEST_SET
+#define TEST_OMAP
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -891,6 +892,10 @@ void test_list_iteration( void )
   ALWAYS_ASSERT( first( &our_list ) == end );
   ALWAYS_ASSERT( last( &our_list ) == r_end );
 
+  // Test iteration from r_end and end.
+  ALWAYS_ASSERT( next( &our_list, r_end( &our_list ) ) == first( &our_list ) );
+  ALWAYS_ASSERT( prev( &our_list, end( &our_list ) ) == last( &our_list ) );
+
   int n_iterations = 0;
   for( int *i = first( &our_list ); i != end( &our_list ); i = next( &our_list, i ) )
     ++n_iterations;
@@ -923,6 +928,10 @@ void test_list_iteration( void )
   // Test iterator stability.
   ALWAYS_ASSERT( r_end( &our_list ) == r_end );
   ALWAYS_ASSERT( end( &our_list ) == end );
+
+  // Test iteration from r_end and end.
+  ALWAYS_ASSERT( next( &our_list, r_end( &our_list ) ) == first( &our_list ) );
+  ALWAYS_ASSERT( prev( &our_list, end( &our_list ) ) == last( &our_list ) );
 
   // Test fist and last.
   ALWAYS_ASSERT( *first( &our_list ) == 0 );
@@ -1206,7 +1215,7 @@ void test_map_erase_itr( void )
   map( int, size_t ) our_map;
   init( &our_map );
 
-  // In this instance, the key count and order of insert have been carefully chosen to cause skipped or repeat-visted
+  // In this instance, the key count and order of insert have been carefully chosen to cause skipped or repeat-visited
   // keys if erase_itr does not correctly handle the case of another key being moved to the bucket of the erased key.
   for( int i = 119; i >= 0; --i )
     UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
@@ -1756,7 +1765,7 @@ void test_set_erase_itr( void )
   set( int ) our_set;
   init( &our_set );
 
-  // In this instance, the key count and order of insert have been carefully chosen to cause skipped or repeat-visted
+  // In this instance, the key count and order of insert have been carefully chosen to cause skipped or repeat-visited
   // keys if vt_erase_itr does not correctly handle the case of another key being moved to the bucket of the erased key.
   for( int i = 119; i >= 0; --i )
     UNTIL_SUCCESS( insert( &our_set, i ) );
@@ -2076,6 +2085,732 @@ void test_set_default_integer_types( void )
 
 #endif
 
+// Unordered map tests.
+#ifdef TEST_OMAP
+
+void test_omap_insert( void )
+{
+  omap( int, size_t ) our_omap;
+  init( &our_omap );
+
+  // Sequential input.
+
+  // Insert new.
+  for( int i = 0; i < 100; ++i )
+  {
+    size_t *el;
+    UNTIL_SUCCESS( el = insert( &our_omap, i, i + 1 ) );
+    ALWAYS_ASSERT( *el == (size_t)i + 1 );
+  }
+
+  // Insert existing.
+  for( int i = 0; i < 100; ++i )
+  {
+    size_t *el;
+    UNTIL_SUCCESS( el = insert( &our_omap, i, i + 2 ) );
+    ALWAYS_ASSERT( *el == (size_t)i + 2 );
+  }
+
+  // Check.
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_omap, i ) == (size_t)i + 2 );
+
+  clear( &our_omap );
+
+  // Nonsequential input (alternating positive and negative integers).
+
+  // Insert new.
+  for( int i = 0; i < 100; ++i )
+  {
+    size_t *el;
+    UNTIL_SUCCESS( el = insert( &our_omap, i * ( i % 2 ? 1 : -1 ), i + 1 ) );
+    ALWAYS_ASSERT( *el == (size_t)i + 1 );
+  }
+
+  // Insert existing.
+  for( int i = 0; i < 100; ++i )
+  {
+    size_t *el;
+    UNTIL_SUCCESS( el = insert( &our_omap, i * ( i % 2 ? 1 : -1 ), i + 2 ) );
+    ALWAYS_ASSERT( *el == (size_t)i + 2 );
+  }
+
+  // Check.
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_omap, i * ( i % 2 ? 1 : -1 ) ) == (size_t)i + 2 );
+
+  cleanup( &our_omap );
+}
+
+void test_omap_get_or_insert( void )
+{
+  omap( int, size_t ) our_omap;
+  init( &our_omap );
+
+  // Test insert.
+  for( int i = 0; i < 100; ++i )
+  {
+    size_t *el;
+    UNTIL_SUCCESS( ( el = get_or_insert( &our_omap, i, i + 1 ) ) );
+    ALWAYS_ASSERT( *el == (size_t)i + 1 );
+  }
+
+  ALWAYS_ASSERT( size( &our_omap ) == 100 );
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_omap, i ) == (size_t)i + 1 );
+
+  // Test get.
+  for( int i = 0; i < 100; ++i )
+  {
+    size_t *el_1 = get( &our_omap, i );
+    size_t *el_2;
+    UNTIL_SUCCESS( ( el_2 = get_or_insert( &our_omap, i, i + 1 ) ) );
+    ALWAYS_ASSERT( el_2 == el_1 && *el_2 == (size_t)i + 1 );
+  }
+
+  ALWAYS_ASSERT( size( &our_omap ) == 100 );
+
+  cleanup( &our_omap );
+}
+
+void test_omap_get( void )
+{
+  omap( int, size_t ) our_omap;
+  init( &our_omap );
+
+  // Test empty.
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( !get( &our_omap, i ) );
+
+  // Test get existing.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_omap, i ) == (size_t)i + 1 );
+
+  // Test get non-existing.
+  for( int i = 100; i < 200; ++i )
+    ALWAYS_ASSERT( !get( &our_omap, i ) );
+
+  cleanup( &our_omap );
+}
+
+void test_omap_erase( void )
+{
+  omap( int, size_t ) our_omap;
+  init( &our_omap );
+
+  // Sequential input.
+
+  // Test erase existing.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+
+  ALWAYS_ASSERT( size( &our_omap ) == 100 );
+
+  for( int i = 0; i < 100; i += 2 )
+    ALWAYS_ASSERT( erase( &our_omap, i ) );
+
+  // Test erase non-existing.
+  for( int i = 0; i < 100; i += 2 )
+    ALWAYS_ASSERT( !erase( &our_omap, i ) );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_omap ) == 50 );
+  for( int i = 0; i < 100; ++i )
+  {
+    if( i % 2 == 0 )
+      ALWAYS_ASSERT( !get( &our_omap, i ) );
+    else
+      ALWAYS_ASSERT( *get( &our_omap, i ) == (size_t)i + 1 );
+  }
+
+  clear( &our_omap );
+
+  // Nonsequential input (alternating positive and negative integers).
+
+  // Test erase existing.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_omap, i * ( i % 2 ? 1 : -1 ), i + 1 ) );
+
+  ALWAYS_ASSERT( size( &our_omap ) == 100 );
+
+  for( int i = 0; i < 100; i += 2 )
+    ALWAYS_ASSERT( erase( &our_omap, i * ( i % 2 ? 1 : -1 ) ) );
+
+  // Test erase non-existing.
+  for( int i = 0; i < 100; i += 2 )
+    ALWAYS_ASSERT( !erase( &our_omap, i * ( i % 2 ? 1 : -1 ) ) );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_omap ) == 50 );
+  for( int i = 0; i < 100; ++i )
+  {
+    if( i % 2 == 0 )
+      ALWAYS_ASSERT( !get( &our_omap, i * ( i % 2 ? 1 : -1 ) ) );
+    else
+      ALWAYS_ASSERT( *get( &our_omap, i * ( i % 2 ? 1 : -1 ) ) == (size_t)i + 1 );
+  }
+
+  cleanup( &our_omap );
+}
+
+void test_omap_erase_itr( void )
+{
+  omap( int, size_t ) our_omap;
+  init( &our_omap );
+
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+
+  ALWAYS_ASSERT( size( &our_omap ) == 100 );
+
+  // Test with iterator from get.
+  for( int i = 0; i < 100; i += 4 )
+    erase_itr( &our_omap, get( &our_omap, i ) );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_omap ) == 75 );
+  for( int i = 0; i < 100; ++i )
+  {
+    if( i % 4 == 0 )
+      ALWAYS_ASSERT( !get( &our_omap, i ) );
+    else
+    {
+      size_t *el = get( &our_omap, i );
+      ALWAYS_ASSERT( el && *el == i + 1 );
+    }
+  }
+
+  // Test deletion while iterating.
+
+  size_t *el = first( &our_omap );
+  size_t n_iterations = 0;
+  while( el != end( &our_omap ) )
+  {
+    ++n_iterations;
+
+    if( *key_for( &our_omap, el ) % 2 == 0 )
+      el = erase_itr( &our_omap, el );
+    else
+      el = next( &our_omap, el );
+  }
+
+  ALWAYS_ASSERT( n_iterations == 75 );
+  ALWAYS_ASSERT( size( &our_omap ) == 50 );
+
+  for( int i = 0; i < 100; ++i )
+  {
+    if( i % 2 == 0 )
+      ALWAYS_ASSERT( !get( &our_omap, i ) );
+    else
+    {
+      el = get( &our_omap, i );
+      ALWAYS_ASSERT( el && *el == i + 1 );
+    }
+  }
+
+  // Test deletion while iterating backward.
+/*
+  el = last( &our_omap );
+  n_iterations = 0;
+  while( el != r_end( &our_omap ) )
+  {
+    printf( "%zu\n", *key_for( &our_omap, el ) );
+    printf( "Foo\n" );
+    ++n_iterations;
+
+    if( *key_for( &our_omap, el ) % 3 == 0 )
+      el = erase_itr( &our_omap, el );
+    
+    if( el == end( &our_omap ) )
+      printf( "Bar!\n" );
+    el = prev( &our_omap, el );
+  }
+
+  ALWAYS_ASSERT( n_iterations == 50 );
+  ALWAYS_ASSERT( size( &our_omap ) == 33 );
+
+  for( int i = 0; i < 100; ++i )
+  {
+    if( i % 2 == 0 || i % 3 == 0 )
+      ALWAYS_ASSERT( !get( &our_omap, i ) );
+    else
+    {
+      el = get( &our_omap, i );
+      ALWAYS_ASSERT( el && *el == i + 1 );
+    }
+  }
+*/
+  cleanup( &our_omap );
+}
+
+void test_omap_clear( void )
+{
+  omap( int, size_t ) our_omap;
+  init( &our_omap );
+
+  // Test empty.
+  clear( &our_omap );
+  ALWAYS_ASSERT( size( &our_omap ) == 0 );
+
+  // Test non-empty;
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+
+  clear( &our_omap );
+  ALWAYS_ASSERT( size( &our_omap ) == 0 );
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( !get( &our_omap, i ) );
+
+  // Test reuse.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_omap, i ) == (size_t)i + 1 );
+
+  cleanup( &our_omap );
+}
+
+void test_omap_cleanup( void )
+{
+  omap( int, size_t ) our_omap;
+  init( &our_omap );
+
+  // Empty.
+  cleanup( &our_omap );
+  ALWAYS_ASSERT( (void *)our_omap == (void *)&cc_omap_placeholder );
+
+  // Non-empty.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+  ALWAYS_ASSERT( size( &our_omap ) == 100 );
+  cleanup( &our_omap );
+  ALWAYS_ASSERT( size( &our_omap ) == 0 );
+  ALWAYS_ASSERT( (void *)our_omap == (void *)&cc_omap_placeholder );
+
+  // Test use.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_omap, i ) == (size_t)i + 1 );
+
+  cleanup( &our_omap );
+}
+
+void test_omap_init_clone( void )
+{
+  omap( int, size_t ) src_omap;
+  init( &src_omap );
+
+  // Test init_clone placeholder.
+  omap( int, size_t ) empty_omap;
+  UNTIL_SUCCESS( init_clone( &empty_omap, &src_omap ) );
+  ALWAYS_ASSERT( (void *)empty_omap == (void *)&cc_omap_placeholder );
+
+  // Test init_clone non-placeholder.
+  omap( int, size_t ) our_omap;
+  for( int i = 0; i < 10; ++i )
+    UNTIL_SUCCESS( insert( &src_omap, i, i + 1 ) );
+  UNTIL_SUCCESS( init_clone( &our_omap, &src_omap ) );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_omap ) == 10 );
+  for( int i = 0; i < 10; ++i )
+    ALWAYS_ASSERT( *get( &our_omap, i ) == (size_t)i + 1 );
+
+  cleanup( &src_omap );
+  cleanup( &empty_omap );
+  cleanup( &our_omap );
+}
+
+// This needs to test, in particular, that r_end and end iterator-pointers are stable, especially between transition
+// from placeholder to non-placeholder.
+void test_omap_iteration_and_get_key( void )
+{
+  omap( int, size_t ) our_omap;
+  init( &our_omap );
+
+  size_t *r_end = r_end( &our_omap );
+  size_t *end = end( &our_omap );
+
+  // Empty.
+
+  // Test first and last.
+  ALWAYS_ASSERT( first( &our_omap ) == end( &our_omap ) );
+  ALWAYS_ASSERT( last( &our_omap ) == r_end( &our_omap ) );
+
+  // Test iteration from r_end and end.
+  ALWAYS_ASSERT( next( &our_omap, r_end( &our_omap ) ) == first( &our_omap ) );
+  ALWAYS_ASSERT( prev( &our_omap, end( &our_omap ) ) == last( &our_omap ) );
+
+  int n_iterations = 0;
+  for( size_t *i = first( &our_omap ); i != end( &our_omap ); i = next( &our_omap, i ) )
+    ++n_iterations;
+  for( size_t *i = last( &our_omap ); i != r_end( &our_omap ); i = prev( &our_omap, i ) )
+    ++n_iterations;
+  for_each( &our_omap, i )
+    ++n_iterations;
+  r_for_each( &our_omap, i )
+    ++n_iterations;
+  for_each( &our_omap, k, i )
+    ++n_iterations;
+  r_for_each( &our_omap, k, i )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 0 );
+
+  // Non-empty.
+
+  // Insert keys in random order.
+
+  const int keys[ 100 ] = {
+    12, 10, 29, 8, 27, 9, 14, 23, 18, 19, 11, 20, 24, 1, 0, 5, 2, 3, 6, 13, 28, 25, 22, 21, 15, 4, 7, 16, 26, 17
+  };
+
+  for( int i = 0; i < 30; ++i )
+    UNTIL_SUCCESS( insert( &our_omap, keys[ i ], keys[ i ] + 1 ) );
+
+  size_t *last_iteration = NULL;
+  for( size_t *i = first( &our_omap ); i != end( &our_omap ); i = next( &our_omap, i ) )
+  {
+    ALWAYS_ASSERT( (size_t)*key_for( &our_omap, i ) == *i - 1 );
+    ALWAYS_ASSERT( !last_iteration || *key_for( &our_omap, i ) > *key_for( &our_omap, last_iteration ) );
+    ++n_iterations;
+    last_iteration = i;
+  }
+
+  last_iteration = NULL;
+  for( size_t *i = last( &our_omap ); i != r_end( &our_omap ); i = prev( &our_omap, i ) )
+  {
+    ALWAYS_ASSERT( (size_t)*key_for( &our_omap, i ) == *i - 1 );
+    ALWAYS_ASSERT( !last_iteration || *key_for( &our_omap, i ) < *key_for( &our_omap, last_iteration ) );
+    ++n_iterations;
+  }
+
+  for_each( &our_omap, i )
+    ++n_iterations;
+  r_for_each( &our_omap, i )
+    ++n_iterations;
+
+  for_each( &our_omap, k, i )
+  {
+    ALWAYS_ASSERT( (size_t)*k == *i - 1 );
+    ++n_iterations;
+  }
+  r_for_each( &our_omap, k, i )
+  {
+    ALWAYS_ASSERT( (size_t)*k == *i - 1 );
+    ++n_iterations;
+  }
+
+  ALWAYS_ASSERT( n_iterations == 180 );
+
+  // Test iterator stability.
+  ALWAYS_ASSERT( r_end( &our_omap ) == r_end );
+  ALWAYS_ASSERT( end( &our_omap ) == end );
+
+  // Test iteration from r_end and end.
+  ALWAYS_ASSERT( next( &our_omap, r_end( &our_omap ) ) == first( &our_omap ) );
+  ALWAYS_ASSERT( prev( &our_omap, end( &our_omap ) ) == last( &our_omap ) );
+
+  // Iteration over empty, non-placeholder ordered map.
+
+  clear( &our_omap );
+
+  n_iterations = 0;
+
+  for_each( &our_omap, i )
+    ++n_iterations;
+
+  r_for_each( &our_omap, i )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 0 );
+
+  cleanup( &our_omap );
+}
+
+void test_omap_iteration_over_range( void )
+{
+  omap( int, size_t ) our_omap;
+  init( &our_omap );
+
+  // Empty.
+
+  int n_iterations = 0;
+  for(
+    size_t *i = first( &our_omap, 25 ), *range_end = first( &our_omap, 75 );
+    i != range_end;
+    i = next( &our_omap, i )
+  )
+    ++n_iterations;
+
+  for(
+    size_t *i = last( &our_omap, 74 ), *range_end = last( &our_omap, 24 );
+    i != range_end;
+    i = prev( &our_omap, i )
+  )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 0 );
+
+  // Non-empty.
+
+  // Insert keys in random order.
+
+  const int keys[ 100 ] = {
+    44, 13, 39, 68, 33, 88, 87, 58, 73, 28, 95, 56, 93, 8, 50, 92, 78, 80, 97, 53,
+    27, 77, 35, 38, 91, 45, 3, 37, 98, 81, 63, 65, 32, 90, 72, 5, 36, 99, 17, 6,
+    16, 11, 67, 47, 48, 71, 1, 82, 69, 21, 54, 15, 61, 9, 19, 84, 60, 26, 42, 70,
+    64, 18, 34, 23, 75, 52, 89, 83, 86, 10, 94, 24, 57, 59, 41, 20, 25, 12, 85, 96,
+    66, 55, 7, 2, 76, 46, 14, 31, 43, 4, 22, 30, 40, 29, 0, 74, 51, 49, 62, 79
+  };
+
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_omap, keys[ i ], 0 ) );
+
+  // Test ranges that do not include r_end or end.
+
+  for(
+    size_t *i = first( &our_omap, 25 ), *range_end = first( &our_omap, 75 );
+    i != range_end;
+    i = next( &our_omap, i )
+  )
+  {
+    const int *key = key_for( &our_omap, i );
+    ALWAYS_ASSERT( *key >= 25 && *key < 75 );
+    ++n_iterations;
+  }
+
+  for(
+    size_t *i = last( &our_omap, 75 ), *range_end = last( &our_omap, 25 );
+    i != range_end;
+    i = prev( &our_omap, i )
+  )
+  {
+    const int *key = key_for( &our_omap, i );
+    ALWAYS_ASSERT( *key > 25 && *key <= 75 );
+    ++n_iterations;
+  }
+
+  ALWAYS_ASSERT( n_iterations == 100 );
+
+  // Test ranges that overlap r_end or end.
+
+  for(
+    size_t *i = first( &our_omap, -1 ), *range_end = first( &our_omap, 50 );
+    i != range_end;
+    i = next( &our_omap, i )
+  )
+  {
+    ALWAYS_ASSERT( *key_for( &our_omap, i ) < 50 );
+    ++n_iterations;
+  }
+
+  for(
+    size_t *i = first( &our_omap, 50 ), *range_end = first( &our_omap, 100 );
+    i != range_end;
+    i = next( &our_omap, i )
+  )
+  {
+    ALWAYS_ASSERT( *key_for( &our_omap, i ) >= 50 );
+    ++n_iterations;
+  }
+
+  for(
+    size_t *i = last( &our_omap, 100 ), *range_end = last( &our_omap, 49 );
+    i != range_end;
+    i = prev( &our_omap, i )
+  )
+  {
+    ALWAYS_ASSERT( *key_for( &our_omap, i ) >= 50 );
+    ++n_iterations;
+  }
+
+  for(
+    size_t *i = last( &our_omap, 49 ), *range_end = last( &our_omap, -1 );
+    i != range_end;
+    i = prev( &our_omap, i )
+  )
+  {
+    ALWAYS_ASSERT( *key_for( &our_omap, i ) <= 49 );
+    ++n_iterations;
+  }
+
+  for(
+    size_t *i = first( &our_omap, -1 ), *range_end = first( &our_omap, 100 );
+    i != range_end;
+    i = next( &our_omap, i )
+  )
+    ++n_iterations;
+
+  for(
+    size_t *i = last( &our_omap, 100 ), *range_end = last( &our_omap, -1 );
+    i != range_end;
+    i = prev( &our_omap, i )
+  )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 500 );
+
+  // Test ranges with no keys.
+
+  for(
+    size_t *i = first( &our_omap, 100 ), *range_end = first( &our_omap, 200 );
+    i != range_end;
+    i = next( &our_omap, i )
+  )
+    ++n_iterations;
+
+  for(
+    size_t *i = last( &our_omap, -1 ), *range_end = last( &our_omap, -100 );
+    i != range_end;
+    i = prev( &our_omap, i )
+  )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 500 );
+
+  cleanup( &our_omap );
+}
+
+void test_omap_dtors( void )
+{
+  omap( custom_ty, custom_ty ) our_omap;
+  init( &our_omap );
+
+  // Test erase and clear.
+
+  for( int i = 0; i < 50; ++i )
+  {
+    custom_ty key = { i };
+    custom_ty el = { i + 50 };
+    UNTIL_SUCCESS( insert( &our_omap, key, el ) );
+  }
+
+  for( int i = 0; i < 50; i += 2 )
+  {
+    custom_ty key = { i };
+    erase( &our_omap, key );
+  }
+
+  clear( &our_omap );
+
+  check_dtors_arr();
+
+  // Test replace.
+
+  for( int i = 0; i < 50; ++i )
+  {
+    custom_ty key = { i };
+    custom_ty el = { i + 50 };
+    UNTIL_SUCCESS( insert( &our_omap, key, el ) );
+  }
+  for( int i = 0; i < 50; ++i )
+  {
+    custom_ty key = { i };
+    custom_ty el = { i + 50 };
+    UNTIL_SUCCESS( insert( &our_omap, key, el ) );
+  }
+
+  check_dtors_arr();
+  clear( &our_omap );
+
+  // Test cleanup.
+
+  for( int i = 0; i < 50; ++i )
+  {
+    custom_ty key = { i };
+    custom_ty el = { i + 50 };
+    UNTIL_SUCCESS( insert( &our_omap, key, el ) );
+  }
+
+  cleanup( &our_omap );
+  check_dtors_arr();
+}
+
+// Strings are a special case that warrant seperate testing.
+void test_omap_strings( void )
+{
+  omap( char *, char * ) our_omap;
+  init( &our_omap );
+
+  char **el;
+
+  // String literals.
+  UNTIL_SUCCESS( ( el = insert( &our_omap, "This", "is" ) ) );
+  ALWAYS_ASSERT( strcmp( *el, "is" ) == 0 );
+  UNTIL_SUCCESS( ( el = get_or_insert( &our_omap, "a", "test" ) ) );
+  ALWAYS_ASSERT( strcmp( *el, "test" ) == 0 );
+
+  // Other strings.
+  char str_1[] = "of";
+  char str_2[] = "maps";
+  char str_3[] = "with";
+  char str_4[] = "strings.";
+
+  UNTIL_SUCCESS( ( el = insert( &our_omap, str_1, str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *el, str_2 ) == 0 );
+  UNTIL_SUCCESS( ( el = get_or_insert( &our_omap, str_3, str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *el, str_4 ) == 0 );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_omap ) == 4 );
+  ALWAYS_ASSERT( strcmp( *get( &our_omap, "This" ), "is" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_omap, "a" ), "test" ) == 0 );
+  UNTIL_SUCCESS( ( el = insert( &our_omap, str_1, str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *el, str_2 ) == 0 );
+  UNTIL_SUCCESS( ( el = insert( &our_omap, str_3, str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *el, str_4 ) == 0 );
+  ALWAYS_ASSERT( size( &our_omap ) == 4 );
+
+  // Erase.
+  erase( &our_omap, "This" );
+  erase( &our_omap, str_1 );
+  ALWAYS_ASSERT( size( &our_omap ) == 2 );
+
+  // Iteration.
+  for_each( &our_omap, i )
+    ALWAYS_ASSERT( strcmp( *i, "test" ) == 0 || strcmp( *i, str_4 ) == 0 );
+
+  cleanup( &our_omap );
+}
+
+#define TEST_OMAP_DEFAULT_INTEGER_TYPE( ty )    \
+{                                               \
+  map( ty, int ) our_omap;                      \
+  init( &our_omap );                            \
+                                                \
+  for( int i = 0; i < 100; ++i )                \
+    UNTIL_SUCCESS( insert( &our_omap, i, i ) ); \
+                                                \
+  for( int i = 0; i < 100; ++i )                \
+    ALWAYS_ASSERT( *get( &our_omap, i ) == i ); \
+                                                \
+  cleanup( &our_omap );                         \
+}                                               \
+
+void test_omap_default_integer_types( void )
+{
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( char );
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( unsigned char );
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( signed char );
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( unsigned short );
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( short );
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( unsigned int );
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( int );
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( unsigned long );
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( long );
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( unsigned long long );
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( long );
+  TEST_OMAP_DEFAULT_INTEGER_TYPE( size_t );
+}
+
+#endif
+
 int main( void )
 {
   srand( (unsigned int)time( NULL ) );
@@ -2148,6 +2883,23 @@ int main( void )
     test_set_dtors();
     test_set_strings();
     test_set_default_integer_types();
+    #endif
+
+    #ifdef TEST_OMAP
+    // omap, init, and size are tested implicitly.
+    test_omap_insert();
+    test_omap_get_or_insert();
+    test_omap_get();
+    test_omap_erase();
+    test_omap_erase_itr();
+    test_omap_clear();
+    test_omap_cleanup();
+    test_omap_init_clone();
+    test_omap_iteration_and_get_key();
+    test_omap_iteration_over_range();
+    test_omap_dtors();
+    test_omap_strings();
+    test_omap_default_integer_types();
     #endif
   }
 

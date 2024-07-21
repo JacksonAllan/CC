@@ -1,6 +1,6 @@
 <picture><img src="./header.svg" alt="CC: Convenient Containers"></picture>
 
-Convenient Containers (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, and **unordered sets**.
+Convenient Containers (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, **unordered sets**, **ordered maps**, and **ordered sets**.
 
 Its features include:
 
@@ -354,6 +354,71 @@ int main( void )
 
 ```
 
+### Ordered map
+
+An `omap` is an ordered associative container mapping elements to keys, implemented as a red-black tree.
+
+```c
+#include <stdio.h>
+#include "cc.h"
+
+int main( void )
+{
+  // Declare an ordered map with int keys and short elements.
+  omap( int, short ) our_omap;
+  init( &our_omap );
+
+  // Inserting elements.
+  for( int i = 0; i < 10; ++i )
+    if( !insert( &our_omap, i, i + 1 ) )
+    {
+      // Out of memory, so abort.
+      cleanup( &our_omap );
+      return 1;
+    }
+
+  // Erasing elements.
+  for( int i = 0; i < 10; i += 3 )
+    erase( &our_omap, i );
+
+  // Retrieving elements.
+  for( int i = 0; i < 10; ++i )
+  {
+    short *el = get( &our_omap, i );
+    if( el )
+      printf( "%d:%d ", i, *el );
+  }
+  // Printed: 1:2 2:3 4:5 5:6 7:8 8:9
+
+  // Iteration #1 (elements only).
+  for_each( &our_omap, el )
+    printf( "%d ", *el );
+  // Printed: 2 3 5 6 8 9
+
+  // Iteration #2 (elements and keys).
+  for_each( &our_omap, key, el )
+    printf( "%d:%d ", *key, *el );
+  // Printed: 1:2 2:3 4:5 5:6 7:8 8:9
+
+  // Iteration #3.
+  for( short *el = first( &our_omap ); el != end( &our_omap ); el = next( &our_omap, el ) )
+    printf( "%d:%d ", *key_for( &our_omap, el ), *el );
+  // Printed: Same as above.
+
+  // Iteration over a key range, namely from 2 (inclusive) to 7 (exclusive).
+  for(
+    short *el = first( &our_omap, 2 ), *range_end = first( &our_omap, 7 );
+    el != range_end;
+    el = next( &our_omap, el )
+  )
+    printf( "%d:%d ", *key_for( &our_omap, el ), *el );
+  // Printed: 2:3 4:5 5:6
+
+  cleanup( &our_omap );
+}
+
+```
+
 ### Prefixed API
 
 **CC** macro names may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only the prefixed API.
@@ -507,6 +572,10 @@ int main( void )
 
 ```
 
+## API Reference
+
+Full API documentation is available [here](api_reference.md).
+
 ## FAQ
 
 ### How does it work?
@@ -523,8 +592,4 @@ Destructor, comparison, and hash functions are also deduced via a novel techniqu
 
 ### What's next?
 
-Future versions should include `NULL`-terminated dynamic strings, ordered maps, and ordered sets, as well as performance benchmarks.
-
-## API Reference
-
-Full API documentation is available [here](api_reference.md).
+Future versions should include `NULL`-terminated dynamic strings and more performance benchmarks.

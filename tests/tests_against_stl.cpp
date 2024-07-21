@@ -1,6 +1,6 @@
 /*
 
-Convenient Containers v1.2.0 - tests/tests_against_stl.cpp
+Convenient Containers v1.3.0 - tests/tests_against_stl.cpp
 
 This file tests CC containers against equivalent C++ STL containers.
 Primarily, it checks that a CC container and its equivalent STL container end up in the same state after a random
@@ -31,6 +31,7 @@ License (MIT):
 #include <ctime>
 #include <iostream>
 #include <list>
+#include <map>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -665,6 +666,118 @@ int main()
 
     std::cout << "Done. Final size: " << cc_size( &our_set ) << "\n";
     cc_cleanup( &our_set );
+  }
+
+  // Ordered map.
+  for( int test = 0; test < N_TESTS; ++test )
+  {
+    std::cout << "Ordered map test " << test << "... ";
+    std::map<int, int> stl_omap;
+    cc_omap( int, int ) our_omap;
+    cc_init( &our_omap );
+
+    for( int op = 0; op < N_OPS; ++op )
+    {
+      switch( rand() % 5 )
+      {
+        case 0: // cc_insert.
+        {
+          int *el;
+          int key = rand() % ( N_OPS / 10 );
+          int el_val = rand();
+          UNTIL_SUCCESS( ( el = cc_insert( &our_omap, key, el_val ) ) );
+
+          ALWAYS_ASSERT( *el == el_val );
+          ALWAYS_ASSERT( *cc_key_for( &our_omap, el ) == key );
+
+          stl_omap[ key ] = el_val;
+        }
+        break;
+        case 1: // cc_get_or_insert.
+        {
+          int *el;
+          int key = rand() % ( N_OPS / 10 );
+          int el_val = rand();
+          size_t original_size = cc_size( &our_omap );
+          UNTIL_SUCCESS( ( el = cc_get_or_insert( &our_omap, key, el_val ) ) );
+
+          ALWAYS_ASSERT( *cc_key_for( &our_omap, el ) == key );
+
+          if( cc_size( &our_omap ) > original_size )
+          {
+            ALWAYS_ASSERT( *el == el_val );
+
+            stl_omap[ key ] = el_val;
+          }
+          else
+            ALWAYS_ASSERT( *el == stl_omap.find( key )->second );
+        }
+        break;
+        case 2: // cc_get.
+        {
+          int key = rand() % ( N_OPS / 10 );
+          int *el = cc_get( &our_omap, key );
+          if( el )
+            ALWAYS_ASSERT( *el == stl_omap.find( key )->second );
+          else
+            ALWAYS_ASSERT( stl_omap.find( key ) == stl_omap.end() );
+        }
+        break;
+        case 3: // cc_erase and cc_erase_itr.
+        {
+          if( rand() % 2 )
+          {
+            int key = rand() % ( N_OPS / 10 );
+            ALWAYS_ASSERT( cc_erase( &our_omap, key ) == (bool)stl_omap.erase( key ) );
+          }
+          else
+          {
+            int key = rand() % ( N_OPS / 10 );
+            int *el = cc_get( &our_omap, key );
+            if( el )
+              cc_erase_itr( &our_omap, el );
+            
+            stl_omap.erase( key );
+          }
+        }
+        break;
+        case 4: // cc_init_clone.
+        {
+          cc_omap( int, int ) clone;
+
+          if( rand() % 2 ) // Probable failure due to failing realloc.
+          {
+            if( cc_init_clone( &clone, &our_omap ) )
+            {
+              cc_cleanup( &our_omap );
+              our_omap = clone;
+            }
+          }
+          else // Non-failing.
+          {
+            failing_alloc_on = false;
+            UNTIL_SUCCESS( cc_init_clone( &clone, &our_omap ) );
+            cc_cleanup( &our_omap );
+            our_omap = clone;
+            failing_alloc_on = true;
+          }
+        }
+        break;
+      }
+    }
+
+    // Check our_omap against STL's ordered map.
+    auto stl_itr = stl_omap.begin();
+    cc_for_each( &our_omap, cc_itr )
+    {
+      ALWAYS_ASSERT( *cc_key_for( &our_omap, cc_itr ) == stl_itr->first );
+      ALWAYS_ASSERT( *cc_itr == stl_itr->second );
+      ++stl_itr;
+    }
+    ALWAYS_ASSERT( stl_itr == stl_omap.end() );
+
+    std::cout << "Done. Final size: " << cc_size( &our_omap ) << "\n";
+    cc_cleanup( &our_omap );
   }
 
   ALWAYS_ASSERT( oustanding_allocs.empty() );

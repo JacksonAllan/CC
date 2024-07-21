@@ -742,13 +742,15 @@ API:
       top of your files.
     * In-built comparison and hash functions are already defined for the following types: char, unsigned char, signed
       char, unsigned short, short, unsigned int, int, unsigned long, long, unsigned long long, long long, size_t, and
-      char * (a NULL-terminated string). Defining a comparsion or hash function for one of these types will overwrite
+      char * (a NULL-terminated string). Defining a comparison or hash function for one of these types will overwrite
       the in-built function.
 
 Version history:
 
   ../../.... 1.3.0: ...
                     Fixed cc_erase_itr to return a correctly typed pointer-iterator instead of void *. 
+                    Fixed a bug in list that caused cc_next and cc_prev to behave incorrectly when passed an r_end and
+                    end pointer-iterator, respectively.
   12/07/2024 1.2.0: Added MSVC support.
                     Added README examples to the documentation in the header.
   27/05/2024 1.1.1: Fixed a bug in map and set that could theoretically cause a crash on rehash (triggerable in testing
@@ -1917,9 +1919,16 @@ static inline void *cc_list_prev(
   CC_UNUSED( uint64_t, layout )
 )
 {
-  cc_listnode_hdr_ty *prev = cc_listnode_hdr( itr )->prev;
+  cc_listnode_hdr_ty *prev;
 
-  // If itr is r_end, then we need to decrement the pointer-iterator once more to ensure that the returned
+  // If itr is an end iterator, then we need to escape the placeholder originally associated with the list by retrieving
+  // the previous node from the allocated header, if a header has been allocated.
+  if( itr == cc_list_end( cntr, 0 /* Dummy */, 0 /* Dummy */ ) )
+    prev = cc_list_hdr( cntr )->end.prev;
+  else
+    prev = cc_listnode_hdr( itr )->prev;
+
+  // If prev is r_end, then we need to decrement the pointer-iterator once more to ensure that the returned
   // pointer-iterator is the r_end of the placeholder originally associated with the list.
   if( prev == &cc_list_hdr( cntr )->r_end )
     prev = prev->prev;
@@ -1934,9 +1943,15 @@ static inline void *cc_list_next(
   CC_UNUSED( uint64_t, layout )
 )
 {
-  cc_listnode_hdr_ty *next = cc_listnode_hdr( itr )->next;
+  cc_listnode_hdr_ty *next;
 
   // See the comment in cc_list_prev above.
+  if( itr == cc_list_r_end( cntr ) )
+    next = cc_list_hdr( cntr )->r_end.next;
+  else
+    next = cc_listnode_hdr( itr )->next;
+
+  // Again, see the comment in cc_list_prev above.
   if( next == &cc_list_hdr( cntr )->end )
     next = next->next;
 
@@ -3685,7 +3700,7 @@ static inline void *cc_omap_end(
   return cc_omap_r_end_or_end( cntr, true );
 }
 
-static inline cc_omapnode_hdr_ty *cc_omap_first_or_last(
+static inline void *cc_omap_first_or_last(
   void *cntr,
   bool dir
 )
@@ -3727,7 +3742,7 @@ static inline void *cc_omap_iterate(
 {
   // Handle the case of an end or r_end iterator.
   if( itr == cc_omap_r_end_or_end( cntr, !dir ) )
-    cc_omap_first_or_last( cntr, dir );
+    return cc_omap_first_or_last( cntr, dir );
 
   cc_omapnode_hdr_ty *node = cc_omapnode_hdr( itr );
 
@@ -4132,7 +4147,7 @@ static inline void *cc_omap_erase(
   cc_cmpr_fnptr_ty cmpr,
   cc_dtor_fnptr_ty el_dtor,
   cc_dtor_fnptr_ty key_dtor,
-  CC_UNUSED( cc_free_fnptr_ty, free_ )
+  cc_free_fnptr_ty free_
 )
 {
   void *itr = cc_omap_get( cntr, key, el_size, layout, NULL /* Dummy */, cmpr );
@@ -4236,7 +4251,7 @@ static inline void *cc_omap_init_clone(
   size_t el_size,
   uint64_t layout,
   cc_realloc_fnptr_ty realloc_,
-  CC_UNUSED( cc_free_fnptr_ty, free_ )
+  cc_free_fnptr_ty free_
 )
 {
   if( cc_omap_size( src ) == 0 ) // Also handles placeholder.
@@ -4651,7 +4666,9 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_OMAP                                    \
   ),                                                                    \
   CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2(                                  \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP || CC_CNTR_ID( *(cntr) ) == CC_SET, \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP ||                                  \
+    CC_CNTR_ID( *(cntr) ) == CC_SET ||                                  \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP,                                   \
     bool,                                                               \
     CC_EL_TY( *(cntr) ) *,                                              \
     /* Function select */                                               \
@@ -5803,7 +5820,7 @@ static inline CC_ALWAYS_INLINE int CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_three_way
   CC_OTHER_ARGS( CC_CMPR )
 }
 
-static inline bool CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_equals )( void *void_val_1, void *void_val_2 )
+static inline int CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_equals )( void *void_val_1, void *void_val_2 )
 {
   return CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_three_way )( void_val_1, void_val_2 ) == 0;
 }
