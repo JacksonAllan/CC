@@ -1,10 +1,6 @@
 # CC API Reference
 
-<table>
-<tr></tr>
-<tr>
-<td>
-<b>Contents:</b>  
+Contents:  
   
 * [Options](#options)  
 * [All containers](#all-containers)  
@@ -14,9 +10,6 @@
 * [Set](#set)  
 * [Ordered map](#ordered-map)  
 * [Destructor, comparison, and hash functions and custom max load factors](#destructor-comparison-and-hash-functions-and-custom-max-load-factors)
-</td>
-</tr>
-</table>
 
 > **Warning**
 > API macros may evaluate their first argument—the pointer to the container—multiple times, so never use expressions with side effects (e.g. `&our_containers[ ++i ]` ) for that argument. In GCC and Clang, attempting to do so will cause a compiler warning. All other arguments are only evaluated once.
@@ -449,7 +442,7 @@ It should be followed by the body of the loop.
 
 ## Set
 
-A `set` is an unordered associative container for elements without a separate key, implemented as a hybird open-addressing, chained hash table
+A `set` is an unordered associative container for elements without a separate key, implemented as a hybird open-addressing, chained hash table.
 
 ```c
 set( el_ty ) cntr
