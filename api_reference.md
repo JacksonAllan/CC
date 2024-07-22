@@ -4,16 +4,16 @@
 <tr></tr>
 <tr>
 <td>
-**Contents:**  
-
-[Options](#options)  
-[All containers](#all-containers)  
-[Vector](#vector) 
-[List](#list)  
-[Map](#map)  
-[Set](#set)  
-[Ordered map](#ordered-map)  
-[Destructor, comparison, and hash functions and custom max load factors](#destructor-comparison-and-hash-functions-and-custom-max-load-factors)
+<b>Contents:</b>  
+  
+* [Options](#options)  
+* [All containers](#all-containers)  
+* [Vector](#vector) 
+* [List](#list)  
+* [Map](#map)  
+* [Set](#set)  
+* [Ordered map](#ordered-map)  
+* [Destructor, comparison, and hash functions and custom max load factors](#destructor-comparison-and-hash-functions-and-custom-max-load-factors)
 </td>
 </tr>
 </table>
