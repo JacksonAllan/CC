@@ -1,7 +1,6 @@
 # CC API Reference
 
 Contents:  
-  
 * [Options](#options)  
 * [All containers](#all-containers)  
 * [Vector](#vector) 
