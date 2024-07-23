@@ -136,12 +136,71 @@ Usage example:
   +---------------------------------------------------------+----------------------------------------------------------+
   | Ordered map:                                            | Ordered set:                                             |
   +---------------------------------------------------------+----------------------------------------------------------+
-  |                                                         |                                                          |
-  |                                                         |                                                          |
-  |                         TODO                            |                          TODO                            |
-  |                                                         |                                                          |
-  |                                                         |                                                          |
-  +---------------------------------------------------------+----------------------------------------------------------+
+  | #include <stdio.h>                                      |
+  | #include "cc.h"                                         |
+  |                                                         |
+  | int main( void )                                        |
+  | {                                                       |
+  |   // Declare an ordered map with int keys and short     |
+  |   // elements.                                          |
+  |   omap( int, short ) our_omap;                          |
+  |   init( &our_omap );                                    |
+  |                                                         |
+  |   // Inserting elements.                                |
+  |   for( int i = 0; i < 10; ++i )                         |
+  |     if( !insert( &our_omap, i, i + 1 ) )                |
+  |     {                                                   |
+  |       // Out of memory, so abort.                       |
+  |       cleanup( &our_omap );                             |
+  |       return 1;                                         |
+  |     }                                                   |
+  |                                                         |
+  |   // Erasing elements.                                  |
+  |   for( int i = 0; i < 10; i += 3 )                      |
+  |     erase( &our_omap, i );                              |
+  |                                                         |
+  |   // Retrieving elements.                               |
+  |   for( int i = 0; i < 10; ++i )                         |
+  |   {                                                     |
+  |     short *el = get( &our_omap, i );                    |
+  |     if( el )                                            |
+  |       printf( "%d:%d ", i, *el );                       |
+  |   }                                                     |
+  |   // Printed: 1:2 2:3 4:5 5:6 7:8 8:9                   |
+  |                                                         |
+  |   // Iteration #1 (elements only).                      |
+  |   for_each( &our_omap, el )                             |
+  |     printf( "%d ", *el );                               |
+  |   // Printed: 2 3 5 6 8 9                               |
+  |                                                         |
+  |   // Iteration #2 (elements and keys).                  |
+  |   for_each( &our_omap, key, el )                        |
+  |     printf( "%d:%d ", *key, *el );                      |
+  |   // Printed: 1:2 2:3 4:5 5:6 7:8 8:9                   |
+  |                                                         |
+  |   // Iteration #3.                                      |
+  |   for(                                                  |
+  |     short *el = first( &our_omap );                     |
+  |     el != end( &our_omap );                             |
+  |     el = next( &our_omap, el )                          |
+  |   )                                                     |
+  |     printf( "%d:%d ", *key_for( &our_omap, el ), *el ); |
+  |   // Printed: Same as above.                            |
+  |                                                         |
+  |   // Iteration over a key range, namely from 2          |
+  |   // (inclusive) to 7 (exclusive).                      |
+  |   for(                                                  |
+  |     short *el = first( &our_omap, 2 ),                  |
+  |     *range_end = first( &our_omap, 7 );                 |
+  |     el != range_end;                                    |
+  |     el = next( &our_omap, el )                          |
+  |   )                                                     |
+  |     printf( "%d:%d ", *key_for( &our_omap, el ), *el ); |
+  |   // Printed: 2:3 4:5 5:6                               |
+  |                                                         |
+  |   cleanup( &our_omap );                                 |
+  | }                                                       |
+  +---------------------------------------------------------+
 
 Including the library:
 
@@ -829,6 +888,7 @@ License (MIT):
 #define map( ... )           CC_MSVC_PP_FIX( cc_map( __VA_ARGS__ ) )
 #define set( ... )           CC_MSVC_PP_FIX( cc_set( __VA_ARGS__ ) )
 #define omap( ... )          CC_MSVC_PP_FIX( cc_omap( __VA_ARGS__ ) )
+#define oset( ... )          CC_MSVC_PP_FIX( cc_oset( __VA_ARGS__ ) )
 #define init( ... )          CC_MSVC_PP_FIX( cc_init( __VA_ARGS__ ) )
 #define init_clone( ... )    CC_MSVC_PP_FIX( cc_init_clone( __VA_ARGS__ ) )
 #define size( ... )          CC_MSVC_PP_FIX( cc_size( __VA_ARGS__ ) )
@@ -1061,6 +1121,7 @@ typedef void ( *cc_free_fnptr_ty )( void * );
 #define CC_MAP  3
 #define CC_SET  4
 #define CC_OMAP 5
+#define CC_OSET 6
 
 // Produces the underlying function pointer type for a given element/key type pair.
 #define CC_MAKE_BASE_FNPTR_TY( el_ty, key_ty ) CC_TYPEOF_TY( CC_TYPEOF_TY( el_ty ) (*)( CC_TYPEOF_TY( key_ty )* ) )
@@ -1075,33 +1136,33 @@ typedef void ( *cc_free_fnptr_ty )( void * );
 // The key type is the type used to look up elements, even in non-associative containers.
 // This simplifies API macros by eliminating the need to treat non-associative containers as special cases.
 
-#define cc_vec( el_ty )         CC_MAKE_CNTR_TY( el_ty, size_t, CC_VEC ) // Vector key type is size_t.
+#define cc_vec( el_ty )          CC_MAKE_CNTR_TY( el_ty, size_t, CC_VEC ) // Vector key type is size_t.
 
-#define cc_list( el_ty )        CC_MAKE_CNTR_TY( el_ty, void *, CC_LIST ) // List key is a pointer-iterator.
+#define cc_list( el_ty )         CC_MAKE_CNTR_TY( el_ty, void *, CC_LIST ) // List key is a pointer-iterator.
 
-#define cc_map( key_ty, el_ty ) CC_MAKE_CNTR_TY(                                                          \
-                                  el_ty,                                                                  \
-                                  key_ty,                                                                 \
-                                  CC_MAP * ( (                                                            \
-                                    /* Compiler error if key type lacks comparison and hash functions. */ \
-                                    CC_HAS_CMPR( key_ty ) && CC_HAS_HASH( key_ty ) &&                     \
-                                    /* Compiler error if bucket layout constraints are violated. */       \
-                                    CC_SATISFIES_LAYOUT_CONSTRAINTS( key_ty, el_ty )                      \
-                                  ) ? 1 : -1 )                                                            \
-                                )                                                                         \
+#define cc_map( key_ty, el_ty )  CC_MAKE_CNTR_TY(                                                          \
+                                   el_ty,                                                                  \
+                                   key_ty,                                                                 \
+                                   CC_MAP * ( (                                                            \
+                                     /* Compiler error if key type lacks comparison and hash functions. */ \
+                                     CC_HAS_CMPR( key_ty ) && CC_HAS_HASH( key_ty ) &&                     \
+                                     /* Compiler error if bucket layout constraints are violated. */       \
+                                     CC_SATISFIES_LAYOUT_CONSTRAINTS( key_ty, el_ty )                      \
+                                   ) ? 1 : -1 )                                                            \
+                                 )                                                                         \
 
-#define cc_set( el_ty )         CC_MAKE_CNTR_TY(                                                                 \
-                                  /* As set simply wraps map, we use el_ty as both the element and key types. */ \
-                                  /* This allows minimal changes to map function arguments to make sets work. */ \
-                                  el_ty,                                                                         \
-                                  el_ty,                                                                         \
-                                  CC_SET * ( (                                                                   \
-                                    /* Compiler error if key type lacks comparison and hash functions. */        \
-                                    CC_HAS_CMPR( el_ty ) && CC_HAS_HASH( el_ty ) &&                              \
-                                    /* Compiler error if bucket layout constraints are violated. */              \
-                                    CC_SATISFIES_LAYOUT_CONSTRAINTS( el_ty, el_ty )                              \
-                                  ) ? 1 : -1 )                                                                   \
-                                )                                                                                \
+#define cc_set( el_ty )          CC_MAKE_CNTR_TY(                                                                 \
+                                   /* As set simply wraps map, we use el_ty as both the element and key types. */ \
+                                   /* This allows minimal changes to map function arguments to make sets work. */ \
+                                   el_ty,                                                                         \
+                                   el_ty,                                                                         \
+                                   CC_SET * ( (                                                                   \
+                                     /* Compiler error if key type lacks comparison and hash functions. */        \
+                                     CC_HAS_CMPR( el_ty ) && CC_HAS_HASH( el_ty ) &&                              \
+                                     /* Compiler error if bucket layout constraints are violated. */              \
+                                     CC_SATISFIES_LAYOUT_CONSTRAINTS( el_ty, el_ty )                              \
+                                   ) ? 1 : -1 )                                                                   \
+                                 )                                                                                \
 
 #define cc_omap( key_ty, el_ty ) CC_MAKE_CNTR_TY(                                                    \
                                    el_ty,                                                            \
@@ -1113,6 +1174,19 @@ typedef void ( *cc_free_fnptr_ty )( void * );
                                      CC_SATISFIES_LAYOUT_CONSTRAINTS( key_ty, el_ty )                \
                                    ) ? 1 : -1 )                                                      \
                                  )                                                                   \
+
+#define cc_oset( el_ty )         CC_MAKE_CNTR_TY(                                                                   \
+                                   /* As oset simply wraps omap, we use el_ty as both the element and key types. */ \
+                                   /* This allows minimal changes to omap function arguments to make osets work. */ \
+                                   el_ty,                                                                           \
+                                   el_ty,                                                                           \
+                                   CC_OSET * ( (                                                                    \
+                                     /* Compiler error if key type lacks a comparison function. */                  \
+                                     CC_HAS_CMPR( el_ty ) &&                                                        \
+                                     /* Compiler error if bucket layout constraints are violated. */                \
+                                     CC_SATISFIES_LAYOUT_CONSTRAINTS( el_ty, el_ty )                                \
+                                   ) ? 1 : -1 )                                                                     \
+                                 )                                                                                  \
 
 // Retrieves a container's id (e.g. CC_VEC) from its handle.
 #define CC_CNTR_ID( cntr ) ( sizeof( *cntr ) / sizeof( **cntr ) )
@@ -1249,11 +1323,11 @@ static inline CC_ALWAYS_INLINE uint64_t cc_layout(
       CC_MAP_EL_PADDING( el_size, key_details.align )                              << 32 |
       CC_MAP_KEY_PADDING( el_size, el_align, key_details.size, key_details.align ) << 48;
 
-  if( cntr_id == CC_SET )
-    return el_size;
-
   if( cntr_id == CC_OMAP )
     return key_details.size | CC_MAP_EL_PADDING( el_size, key_details.align ) << 32;
+
+  if( cntr_id == CC_SET || cntr_id == CC_OSET )
+    return el_size;
 
   return 0; // Other container types don't require layout data.
 }
@@ -3503,7 +3577,7 @@ static inline void *cc_set_init_clone(
   CC_UNUSED( cc_free_fnptr_ty, free_ )
 )
 {
-  return cc_map_init_clone( src, /* Zero element size */ 0, layout, realloc_, NULL /* Dummy */ );
+  return cc_map_init_clone( src, 0 /* Zero element size */, layout, realloc_, NULL /* Dummy */ );
 }
 
 static inline void cc_set_clear(
@@ -3522,9 +3596,10 @@ static inline void cc_set_cleanup(
   void *cntr,
   CC_UNUSED( size_t, el_size ),
   uint64_t layout,
-  void ( *el_dtor )( void * ),
+  cc_dtor_fnptr_ty el_dtor,
   CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
-  void ( *free_ )( void * ))
+  cc_free_fnptr_ty free_
+)
 {
   cc_map_cleanup( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one destructor */, free_ );
 }
@@ -3540,7 +3615,7 @@ static inline void *cc_set_end(
   uint64_t layout
 )
 {
-  return cc_map_end( cntr, /* Zero element size */ 0, layout );
+  return cc_map_end( cntr, 0 /* Zero element size */, layout );
 }
 
 static inline void *cc_set_first(
@@ -3549,7 +3624,7 @@ static inline void *cc_set_first(
   uint64_t layout
 )
 {
-  return cc_map_first( cntr, /* Zero element size */ 0, layout );
+  return cc_map_first( cntr, 0 /* Zero element size */, layout );
 }
 
 static inline void *cc_set_last(
@@ -3558,7 +3633,7 @@ static inline void *cc_set_last(
   uint64_t layout
 )
 {
-  return cc_map_last( cntr, /* Zero element size */ 0, layout );
+  return cc_map_last( cntr, 0 /* Zero element size */, layout );
 }
 
 static inline void *cc_set_prev(
@@ -3568,7 +3643,7 @@ static inline void *cc_set_prev(
   uint64_t layout
 )
 {
-  return cc_map_prev( cntr, itr, /* Zero element size */ 0, layout );
+  return cc_map_prev( cntr, itr, 0 /* Zero element size */, layout );
 }
 
 static inline void *cc_set_next(
@@ -3578,7 +3653,7 @@ static inline void *cc_set_next(
   uint64_t layout
 )
 {
-  return cc_map_next( cntr, itr, /* Zero element size */ 0, layout );
+  return cc_map_next( cntr, itr, 0 /* Zero element size */, layout );
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -3685,7 +3760,10 @@ static inline size_t cc_omap_size( void *cntr )
 
 // An r_end pointer-iterator points to the sentinel.
 // An end pointer-iterator points to the end of the sentinel.
-static inline void *cc_omap_r_end_or_end( void *cntr, bool dir )
+static inline void *cc_omap_r_end_or_end(
+  void *cntr,
+  bool dir
+)
 {
   return cc_omap_hdr( cntr )->sentinel + dir;
 }
@@ -4341,6 +4419,210 @@ static inline void *cc_omap_init_clone(
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
+/*                                                    Ordered set                                                     */
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+// An ordered set is implemented as an ordered map where the key and element are combined into one space in memory.
+// Hence, it reuses the functions for omap, except:
+// * The key offset inside the bucket is zero.
+//   This is handled at the API-macro level via the cc_layout function and associated macros.
+// * The element size passed into map functions is zero in order to avoid double memcpy-ing.
+
+static inline size_t cc_oset_size( void *cntr )
+{
+  return cc_omap_size( cntr );
+}
+
+static inline cc_allocing_fn_result_ty cc_oset_insert(
+  void *cntr,
+  void *key,
+  bool replace,
+  uint64_t layout,
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  cc_cmpr_fnptr_ty cmpr,
+  CC_UNUSED( double, max_load ),
+  cc_dtor_fnptr_ty el_dtor,
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  return cc_omap_insert(
+    cntr,
+    cntr,     // Dummy pointer for element as memcpy-ing to a NULL pointer is undefined behavior even when size is zero.
+    key,
+    replace,
+    0,        // Zero element size.
+    layout,
+    hash,
+    cmpr,
+    max_load,
+    el_dtor,
+    NULL,     // Only one destructor.
+    realloc_,
+    free_
+  );
+}
+
+static inline void *cc_oset_get(
+  void *cntr,
+  void *key,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  cc_cmpr_fnptr_ty cmpr
+)
+{
+  return cc_omap_get( cntr, key, 0 /* Zero element size */, layout, hash, cmpr );
+}
+
+static inline void *cc_oset_bounded_first_or_last(
+  void *cntr,
+  void *key,
+  bool dir,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  cc_cmpr_fnptr_ty cmpr
+)
+{
+  return cc_omap_bounded_first_or_last( cntr, key, dir, 0 /* Zero element size */, layout, cmpr );
+}
+
+static inline void *cc_oset_erase_itr(
+  void *cntr,
+  void *itr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_free_fnptr_ty free_
+)
+{
+  return cc_omap_erase_itr(
+    cntr,
+    itr,
+    0,       // Zero element size.
+    layout,
+    hash,
+    el_dtor,
+    NULL,    // Only one destructor.
+    free_
+  );
+}
+
+static inline void *cc_oset_erase(
+  void *cntr,
+  void *key,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  cc_cmpr_fnptr_ty cmpr,
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_free_fnptr_ty free_
+)
+{
+  return cc_omap_erase(
+    cntr,
+    key,
+    0,       // Zero element size.
+    layout,
+    hash,
+    cmpr,
+    el_dtor,
+    NULL,    // Only one destructor.
+    free_
+  );
+}
+
+static inline void *cc_oset_init_clone(
+  void *src,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
+)
+{
+  return cc_omap_init_clone( src, 0 /* Zero element size */, layout, realloc_, free_ );
+}
+
+static inline void cc_oset_clear(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_free_fnptr_ty free_
+)
+{
+  cc_omap_clear( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one destructor */, free_ );
+}
+
+static inline void cc_oset_cleanup(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  uint64_t layout,
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_free_fnptr_ty free_
+)
+{
+  cc_omap_cleanup( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one destructor */, free_ );
+}
+
+static inline void *cc_oset_r_end( void *cntr )
+{
+  return cc_omap_r_end( cntr );
+}
+
+static inline void *cc_oset_end(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return cc_omap_end( cntr, 0 /* Zero element size */, 0 /* Dummy */ );
+}
+
+static inline void *cc_oset_first(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return cc_omap_first( cntr, 0 /* Zero element size */, 0 /* Dummy */ );
+}
+
+static inline void *cc_oset_last(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return cc_omap_last( cntr, 0 /* Zero element size */, 0 /* Dummy */ );
+}
+
+static inline void *cc_oset_prev(
+  void *cntr,
+  void *itr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return cc_omap_prev( cntr, itr, 0 /* Zero element size */, 0 /* Dummy */ );
+}
+
+static inline void *cc_oset_next(
+  void *cntr,
+  void *itr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return cc_omap_next( cntr, itr, 0 /* Zero element size */, 0 /* Dummy */ );
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
 /*                                                        API                                                         */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -4352,14 +4634,16 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                                                   \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                                                   \
   ),                                                                                   \
   *(cntr) = (                                                                          \
     CC_CNTR_ID( *(cntr) ) == CC_VEC  ? (CC_TYPEOF_XP( *(cntr) ))&cc_vec_placeholder  : \
     CC_CNTR_ID( *(cntr) ) == CC_LIST ? (CC_TYPEOF_XP( *(cntr) ))&cc_list_placeholder : \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? (CC_TYPEOF_XP( *(cntr) ))&cc_map_placeholder  : \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ? (CC_TYPEOF_XP( *(cntr) ))&cc_map_placeholder  : \
-                         /* CC_OMAP */ (CC_TYPEOF_XP( *(cntr) ))&cc_omap_placeholder   \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ? (CC_TYPEOF_XP( *(cntr) ))&cc_omap_placeholder : \
+                         /* CC_OSET */ (CC_TYPEOF_XP( *(cntr) ))&cc_omap_placeholder   \
   ),                                                                                   \
   (void)0                                                                              \
 )                                                                                      \
@@ -4372,7 +4656,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||               \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||               \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||               \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                  \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||               \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                  \
   ),                                                  \
   /* Function select */                               \
   (                                                   \
@@ -4380,7 +4665,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_size : \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_size  : \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_size  : \
-                         /* CC_OMAP */ cc_omap_size   \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_size : \
+                         /* CC_OSET */ cc_oset_size   \
   )                                                   \
   /* Function arguments */                            \
   (                                                   \
@@ -4412,8 +4698,8 @@ static inline void *cc_omap_init_clone(
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
   CC_STATIC_ASSERT(                                                                          \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC ||                                                       \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP ||                                                       \
     CC_CNTR_ID( *(cntr) ) == CC_SET                                                          \
   ),                                                                                         \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
@@ -4444,10 +4730,19 @@ static inline void *cc_omap_init_clone(
 #define cc_insert_2( cntr, key )                                                             \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_SET ),                                       \
+  CC_STATIC_ASSERT(                                                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                                                         \
+  ),                                                                                         \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
     *(cntr),                                                                                 \
-    cc_set_insert(                                                                           \
+    /* Function select */                                                                    \
+    (                                                                                        \
+      CC_CNTR_ID( *(cntr) ) == CC_SET ? cc_set_insert  :                                     \
+                          /* CC_OSET */ cc_oset_insert                                       \
+    )                                                                                        \
+    /* Function arguments */                                                                 \
+    (                                                                                        \
       *(cntr),                                                                               \
       &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
       true,                                                                                  \
@@ -4553,10 +4848,19 @@ static inline void *cc_omap_init_clone(
 #define cc_get_or_insert_2( cntr, key )                                                      \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_SET ),                                       \
+  CC_STATIC_ASSERT(                                                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                                                         \
+  ),                                                                                         \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
     *(cntr),                                                                                 \
-    cc_set_insert(                                                                           \
+    /* Function select */                                                                    \
+    (                                                                                        \
+      CC_CNTR_ID( *(cntr) ) == CC_SET ? cc_set_insert  :                                     \
+                          /* CC_OSET */ cc_oset_insert                                       \
+    )                                                                                        \
+    /* Function arguments */                                                                 \
+    (                                                                                        \
       *(cntr),                                                                               \
       &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
       false,                                                                                 \
@@ -4613,7 +4917,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                     \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                     \
   ),                                                     \
   CC_CAST_MAYBE_UNUSED(                                  \
     CC_EL_TY( *(cntr) ) *,                               \
@@ -4622,7 +4927,8 @@ static inline void *cc_omap_init_clone(
       CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_get  :   \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_get  :   \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_get  :   \
-                           /* CC_OMAP */ cc_omap_get     \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_get :   \
+                           /* CC_OSET */ cc_oset_get     \
     )                                                    \
     /* Function arguments */                             \
     (                                                    \
@@ -4667,12 +4973,14 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                 \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                 \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                                    \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                                    \
   ),                                                                    \
   CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2(                                  \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP ||                                  \
-    CC_CNTR_ID( *(cntr) ) == CC_SET ||                                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP,                                   \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET,                                   \
     bool,                                                               \
     CC_EL_TY( *(cntr) ) *,                                              \
     /* Function select */                                               \
@@ -4681,7 +4989,8 @@ static inline void *cc_omap_init_clone(
       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_erase :                \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_erase  :                \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_erase  :                \
-                           /* CC_OMAP */ cc_omap_erase                  \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_erase :                \
+                           /* CC_OSET */ cc_oset_erase                  \
     )                                                                   \
     /* Function arguments */                                            \
     (                                                                   \
@@ -4708,35 +5017,37 @@ static inline void *cc_omap_init_clone(
   )                                                                                       \
 )                                                                                         \
 
-#define cc_erase_itr( cntr, itr )                           \
-(                                                           \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                   \
-  CC_STATIC_ASSERT(                                         \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                     \
-    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                     \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                        \
-  ),                                                        \
-  CC_CAST_MAYBE_UNUSED(                                     \
-    CC_EL_TY( *(cntr) ) *,                                  \
-    /* Function select */                                   \
-    (                                                       \
-      CC_CNTR_ID( *(cntr) ) == CC_MAP ? cc_map_erase_itr  : \
-      CC_CNTR_ID( *(cntr) ) == CC_SET ? cc_set_erase_itr  : \
-                          /* CC_OMAP */ cc_omap_erase_itr   \
-    )                                                       \
-    /* Function arguments */                                \
-    (                                                       \
-      *(cntr),                                              \
-      (itr),                                                \
-      CC_EL_SIZE( *(cntr) ),                                \
-      CC_LAYOUT( *(cntr) ),                                 \
-      CC_KEY_HASH( *(cntr) ),                               \
-      CC_EL_DTOR( *(cntr) ),                                \
-      CC_KEY_DTOR( *(cntr) ),                               \
-      CC_FREE_FN                                            \
-    )                                                       \
-  )                                                         \
-)                                                           \
+#define cc_erase_itr( cntr, itr )                            \
+(                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                    \
+  CC_STATIC_ASSERT(                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                      \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                      \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                      \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                         \
+  ),                                                         \
+  CC_CAST_MAYBE_UNUSED(                                      \
+    CC_EL_TY( *(cntr) ) *,                                   \
+    /* Function select */                                    \
+    (                                                        \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_erase_itr  : \
+      CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_erase_itr  : \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_erase_itr : \
+                           /* CC_OSET */ cc_oset_erase_itr   \
+    )                                                        \
+    /* Function arguments */                                 \
+    (                                                        \
+      *(cntr),                                               \
+      (itr),                                                 \
+      CC_EL_SIZE( *(cntr) ),                                 \
+      CC_LAYOUT( *(cntr) ),                                  \
+      CC_KEY_HASH( *(cntr) ),                                \
+      CC_EL_DTOR( *(cntr) ),                                 \
+      CC_KEY_DTOR( *(cntr) ),                                \
+      CC_FREE_FN                                             \
+    )                                                        \
+  )                                                          \
+)                                                            \
 
 #define cc_splice( cntr, itr, src, src_itr )                                \
 (                                                                           \
@@ -4800,7 +5111,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                       \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                       \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                       \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                          \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                       \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                          \
   ),                                                          \
   CC_STATIC_ASSERT( CC_IS_SAME_TY( *(cntr), *(src) ) ),       \
   CC_CAST_MAYBE_UNUSED(                                       \
@@ -4812,7 +5124,8 @@ static inline void *cc_omap_init_clone(
       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_init_clone : \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_init_clone  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_init_clone  : \
-                           /* CC_OMAP */ cc_omap_init_clone   \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_init_clone : \
+                           /* CC_OSET */ cc_oset_init_clone   \
     )                                                         \
     /* Function arguments */                                  \
     (                                                         \
@@ -4833,7 +5146,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                   \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                   \
   ),                                                   \
   /* Function select */                                \
   (                                                    \
@@ -4841,7 +5155,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_clear : \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_clear  : \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_clear  : \
-                         /* CC_OMAP */ cc_omap_clear   \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_clear : \
+                         /* CC_OSET */ cc_oset_clear   \
   )                                                    \
   /* Function arguments */                             \
   (                                                    \
@@ -4862,7 +5177,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                     \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                     \
   ),                                                     \
   /* Function select */                                  \
   (                                                      \
@@ -4870,7 +5186,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_cleanup : \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_cleanup  : \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_cleanup  : \
-                         /* CC_OMAP */ cc_omap_cleanup   \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_cleanup : \
+                         /* CC_OSET */ cc_oset_cleanup   \
   )                                                      \
   /* Function arguments */                               \
   (                                                      \
@@ -4891,7 +5208,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                     \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                     \
   ),                                                     \
   CC_CAST_MAYBE_UNUSED(                                  \
     CC_EL_TY( *(cntr) ) *,                               \
@@ -4900,7 +5218,8 @@ static inline void *cc_omap_init_clone(
       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_r_end : \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_r_end  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_r_end  : \
-                           /* CC_OMAP */ cc_omap_r_end   \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_r_end : \
+                           /* CC_OSET */ cc_oset_r_end   \
     )                                                    \
     /* Function arguments */                             \
     (                                                    \
@@ -4917,7 +5236,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                   \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                   \
   ),                                                   \
   CC_CAST_MAYBE_UNUSED(                                \
     CC_EL_TY( *(cntr) ) *,                             \
@@ -4927,7 +5247,8 @@ static inline void *cc_omap_init_clone(
       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_end : \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_end  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_end  : \
-                           /* CC_OMAP */ cc_omap_end   \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_end : \
+                           /* CC_OSET */ cc_oset_end   \
     )                                                  \
     /* Function arguments */                           \
     (                                                  \
@@ -4948,7 +5269,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                     \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                     \
   ),                                                     \
   CC_CAST_MAYBE_UNUSED(                                  \
     CC_EL_TY( *(cntr) ) *,                               \
@@ -4958,7 +5280,8 @@ static inline void *cc_omap_init_clone(
       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_first : \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_first  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_first  : \
-                           /* CC_OMAP */ cc_omap_first   \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_first : \
+                           /* CC_OSET */ cc_oset_first   \
     )                                                    \
     /* Function arguments */                             \
     (                                                    \
@@ -4969,29 +5292,31 @@ static inline void *cc_omap_init_clone(
   )                                                      \
 )                                                        \
 
-#define cc_first_2( cntr, key )                                        \
-(                                                                      \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                              \
-  CC_STATIC_ASSERT(                                                    \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                                   \
-  ),                                                                   \
-  CC_CAST_MAYBE_UNUSED(                                                \
-    CC_EL_TY( *(cntr) ) *,                                             \
-    /* Function select */                                              \
-    (                                                                  \
-                           /* CC_OMAP */ cc_omap_bounded_first_or_last \
-    )                                                                  \
-    /* Function arguments */                                           \
-    (                                                                  \
-      *(cntr),                                                         \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),               \
-      true,                                                            \
-      CC_EL_SIZE( *(cntr) ),                                           \
-      CC_LAYOUT( *(cntr) ),                                            \
-      CC_KEY_CMPR( *(cntr) )                                           \
-    )                                                                  \
-  )                                                                    \
-)                                                                      \
+#define cc_first_2( cntr, key )                                          \
+(                                                                        \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                \
+  CC_STATIC_ASSERT(                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                  \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                                     \
+  ),                                                                     \
+  CC_CAST_MAYBE_UNUSED(                                                  \
+    CC_EL_TY( *(cntr) ) *,                                               \
+    /* Function select */                                                \
+    (                                                                    \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_bounded_first_or_last : \
+                           /* CC_OSET */ cc_oset_bounded_first_or_last   \
+    )                                                                    \
+    /* Function arguments */                                             \
+    (                                                                    \
+      *(cntr),                                                           \
+      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                 \
+      true,                                                              \
+      CC_EL_SIZE( *(cntr) ),                                             \
+      CC_LAYOUT( *(cntr) ),                                              \
+      CC_KEY_CMPR( *(cntr) )                                             \
+    )                                                                    \
+  )                                                                      \
+)                                                                        \
 
 #define cc_last( ... ) CC_SELECT_ON_NUM_ARGS( cc_last, __VA_ARGS__ )
 
@@ -5003,7 +5328,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                 \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                    \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                    \
   ),                                                    \
   CC_CAST_MAYBE_UNUSED(                                 \
     CC_EL_TY( *(cntr) ) *,                              \
@@ -5013,7 +5339,8 @@ static inline void *cc_omap_init_clone(
       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_last : \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_last  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_last  : \
-                           /* CC_OMAP */ cc_omap_last   \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_last : \
+                           /* CC_OSET */ cc_oset_last   \
     )                                                   \
     /* Function arguments */                            \
     (                                                   \
@@ -5024,29 +5351,31 @@ static inline void *cc_omap_init_clone(
   )                                                     \
 )                                                       \
 
-#define cc_last_2( cntr, key )                                         \
-(                                                                      \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                              \
-  CC_STATIC_ASSERT(                                                    \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                                   \
-  ),                                                                   \
-  CC_CAST_MAYBE_UNUSED(                                                \
-    CC_EL_TY( *(cntr) ) *,                                             \
-    /* Function select */                                              \
-    (                                                                  \
-                           /* CC_OMAP */ cc_omap_bounded_first_or_last \
-    )                                                                  \
-    /* Function arguments */                                           \
-    (                                                                  \
-      *(cntr),                                                         \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),               \
-      false,                                                           \
-      CC_EL_SIZE( *(cntr) ),                                           \
-      CC_LAYOUT( *(cntr) ),                                            \
-      CC_KEY_CMPR( *(cntr) )                                           \
-    )                                                                  \
-  )                                                                    \
-)                                                                      \
+#define cc_last_2( cntr, key )                                           \
+(                                                                        \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                \
+  CC_STATIC_ASSERT(                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                  \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                                     \
+  ),                                                                     \
+  CC_CAST_MAYBE_UNUSED(                                                  \
+    CC_EL_TY( *(cntr) ) *,                                               \
+    /* Function select */                                                \
+    (                                                                    \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_bounded_first_or_last : \
+                           /* CC_OSET */ cc_oset_bounded_first_or_last   \
+    )                                                                    \
+    /* Function arguments */                                             \
+    (                                                                    \
+      *(cntr),                                                           \
+      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                 \
+      false,                                                             \
+      CC_EL_SIZE( *(cntr) ),                                             \
+      CC_LAYOUT( *(cntr) ),                                              \
+      CC_KEY_CMPR( *(cntr) )                                             \
+    )                                                                    \
+  )                                                                      \
+)                                                                        \
 
 #define cc_next( cntr, itr )                            \
 (                                                       \
@@ -5056,7 +5385,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                 \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                    \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                    \
   ),                                                    \
   CC_CAST_MAYBE_UNUSED(                                 \
     CC_EL_TY( *(cntr) ) *,                              \
@@ -5066,7 +5396,8 @@ static inline void *cc_omap_init_clone(
       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_next : \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_next  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_next  : \
-                          /* CC_OMAP */  cc_omap_next   \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_next : \
+                          /* CC_OSET */  cc_oset_next   \
     )                                                   \
     /* Function arguments */                            \
     (                                                   \
@@ -5085,7 +5416,8 @@ static inline void *cc_omap_init_clone(
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                 \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                    \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                    \
   ),                                                    \
   CC_CAST_MAYBE_UNUSED(                                 \
     CC_EL_TY( *(cntr) ) *,                              \
@@ -5094,7 +5426,8 @@ static inline void *cc_omap_init_clone(
       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_prev : \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_prev  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_prev  : \
-                           /* CC_OMAP */ cc_omap_prev   \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_prev : \
+                           /* CC_OSET */ cc_oset_prev   \
     )                                                   \
     /* Function arguments */                            \
     (                                                   \

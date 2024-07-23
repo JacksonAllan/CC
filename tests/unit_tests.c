@@ -30,6 +30,7 @@ License (MIT):
 #define TEST_MAP
 #define TEST_SET
 #define TEST_OMAP
+#define TEST_OSET
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,7 +59,7 @@ License (MIT):
 size_t simulated_alloc_failures = 0;
 size_t oustanding_allocs = 0;
 
-void *unreliable_tracking_realloc( void *ptr, size_t size )
+static void *unreliable_tracking_realloc( void *ptr, size_t size )
 {
 #ifdef SIMULATE_ALLOC_FAILURES
   if( rand() % 5 == 0 )
@@ -77,7 +78,7 @@ void *unreliable_tracking_realloc( void *ptr, size_t size )
   return new_ptr;
 }
 
-void tracking_free( void *ptr )
+static void tracking_free( void *ptr )
 {
   if( ptr )
     --oustanding_allocs;
@@ -92,7 +93,7 @@ void tracking_free( void *ptr )
 // Define a custom type that will be used to check that destructors are always called where necessary.
 
 bool dtor_called[ 100 ];
-void check_dtors_arr( void )
+static void check_dtors_arr( void )
 {
   for( size_t i = 0; i < sizeof( dtor_called ) / sizeof( *dtor_called ); ++i )
   {
@@ -116,7 +117,7 @@ ALWAYS_ASSERT( size( &our_vec ) == sizeof( expected ) / sizeof( *expected ) ); \
 for( size_t i = 0; i < size( &our_vec ); ++i )                                 \
   ALWAYS_ASSERT( *get( &our_vec, i ) == expected[ i ] )                        \
 
-void test_vec_reserve( void )
+static void test_vec_reserve( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -160,7 +161,7 @@ void test_vec_reserve( void )
   cleanup( &our_vec );
 }
 
-void test_vec_resize( void )
+static void test_vec_resize( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -200,7 +201,7 @@ void test_vec_resize( void )
   cleanup( &our_vec );
 }
 
-void test_vec_shrink( void )
+static void test_vec_shrink( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -250,7 +251,7 @@ void test_vec_shrink( void )
   cleanup( &our_vec ); 
 }
 
-void test_vec_insert( void )
+static void test_vec_insert( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -296,7 +297,7 @@ void test_vec_insert( void )
   cleanup( &our_vec );
 }
 
-void test_vec_insert_n( void )
+static void test_vec_insert_n( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -322,7 +323,7 @@ void test_vec_insert_n( void )
   cleanup( &our_vec );
 }
 
-void test_vec_push( void )
+static void test_vec_push( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -352,7 +353,7 @@ void test_vec_push( void )
   cleanup( &our_vec );
 }
 
-void test_vec_push_n( void )
+static void test_vec_push_n( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -387,7 +388,7 @@ void test_vec_push_n( void )
   cleanup( &our_vec );
 }
 
-void test_vec_erase( void )
+static void test_vec_erase( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -427,7 +428,7 @@ void test_vec_erase( void )
   cleanup( &our_vec );
 }
 
-void test_vec_erase_n( void )
+static void test_vec_erase_n( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -462,7 +463,7 @@ void test_vec_erase_n( void )
   cleanup( &our_vec ); 
 }
 
-void test_vec_clear( void )
+static void test_vec_clear( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -491,7 +492,7 @@ void test_vec_clear( void )
   cleanup( &our_vec );
 }
 
-void test_vec_cleanup( void )
+static void test_vec_cleanup( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -521,7 +522,7 @@ void test_vec_cleanup( void )
   cleanup( &our_vec );
 }
 
-void test_vec_iteration( void )
+static void test_vec_iteration( void )
 {
   vec( int ) our_vec;
   init( &our_vec );
@@ -533,7 +534,7 @@ void test_vec_iteration( void )
   };
 
   // Empty.
-  int n_iterations = 0;
+  size_t n_iterations = 0;
   for( int *i = first( &our_vec ); i != end( &our_vec ); i = next( &our_vec, i ) )
     ++n_iterations;
 
@@ -561,7 +562,7 @@ void test_vec_iteration( void )
   cleanup( &our_vec );
 }
 
-void test_vec_init_clone( void )
+static void test_vec_init_clone( void )
 {
   vec( int ) src_vec;
   init( &src_vec );
@@ -588,7 +589,7 @@ void test_vec_init_clone( void )
   cleanup( &our_vec );
 }
 
-void test_vec_dtors( void )
+static void test_vec_dtors( void )
 {
   vec( custom_ty ) our_vec;
   init( &our_vec );
@@ -639,7 +640,7 @@ do                                                                              
   }                                                                             \
 }while( false )                                                                 \
 
-void test_list_insert( void )
+static void test_list_insert( void )
 {
   list( int ) our_list;
   init( &our_list );
@@ -689,7 +690,7 @@ void test_list_insert( void )
   cleanup( &our_list );
 }
 
-void test_list_push( void )
+static void test_list_push( void )
 {
   list( int ) our_list;
   init( &our_list );
@@ -719,7 +720,7 @@ void test_list_push( void )
   cleanup( &our_list );
 }
 
-void test_list_splice( void )
+static void test_list_splice( void )
 {
   list( int ) our_list;
   list( int ) src_list;
@@ -771,7 +772,7 @@ void test_list_splice( void )
   cleanup( &src_list );
 }
 
-void test_list_erase( void )
+static void test_list_erase( void )
 {
   list( int ) our_list;
   init( &our_list );
@@ -808,7 +809,7 @@ void test_list_erase( void )
   cleanup( &our_list );
 }
 
-void test_list_clear( void )
+static void test_list_clear( void )
 {
   vec( int ) our_list;
   init( &our_list );
@@ -839,7 +840,7 @@ void test_list_clear( void )
   cleanup( &our_list );
 }
 
-void test_list_cleanup( void )
+static void test_list_cleanup( void )
 {
   list( int ) our_list;
   init( &our_list );
@@ -870,9 +871,9 @@ void test_list_cleanup( void )
   cleanup( &our_list );
 }
 
-// This needs to test, in particular, that r_end and end iterator-pointers are stable, especially between transition
+// This needs to test, in particular, that r_end and end iterator-pointers are stable, especially during the transition
 // from placeholder to non-placeholder.
-void test_list_iteration( void )
+static void test_list_iteration( void )
 {
   list( int ) our_list;
   init( &our_list );
@@ -896,7 +897,7 @@ void test_list_iteration( void )
   ALWAYS_ASSERT( next( &our_list, r_end( &our_list ) ) == first( &our_list ) );
   ALWAYS_ASSERT( prev( &our_list, end( &our_list ) ) == last( &our_list ) );
 
-  int n_iterations = 0;
+  size_t n_iterations = 0;
   for( int *i = first( &our_list ); i != end( &our_list ); i = next( &our_list, i ) )
     ++n_iterations;
   for( int *i = last( &our_list ); i != r_end( &our_list ); i = prev( &our_list, i ) )
@@ -942,7 +943,7 @@ void test_list_iteration( void )
   cleanup( &our_list );
 }
 
-void test_list_init_clone( void )
+static void test_list_init_clone( void )
 {
   list( int ) src_list;
   init( &src_list );
@@ -970,7 +971,7 @@ void test_list_init_clone( void )
   cleanup( &our_list );
 }
 
-void test_list_dtors( void )
+static void test_list_dtors( void )
 {
   list( custom_ty ) our_list;
   init( &our_list );
@@ -1014,7 +1015,7 @@ void test_list_dtors( void )
 // Map tests.
 #ifdef TEST_MAP
 
-void test_map_reserve( void )
+static void test_map_reserve( void )
 {
   map( int, size_t ) our_map;
   init( &our_map );
@@ -1053,7 +1054,7 @@ void test_map_reserve( void )
   cleanup( &our_map );
 }
 
-void test_map_shrink( void )
+static void test_map_shrink( void )
 {
   map( int, size_t ) our_map;
   init( &our_map );
@@ -1097,7 +1098,7 @@ void test_map_shrink( void )
   cleanup( &our_map ); 
 }
 
-void test_map_insert( void )
+static void test_map_insert( void )
 {
   map( int, size_t ) our_map;
   init( &our_map );
@@ -1125,7 +1126,7 @@ void test_map_insert( void )
   cleanup( &our_map );
 }
 
-void test_map_get_or_insert( void )
+static void test_map_get_or_insert( void )
 {
   map( int, size_t ) our_map;
   init( &our_map );
@@ -1156,7 +1157,7 @@ void test_map_get_or_insert( void )
   cleanup( &our_map );
 }
 
-void test_map_get( void )
+static void test_map_get( void )
 {
   map( int, size_t ) our_map;
   init( &our_map );
@@ -1179,7 +1180,7 @@ void test_map_get( void )
   cleanup( &our_map );
 }
 
-void test_map_erase( void )
+static void test_map_erase( void )
 {
   map( int, size_t ) our_map;
   init( &our_map );
@@ -1210,7 +1211,7 @@ void test_map_erase( void )
   cleanup( &our_map );
 }
 
-void test_map_erase_itr( void )
+static void test_map_erase_itr( void )
 {
   map( int, size_t ) our_map;
   init( &our_map );
@@ -1269,7 +1270,7 @@ void test_map_erase_itr( void )
   cleanup( &our_map );
 }
 
-void test_map_clear( void )
+static void test_map_clear( void )
 {
   map( int, size_t ) our_map;
   init( &our_map );
@@ -1297,7 +1298,7 @@ void test_map_clear( void )
   cleanup( &our_map );
 }
 
-void test_map_cleanup( void )
+static void test_map_cleanup( void )
 {
   map( int, size_t ) our_map;
   init( &our_map );
@@ -1323,7 +1324,7 @@ void test_map_cleanup( void )
   cleanup( &our_map );
 }
 
-void test_map_init_clone( void )
+static void test_map_init_clone( void )
 {
   map( int, size_t ) src_map;
   init( &src_map );
@@ -1349,7 +1350,7 @@ void test_map_init_clone( void )
   cleanup( &our_map );
 }
 
-void test_map_iteration_and_get_key( void )
+static void test_map_iteration_and_get_key( void )
 {
   map( int, size_t ) our_map;
   init( &our_map );
@@ -1360,7 +1361,7 @@ void test_map_iteration_and_get_key( void )
   ALWAYS_ASSERT( first( &our_map ) == end( &our_map ) );
   ALWAYS_ASSERT( last( &our_map ) == r_end( &our_map ) );
 
-  int n_iterations = 0;
+  size_t n_iterations = 0;
   for( size_t *i = first( &our_map ); i != end( &our_map ); i = next( &our_map, i ) )
     ++n_iterations;
   for( size_t *i = last( &our_map ); i != r_end( &our_map ); i = prev( &our_map, i ) )
@@ -1426,7 +1427,7 @@ void test_map_iteration_and_get_key( void )
   cleanup( &our_map );
 }
 
-void test_map_dtors( void )
+static void test_map_dtors( void )
 {
   map( custom_ty, custom_ty ) our_map;
   init( &our_map );
@@ -1482,7 +1483,7 @@ void test_map_dtors( void )
 }
 
 // Strings are a special case that warrant seperate testing.
-void test_map_strings( void )
+static void test_map_strings( void )
 {
   map( char *, char * ) our_map;
   init( &our_map );
@@ -1542,7 +1543,7 @@ void test_map_strings( void )
   cleanup( &our_map );                         \
 }                                              \
 
-void test_map_default_integer_types( void )
+static void test_map_default_integer_types( void )
 {
   TEST_MAP_DEFAULT_INTEGER_TYPE( char );
   TEST_MAP_DEFAULT_INTEGER_TYPE( unsigned char );
@@ -1563,7 +1564,7 @@ void test_map_default_integer_types( void )
 // Set tests.
 #ifdef TEST_SET
 
-void test_set_reserve( void )
+static void test_set_reserve( void )
 {
   set( int ) our_set;
   init( &our_set );
@@ -1602,7 +1603,7 @@ void test_set_reserve( void )
   cleanup( &our_set );
 }
 
-void test_set_shrink( void )
+static void test_set_shrink( void )
 {
   set( int ) our_set;
   init( &our_set );
@@ -1647,7 +1648,7 @@ void test_set_shrink( void )
   cleanup( &our_set ); 
 }
 
-void test_set_insert( void )
+static void test_set_insert( void )
 {
   set( int ) our_set;
   init( &our_set );
@@ -1675,7 +1676,7 @@ void test_set_insert( void )
   cleanup( &our_set );
 }
 
-void test_set_get_or_insert( void )
+static void test_set_get_or_insert( void )
 {
   set( int ) our_set;
   init( &our_set );
@@ -1706,7 +1707,7 @@ void test_set_get_or_insert( void )
   cleanup( &our_set );
 }
 
-void test_set_get( void )
+static void test_set_get( void )
 {
   set( int ) our_set;
   init( &our_set );
@@ -1729,7 +1730,7 @@ void test_set_get( void )
   cleanup( &our_set );
 }
 
-void test_set_erase( void )
+static void test_set_erase( void )
 {
   set( int ) our_set;
   init( &our_set );
@@ -1760,7 +1761,7 @@ void test_set_erase( void )
   cleanup( &our_set );
 }
 
-void test_set_erase_itr( void )
+static void test_set_erase_itr( void )
 {
   set( int ) our_set;
   init( &our_set );
@@ -1819,7 +1820,7 @@ void test_set_erase_itr( void )
   cleanup( &our_set );
 }
 
-void test_set_clear( void )
+static void test_set_clear( void )
 {
   set( int ) our_set;
   init( &our_set );
@@ -1847,7 +1848,7 @@ void test_set_clear( void )
   cleanup( &our_set );
 }
 
-void test_set_cleanup( void )
+static void test_set_cleanup( void )
 {
   set( int ) our_set;
   init( &our_set );
@@ -1873,7 +1874,7 @@ void test_set_cleanup( void )
   cleanup( &our_set );
 }
 
-void test_set_init_clone( void )
+static void test_set_init_clone( void )
 {
   set( int ) src_set;
   init( &src_set );
@@ -1899,7 +1900,7 @@ void test_set_init_clone( void )
   cleanup( &our_set );
 }
 
-void test_set_iteration( void )
+static void test_set_iteration( void )
 {
   set( int ) our_set;
   init( &our_set );
@@ -1910,7 +1911,7 @@ void test_set_iteration( void )
   ALWAYS_ASSERT( first( &our_set ) == end( &our_set ) );
   ALWAYS_ASSERT( last( &our_set ) == r_end( &our_set ) );
 
-  int n_iterations = 0;
+  size_t n_iterations = 0;
   for( int *i = first( &our_set ); i != end( &our_set ); i = next( &our_set, i ) )
     ++n_iterations;
   for( int *i = last( &our_set ); i != r_end( &our_set ); i = prev( &our_set, i ) )
@@ -1956,7 +1957,7 @@ void test_set_iteration( void )
   cleanup( &our_set );
 }
 
-void test_set_dtors( void )
+static void test_set_dtors( void )
 {
   set( custom_ty ) our_set;
   init( &our_set );
@@ -2007,7 +2008,7 @@ void test_set_dtors( void )
   check_dtors_arr();
 }
 
-void test_set_strings( void )
+static void test_set_strings( void )
 {
   set( char * ) our_set;
   init( &our_set );
@@ -2067,7 +2068,7 @@ void test_set_strings( void )
   cleanup( &our_set );                         \
 }                                              \
 
-void test_set_default_integer_types( void )
+static void test_set_default_integer_types( void )
 {
   TEST_SET_DEFAULT_INTEGER_TYPE( char );
   TEST_SET_DEFAULT_INTEGER_TYPE( unsigned char );
@@ -2088,7 +2089,7 @@ void test_set_default_integer_types( void )
 // Unordered map tests.
 #ifdef TEST_OMAP
 
-void test_omap_insert( void )
+static void test_omap_insert( void )
 {
   omap( int, size_t ) our_omap;
   init( &our_omap );
@@ -2142,7 +2143,7 @@ void test_omap_insert( void )
   cleanup( &our_omap );
 }
 
-void test_omap_get_or_insert( void )
+static void test_omap_get_or_insert( void )
 {
   omap( int, size_t ) our_omap;
   init( &our_omap );
@@ -2173,7 +2174,7 @@ void test_omap_get_or_insert( void )
   cleanup( &our_omap );
 }
 
-void test_omap_get( void )
+static void test_omap_get( void )
 {
   omap( int, size_t ) our_omap;
   init( &our_omap );
@@ -2196,7 +2197,7 @@ void test_omap_get( void )
   cleanup( &our_omap );
 }
 
-void test_omap_erase( void )
+static void test_omap_erase( void )
 {
   omap( int, size_t ) our_omap;
   init( &our_omap );
@@ -2256,7 +2257,7 @@ void test_omap_erase( void )
   cleanup( &our_omap );
 }
 
-void test_omap_erase_itr( void )
+static void test_omap_erase_itr( void )
 {
   omap( int, size_t ) our_omap;
   init( &our_omap );
@@ -2311,42 +2312,10 @@ void test_omap_erase_itr( void )
     }
   }
 
-  // Test deletion while iterating backward.
-/*
-  el = last( &our_omap );
-  n_iterations = 0;
-  while( el != r_end( &our_omap ) )
-  {
-    printf( "%zu\n", *key_for( &our_omap, el ) );
-    printf( "Foo\n" );
-    ++n_iterations;
-
-    if( *key_for( &our_omap, el ) % 3 == 0 )
-      el = erase_itr( &our_omap, el );
-    
-    if( el == end( &our_omap ) )
-      printf( "Bar!\n" );
-    el = prev( &our_omap, el );
-  }
-
-  ALWAYS_ASSERT( n_iterations == 50 );
-  ALWAYS_ASSERT( size( &our_omap ) == 33 );
-
-  for( int i = 0; i < 100; ++i )
-  {
-    if( i % 2 == 0 || i % 3 == 0 )
-      ALWAYS_ASSERT( !get( &our_omap, i ) );
-    else
-    {
-      el = get( &our_omap, i );
-      ALWAYS_ASSERT( el && *el == i + 1 );
-    }
-  }
-*/
   cleanup( &our_omap );
 }
 
-void test_omap_clear( void )
+static void test_omap_clear( void )
 {
   omap( int, size_t ) our_omap;
   init( &our_omap );
@@ -2374,7 +2343,7 @@ void test_omap_clear( void )
   cleanup( &our_omap );
 }
 
-void test_omap_cleanup( void )
+static void test_omap_cleanup( void )
 {
   omap( int, size_t ) our_omap;
   init( &our_omap );
@@ -2400,7 +2369,7 @@ void test_omap_cleanup( void )
   cleanup( &our_omap );
 }
 
-void test_omap_init_clone( void )
+static void test_omap_init_clone( void )
 {
   omap( int, size_t ) src_omap;
   init( &src_omap );
@@ -2426,9 +2395,9 @@ void test_omap_init_clone( void )
   cleanup( &our_omap );
 }
 
-// This needs to test, in particular, that r_end and end iterator-pointers are stable, especially between transition
+// This needs to test, in particular, that r_end and end iterator-pointers are stable, especially during the transition
 // from placeholder to non-placeholder.
-void test_omap_iteration_and_get_key( void )
+static void test_omap_iteration_and_get_key( void )
 {
   omap( int, size_t ) our_omap;
   init( &our_omap );
@@ -2446,7 +2415,7 @@ void test_omap_iteration_and_get_key( void )
   ALWAYS_ASSERT( next( &our_omap, r_end( &our_omap ) ) == first( &our_omap ) );
   ALWAYS_ASSERT( prev( &our_omap, end( &our_omap ) ) == last( &our_omap ) );
 
-  int n_iterations = 0;
+  size_t n_iterations = 0;
   for( size_t *i = first( &our_omap ); i != end( &our_omap ); i = next( &our_omap, i ) )
     ++n_iterations;
   for( size_t *i = last( &our_omap ); i != r_end( &our_omap ); i = prev( &our_omap, i ) )
@@ -2488,6 +2457,7 @@ void test_omap_iteration_and_get_key( void )
     ALWAYS_ASSERT( (size_t)*key_for( &our_omap, i ) == *i - 1 );
     ALWAYS_ASSERT( !last_iteration || *key_for( &our_omap, i ) < *key_for( &our_omap, last_iteration ) );
     ++n_iterations;
+    last_iteration = i;
   }
 
   for_each( &our_omap, i )
@@ -2533,14 +2503,14 @@ void test_omap_iteration_and_get_key( void )
   cleanup( &our_omap );
 }
 
-void test_omap_iteration_over_range( void )
+static void test_omap_iteration_over_range( void )
 {
   omap( int, size_t ) our_omap;
   init( &our_omap );
 
   // Empty.
 
-  int n_iterations = 0;
+  size_t n_iterations = 0;
   for(
     size_t *i = first( &our_omap, 25 ), *range_end = first( &our_omap, 75 );
     i != range_end;
@@ -2677,7 +2647,7 @@ void test_omap_iteration_over_range( void )
   cleanup( &our_omap );
 }
 
-void test_omap_dtors( void )
+static void test_omap_dtors( void )
 {
   omap( custom_ty, custom_ty ) our_omap;
   init( &our_omap );
@@ -2733,7 +2703,7 @@ void test_omap_dtors( void )
 }
 
 // Strings are a special case that warrant seperate testing.
-void test_omap_strings( void )
+static void test_omap_strings( void )
 {
   omap( char *, char * ) our_omap;
   init( &our_omap );
@@ -2781,7 +2751,7 @@ void test_omap_strings( void )
 
 #define TEST_OMAP_DEFAULT_INTEGER_TYPE( ty )    \
 {                                               \
-  map( ty, int ) our_omap;                      \
+  omap( ty, int ) our_omap;                     \
   init( &our_omap );                            \
                                                 \
   for( int i = 0; i < 100; ++i )                \
@@ -2793,7 +2763,7 @@ void test_omap_strings( void )
   cleanup( &our_omap );                         \
 }                                               \
 
-void test_omap_default_integer_types( void )
+static void test_omap_default_integer_types( void )
 {
   TEST_OMAP_DEFAULT_INTEGER_TYPE( char );
   TEST_OMAP_DEFAULT_INTEGER_TYPE( unsigned char );
@@ -2807,6 +2777,687 @@ void test_omap_default_integer_types( void )
   TEST_OMAP_DEFAULT_INTEGER_TYPE( unsigned long long );
   TEST_OMAP_DEFAULT_INTEGER_TYPE( long );
   TEST_OMAP_DEFAULT_INTEGER_TYPE( size_t );
+}
+
+#endif
+
+// Unordered set tests.
+#ifdef TEST_OSET
+
+static void test_oset_insert( void )
+{
+  oset( int ) our_oset;
+  init( &our_oset );
+
+  // Sequential input.
+
+  // Insert new.
+  for( int i = 0; i < 100; ++i )
+  {
+    int *el;
+    UNTIL_SUCCESS( el = insert( &our_oset, i ) );
+    ALWAYS_ASSERT( *el == i );
+  }
+
+  // Insert existing.
+  for( int i = 0; i < 100; ++i )
+  {
+    int *el;
+    UNTIL_SUCCESS( el = insert( &our_oset, i ) );
+    ALWAYS_ASSERT( *el == i );
+  }
+
+  // Check.
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_oset, i ) == i );
+
+  clear( &our_oset );
+
+  // Nonsequential input (alternating positive and negative integers).
+
+  // Insert new.
+  for( int i = 0; i < 100; ++i )
+  {
+    int *el;
+    UNTIL_SUCCESS( el = insert( &our_oset, i * ( i % 2 ? 1 : -1 ) ) );
+    ALWAYS_ASSERT( *el == i * ( i % 2 ? 1 : -1 ) );
+  }
+
+  // Insert existing.
+  for( int i = 0; i < 100; ++i )
+  {
+    int *el;
+    UNTIL_SUCCESS( el = insert( &our_oset, i * ( i % 2 ? 1 : -1 ) ) );
+    ALWAYS_ASSERT( *el == i * ( i % 2 ? 1 : -1 ) );
+  }
+
+  // Check.
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_oset, i * ( i % 2 ? 1 : -1 ) ) == i * ( i % 2 ? 1 : -1 ) );
+
+  cleanup( &our_oset );
+}
+
+static void test_oset_get_or_insert( void )
+{
+  oset( int ) our_oset;
+  init( &our_oset );
+
+  // Test insert.
+  for( int i = 0; i < 100; ++i )
+  {
+    int *el;
+    UNTIL_SUCCESS( ( el = get_or_insert( &our_oset, i ) ) );
+    ALWAYS_ASSERT( *el == i );
+  }
+
+  ALWAYS_ASSERT( size( &our_oset ) == 100 );
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_oset, i ) == i );
+
+  // Test get.
+  for( int i = 0; i < 100; ++i )
+  {
+    int *el_1 = get( &our_oset, i );
+    int *el_2;
+    UNTIL_SUCCESS( ( el_2 = get_or_insert( &our_oset, i ) ) );
+    ALWAYS_ASSERT( el_2 == el_1 && *el_2 == i );
+  }
+
+  ALWAYS_ASSERT( size( &our_oset ) == 100 );
+
+  cleanup( &our_oset );
+}
+
+static void test_oset_get( void )
+{
+  oset( int ) our_oset;
+  init( &our_oset );
+
+  // Test empty.
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( !get( &our_oset, i ) );
+
+  // Test get existing.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_oset, i ) );
+
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_oset, i ) == i );
+
+  // Test get non-existing.
+  for( int i = 100; i < 200; ++i )
+    ALWAYS_ASSERT( !get( &our_oset, i ) );
+
+  cleanup( &our_oset );
+}
+
+static void test_oset_erase( void )
+{
+  oset( int ) our_oset;
+  init( &our_oset );
+
+  // Sequential input.
+
+  // Test erase existing.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_oset, i ) );
+
+  ALWAYS_ASSERT( size( &our_oset ) == 100 );
+
+  for( int i = 0; i < 100; i += 2 )
+    ALWAYS_ASSERT( erase( &our_oset, i ) );
+
+  // Test erase non-existing.
+  for( int i = 0; i < 100; i += 2 )
+    ALWAYS_ASSERT( !erase( &our_oset, i ) );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_oset ) == 50 );
+  for( int i = 0; i < 100; ++i )
+  {
+    if( i % 2 == 0 )
+      ALWAYS_ASSERT( !get( &our_oset, i ) );
+    else
+      ALWAYS_ASSERT( *get( &our_oset, i ) == i );
+  }
+
+  clear( &our_oset );
+
+  // Nonsequential input (alternating positive and negative integers).
+
+  // Test erase existing.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_oset, i * ( i % 2 ? 1 : -1 ) ) );
+
+  ALWAYS_ASSERT( size( &our_oset ) == 100 );
+
+  for( int i = 0; i < 100; i += 2 )
+    ALWAYS_ASSERT( erase( &our_oset, i * ( i % 2 ? 1 : -1 ) ) );
+
+  // Test erase non-existing.
+  for( int i = 0; i < 100; i += 2 )
+    ALWAYS_ASSERT( !erase( &our_oset, i * ( i % 2 ? 1 : -1 ) ) );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_oset ) == 50 );
+  for( int i = 0; i < 100; ++i )
+  {
+    if( i % 2 == 0 )
+      ALWAYS_ASSERT( !get( &our_oset, i * ( i % 2 ? 1 : -1 ) ) );
+    else
+      ALWAYS_ASSERT( *get( &our_oset, i * ( i % 2 ? 1 : -1 ) ) == i * ( i % 2 ? 1 : -1 ) );
+  }
+
+  cleanup( &our_oset );
+}
+
+static void test_oset_erase_itr( void )
+{
+  oset( int ) our_oset;
+  init( &our_oset );
+
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_oset, i ) );
+
+  ALWAYS_ASSERT( size( &our_oset ) == 100 );
+
+  // Test with iterator from get.
+  for( int i = 0; i < 100; i += 4 )
+    erase_itr( &our_oset, get( &our_oset, i ) );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_oset ) == 75 );
+  for( int i = 0; i < 100; ++i )
+  {
+    if( i % 4 == 0 )
+      ALWAYS_ASSERT( !get( &our_oset, i ) );
+    else
+    {
+      int *el = get( &our_oset, i );
+      ALWAYS_ASSERT( el && *el == i );
+    }
+  }
+
+  // Test deletion while iterating.
+
+  int *el = first( &our_oset );
+  size_t n_iterations = 0;
+  while( el != end( &our_oset ) )
+  {
+    ++n_iterations;
+
+    if( *el % 2 == 0 )
+      el = erase_itr( &our_oset, el );
+    else
+      el = next( &our_oset, el );
+  }
+
+  ALWAYS_ASSERT( n_iterations == 75 );
+  ALWAYS_ASSERT( size( &our_oset ) == 50 );
+
+  for( int i = 0; i < 100; ++i )
+  {
+    if( i % 2 == 0 )
+      ALWAYS_ASSERT( !get( &our_oset, i ) );
+    else
+    {
+      el = get( &our_oset, i );
+      ALWAYS_ASSERT( el && *el == i  );
+    }
+  }
+
+  cleanup( &our_oset );
+}
+
+static void test_oset_clear( void )
+{
+  oset( int ) our_oset;
+  init( &our_oset );
+
+  // Test empty.
+  clear( &our_oset );
+  ALWAYS_ASSERT( size( &our_oset ) == 0 );
+
+  // Test non-empty;
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_oset, i ) );
+
+  clear( &our_oset );
+  ALWAYS_ASSERT( size( &our_oset ) == 0 );
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( !get( &our_oset, i ) );
+
+  // Test reuse.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_oset, i ) );
+
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_oset, i ) == i );
+
+  cleanup( &our_oset );
+}
+
+static void test_oset_cleanup( void )
+{
+  oset( int ) our_oset;
+  init( &our_oset );
+
+  // Empty.
+  cleanup( &our_oset );
+  ALWAYS_ASSERT( (void *)our_oset == (void *)&cc_omap_placeholder );
+
+  // Non-empty.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_oset, i ) );
+  ALWAYS_ASSERT( size( &our_oset ) == 100 );
+  cleanup( &our_oset );
+  ALWAYS_ASSERT( size( &our_oset ) == 0 );
+  ALWAYS_ASSERT( (void *)our_oset == (void *)&cc_omap_placeholder );
+
+  // Test use.
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_oset, i ) );
+  for( int i = 0; i < 100; ++i )
+    ALWAYS_ASSERT( *get( &our_oset, i ) == i );
+
+  cleanup( &our_oset );
+}
+
+static void test_oset_init_clone( void )
+{
+  oset( int ) src_oset;
+  init( &src_oset );
+
+  // Test init_clone placeholder.
+  oset( int ) empty_oset;
+  UNTIL_SUCCESS( init_clone( &empty_oset, &src_oset ) );
+  ALWAYS_ASSERT( (void *)empty_oset == (void *)&cc_omap_placeholder );
+
+  // Test init_clone non-placeholder.
+  oset( int ) our_oset;
+  for( int i = 0; i < 10; ++i )
+    UNTIL_SUCCESS( insert( &src_oset, i ) );
+  UNTIL_SUCCESS( init_clone( &our_oset, &src_oset ) );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_oset ) == 10 );
+  for( int i = 0; i < 10; ++i )
+    ALWAYS_ASSERT( *get( &our_oset, i ) == i );
+
+  cleanup( &src_oset );
+  cleanup( &empty_oset );
+  cleanup( &our_oset );
+}
+
+// This needs to test, in particular, that r_end and end iterator-pointers are stable, especially during the transition
+// from placeholder to non-placeholder.
+static void test_oset_iteration( void )
+{
+  oset( int ) our_oset;
+  init( &our_oset );
+
+  int *r_end = r_end( &our_oset );
+  int *end = end( &our_oset );
+
+  // Empty.
+
+  // Test first and last.
+  ALWAYS_ASSERT( first( &our_oset ) == end( &our_oset ) );
+  ALWAYS_ASSERT( last( &our_oset ) == r_end( &our_oset ) );
+
+  // Test iteration from r_end and end.
+  ALWAYS_ASSERT( next( &our_oset, r_end( &our_oset ) ) == first( &our_oset ) );
+  ALWAYS_ASSERT( prev( &our_oset, end( &our_oset ) ) == last( &our_oset ) );
+
+  size_t n_iterations = 0;
+  for( int *i = first( &our_oset ); i != end( &our_oset ); i = next( &our_oset, i ) )
+    ++n_iterations;
+  for( int *i = last( &our_oset ); i != r_end( &our_oset ); i = prev( &our_oset, i ) )
+    ++n_iterations;
+  for_each( &our_oset, i )
+    ++n_iterations;
+  r_for_each( &our_oset, i )
+    ++n_iterations;
+  for_each( &our_oset, i )
+    ++n_iterations;
+  r_for_each( &our_oset, i )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 0 );
+
+  // Non-empty.
+
+  // Insert keys in random order.
+
+  const int keys[ 100 ] = {
+    12, 10, 29, 8, 27, 9, 14, 23, 18, 19, 11, 20, 24, 1, 0, 5, 2, 3, 6, 13, 28, 25, 22, 21, 15, 4, 7, 16, 26, 17
+  };
+
+  for( int i = 0; i < 30; ++i )
+    UNTIL_SUCCESS( insert( &our_oset, keys[ i ] ) );
+
+  int *last_iteration = NULL;
+  for( int *i = first( &our_oset ); i != end( &our_oset ); i = next( &our_oset, i ) )
+  {
+    ALWAYS_ASSERT( !last_iteration || *i > *last_iteration );
+    ++n_iterations;
+    last_iteration = i;
+  }
+
+  last_iteration = NULL;
+  for( int *i = last( &our_oset ); i != r_end( &our_oset ); i = prev( &our_oset, i ) )
+  {
+    ALWAYS_ASSERT( !last_iteration || *i < *last_iteration );
+    ++n_iterations;
+    last_iteration = i;
+  }
+
+  for_each( &our_oset, i )
+    ++n_iterations;
+  r_for_each( &our_oset, i )
+    ++n_iterations;
+
+  for_each( &our_oset, i )
+    ++n_iterations;
+  r_for_each( &our_oset, i )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 180 );
+
+  // Test iterator stability.
+  ALWAYS_ASSERT( r_end( &our_oset ) == r_end );
+  ALWAYS_ASSERT( end( &our_oset ) == end );
+
+  // Test iteration from r_end and end.
+  ALWAYS_ASSERT( next( &our_oset, r_end( &our_oset ) ) == first( &our_oset ) );
+  ALWAYS_ASSERT( prev( &our_oset, end( &our_oset ) ) == last( &our_oset ) );
+
+  // Iteration over empty, non-placeholder ordered map.
+
+  clear( &our_oset );
+
+  n_iterations = 0;
+
+  for_each( &our_oset, i )
+    ++n_iterations;
+
+  r_for_each( &our_oset, i )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 0 );
+
+  cleanup( &our_oset );
+}
+
+static void test_oset_iteration_over_range( void )
+{
+  oset( int ) our_oset;
+  init( &our_oset );
+
+  // Empty.
+
+  size_t n_iterations = 0;
+  for(
+    int *i = first( &our_oset, 25 ), *range_end = first( &our_oset, 75 );
+    i != range_end;
+    i = next( &our_oset, i )
+  )
+    ++n_iterations;
+
+  for(
+    int *i = last( &our_oset, 74 ), *range_end = last( &our_oset, 24 );
+    i != range_end;
+    i = prev( &our_oset, i )
+  )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 0 );
+
+  // Non-empty.
+
+  // Insert keys in random order.
+
+  const int keys[ 100 ] = {
+    44, 13, 39, 68, 33, 88, 87, 58, 73, 28, 95, 56, 93, 8, 50, 92, 78, 80, 97, 53,
+    27, 77, 35, 38, 91, 45, 3, 37, 98, 81, 63, 65, 32, 90, 72, 5, 36, 99, 17, 6,
+    16, 11, 67, 47, 48, 71, 1, 82, 69, 21, 54, 15, 61, 9, 19, 84, 60, 26, 42, 70,
+    64, 18, 34, 23, 75, 52, 89, 83, 86, 10, 94, 24, 57, 59, 41, 20, 25, 12, 85, 96,
+    66, 55, 7, 2, 76, 46, 14, 31, 43, 4, 22, 30, 40, 29, 0, 74, 51, 49, 62, 79
+  };
+
+  for( int i = 0; i < 100; ++i )
+    UNTIL_SUCCESS( insert( &our_oset, keys[ i ] ) );
+
+  // Test ranges that do not include r_end or end.
+
+  for(
+    int *i = first( &our_oset, 25 ), *range_end = first( &our_oset, 75 );
+    i != range_end;
+    i = next( &our_oset, i )
+  )
+  {
+    ALWAYS_ASSERT( *i >= 25 && *i < 75 );
+    ++n_iterations;
+  }
+
+  for(
+    int *i = last( &our_oset, 75 ), *range_end = last( &our_oset, 25 );
+    i != range_end;
+    i = prev( &our_oset, i )
+  )
+  {
+    ALWAYS_ASSERT( *i > 25 && *i <= 75 );
+    ++n_iterations;
+  }
+
+  ALWAYS_ASSERT( n_iterations == 100 );
+
+  // Test ranges that overlap r_end or end.
+
+  for(
+    int *i = first( &our_oset, -1 ), *range_end = first( &our_oset, 50 );
+    i != range_end;
+    i = next( &our_oset, i )
+  )
+  {
+    ALWAYS_ASSERT( *i < 50 );
+    ++n_iterations;
+  }
+
+  for(
+    int *i = first( &our_oset, 50 ), *range_end = first( &our_oset, 100 );
+    i != range_end;
+    i = next( &our_oset, i )
+  )
+  {
+    ALWAYS_ASSERT( *i >= 50 );
+    ++n_iterations;
+  }
+
+  for(
+    int *i = last( &our_oset, 100 ), *range_end = last( &our_oset, 49 );
+    i != range_end;
+    i = prev( &our_oset, i )
+  )
+  {
+    ALWAYS_ASSERT( *i >= 50 );
+    ++n_iterations;
+  }
+
+  for(
+    int *i = last( &our_oset, 49 ), *range_end = last( &our_oset, -1 );
+    i != range_end;
+    i = prev( &our_oset, i )
+  )
+  {
+    ALWAYS_ASSERT( *i <= 49 );
+    ++n_iterations;
+  }
+
+  for(
+    int *i = first( &our_oset, -1 ), *range_end = first( &our_oset, 100 );
+    i != range_end;
+    i = next( &our_oset, i )
+  )
+    ++n_iterations;
+
+  for(
+    int *i = last( &our_oset, 100 ), *range_end = last( &our_oset, -1 );
+    i != range_end;
+    i = prev( &our_oset, i )
+  )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 500 );
+
+  // Test ranges with no keys.
+
+  for(
+    int *i = first( &our_oset, 100 ), *range_end = first( &our_oset, 200 );
+    i != range_end;
+    i = next( &our_oset, i )
+  )
+    ++n_iterations;
+
+  for(
+    int *i = last( &our_oset, -1 ), *range_end = last( &our_oset, -100 );
+    i != range_end;
+    i = prev( &our_oset, i )
+  )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 500 );
+
+  cleanup( &our_oset );
+}
+
+static void test_oset_dtors( void )
+{
+  oset( custom_ty ) our_oset;
+  init( &our_oset );
+
+  // Test erase and clear.
+
+  for( int i = 0; i < 100; ++i )
+  {
+    custom_ty el = { i };
+    UNTIL_SUCCESS( insert( &our_oset, el ) );
+  }
+
+  for( int i = 0; i < 100; ++i )
+  {
+    custom_ty el = { i };
+    erase( &our_oset, el );
+  }
+
+  clear( &our_oset );
+
+  check_dtors_arr();
+
+  // Test replace.
+
+  for( int i = 0; i < 100; ++i )
+  {
+    custom_ty el = { i };
+    UNTIL_SUCCESS( insert( &our_oset, el ) );
+  }
+  for( int i = 0; i < 100; ++i )
+  {
+    custom_ty el = { i };
+    UNTIL_SUCCESS( insert( &our_oset, el ) );
+  }
+
+  check_dtors_arr();
+  clear( &our_oset );
+
+  // Test cleanup.
+
+  for( int i = 0; i < 100; ++i )
+  {
+    custom_ty el = { i };
+    UNTIL_SUCCESS( insert( &our_oset, el ) );
+  }
+
+  cleanup( &our_oset );
+  check_dtors_arr();
+}
+
+// Strings are a special case that warrant seperate testing.
+static void test_oset_strings( void )
+{
+  oset( char * ) our_oset;
+  init( &our_oset );
+
+  char **el;
+
+  // String literals.
+  UNTIL_SUCCESS( ( el = insert( &our_oset, "This" ) ) );
+  ALWAYS_ASSERT( strcmp( *el, "This" ) == 0 );
+  UNTIL_SUCCESS( ( el = insert( &our_oset, "is" ) ) );
+  ALWAYS_ASSERT( strcmp( *el, "is" ) == 0 );
+  UNTIL_SUCCESS( ( el = insert( &our_oset, "a" ) ) );
+  ALWAYS_ASSERT( strcmp( *el, "a" ) == 0 );
+  UNTIL_SUCCESS( ( el = insert( &our_oset, "test" ) ) );
+  ALWAYS_ASSERT( strcmp( *el, "test" ) == 0 );
+
+  // Other strings.
+  char str_1[] = "of";
+  char str_2[] = "sets";
+  char str_3[] = "with";
+  char str_4[] = "strings";
+
+  UNTIL_SUCCESS( ( el = insert( &our_oset, str_1 ) ) );
+  ALWAYS_ASSERT( strcmp( *el, str_1 ) == 0 );
+  UNTIL_SUCCESS( ( el = insert( &our_oset, str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *el, str_2 ) == 0 );
+  UNTIL_SUCCESS( ( el = insert( &our_oset, str_3 ) ) );
+  ALWAYS_ASSERT( strcmp( *el, str_3 ) == 0 );
+  UNTIL_SUCCESS( ( el = insert( &our_oset, str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *el, str_4 ) == 0 );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_oset ) == 8 );
+  ALWAYS_ASSERT( strcmp( *get( &our_oset, "This" ), "This" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_oset, "is" ), "is" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_oset, "a" ), "a" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_oset, "test" ), "test" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_oset, "of" ), str_1 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_oset, "sets" ), str_2 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_oset, "with" ), str_3 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_oset, "strings" ), str_4 ) == 0 );
+
+  cleanup( &our_oset );
+}
+
+#define TEST_OSET_DEFAULT_INTEGER_TYPE( ty )    \
+{                                               \
+  oset( ty ) our_oset;                          \
+  init( &our_oset );                            \
+                                                \
+  for( int i = 0; i < 100; ++i )                \
+    UNTIL_SUCCESS( insert( &our_oset, i ) );    \
+                                                \
+  for( int i = 0; i < 100; ++i )                \
+    ALWAYS_ASSERT( *get( &our_oset, i ) == i ); \
+                                                \
+  cleanup( &our_oset );                         \
+}                                               \
+
+static void test_oset_default_integer_types( void )
+{
+  TEST_OSET_DEFAULT_INTEGER_TYPE( char );
+  TEST_OSET_DEFAULT_INTEGER_TYPE( unsigned char );
+  TEST_OSET_DEFAULT_INTEGER_TYPE( signed char );
+  TEST_OSET_DEFAULT_INTEGER_TYPE( unsigned short );
+  TEST_OSET_DEFAULT_INTEGER_TYPE( short );
+  TEST_OSET_DEFAULT_INTEGER_TYPE( unsigned int );
+  TEST_OSET_DEFAULT_INTEGER_TYPE( int );
+  TEST_OSET_DEFAULT_INTEGER_TYPE( unsigned long );
+  TEST_OSET_DEFAULT_INTEGER_TYPE( long );
+  TEST_OSET_DEFAULT_INTEGER_TYPE( unsigned long long );
+  TEST_OSET_DEFAULT_INTEGER_TYPE( long );
+  TEST_OSET_DEFAULT_INTEGER_TYPE( size_t );
 }
 
 #endif
@@ -2900,6 +3551,23 @@ int main( void )
     test_omap_dtors();
     test_omap_strings();
     test_omap_default_integer_types();
+    #endif
+
+    #ifdef TEST_OSET
+    // oset, init, and size are tested implicitly.
+    test_oset_insert();
+    test_oset_get_or_insert();
+    test_oset_get();
+    test_oset_erase();
+    test_oset_erase_itr();
+    test_oset_clear();
+    test_oset_cleanup();
+    test_oset_init_clone();
+    test_oset_iteration();
+    test_oset_iteration_over_range();
+    test_oset_dtors();
+    test_oset_strings();
+    test_oset_default_integer_types();
     #endif
   }
 
