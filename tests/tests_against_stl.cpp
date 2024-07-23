@@ -32,6 +32,7 @@ License (MIT):
 #include <iostream>
 #include <list>
 #include <map>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -778,6 +779,112 @@ int main()
 
     std::cout << "Done. Final size: " << cc_size( &our_omap ) << "\n";
     cc_cleanup( &our_omap );
+  }
+
+  // Ordered set.
+  for( int test = 0; test < N_TESTS; ++test )
+  {
+    std::cout << "Ordered set test " << test << "... ";
+    std::set<int> stl_oset;
+    cc_oset( int ) our_oset;
+    cc_init( &our_oset );
+
+    for( int op = 0; op < N_OPS; ++op )
+    {
+      switch( rand() % 5 )
+      {
+        case 0: // cc_insert.
+        {
+          int el_val = rand() % ( N_OPS / 10 );
+          int *el;
+          UNTIL_SUCCESS( ( el = cc_insert( &our_oset, el_val ) ) );
+
+          ALWAYS_ASSERT( *el == el_val );
+
+          stl_oset.insert( el_val );
+        }
+        break;
+        case 1: // cc_get_or_insert.
+        {
+          int *el;
+          int el_val = rand();
+          size_t original_size = cc_size( &our_oset );
+          UNTIL_SUCCESS( ( el = cc_get_or_insert( &our_oset, el_val ) ) );
+
+          if( cc_size( &our_oset ) > original_size )
+          {
+            ALWAYS_ASSERT( *el == el_val );
+
+            stl_oset.insert( el_val );
+          }
+          else
+            ALWAYS_ASSERT( *el == *stl_oset.find( el_val ) );
+        }
+        break;
+        case 2: // cc_get.
+        {
+          int el_val = rand() % ( N_OPS / 10 );
+          int *el = cc_get( &our_oset, el_val );
+          if( el )
+            ALWAYS_ASSERT( *el == *stl_oset.find( el_val ) );
+          else
+            ALWAYS_ASSERT( stl_oset.find( el_val ) == stl_oset.end() );
+        }
+        break;
+        case 3: // cc_erase and cc_erase_itr.
+        {
+          if( rand() % 2 )
+          {
+            int el_val = rand() % ( N_OPS / 10 );
+            ALWAYS_ASSERT( cc_erase( &our_oset, el_val ) == (bool)stl_oset.erase( el_val ) );
+          }
+          else
+          {
+            int el_val = rand() % ( N_OPS / 10 );
+            int *el = cc_get( &our_oset, el_val );
+            if( el )
+              cc_erase_itr( &our_oset, el );
+            
+            stl_oset.erase( el_val );
+          }
+        }
+        break;
+        case 4: // cc_init_clone.
+        {
+          cc_oset( int ) clone;
+
+          if( rand() % 2 ) // Probable failure due to failing realloc.
+          {
+            if( cc_init_clone( &clone, &our_oset ) )
+            {
+              cc_cleanup( &our_oset );
+              our_oset = clone;
+            }
+          }
+          else // Non-failing.
+          {
+            failing_alloc_on = false;
+            UNTIL_SUCCESS( cc_init_clone( &clone, &our_oset ) );
+            cc_cleanup( &our_oset );
+            our_oset = clone;
+            failing_alloc_on = true;
+          }
+        }
+        break;
+      }
+    }
+
+    // Check our_oset against STL's ordered set.
+    auto stl_itr = stl_oset.begin();
+    cc_for_each( &our_oset, cc_itr )
+    {
+      ALWAYS_ASSERT( *cc_itr == *stl_itr );
+      ++stl_itr;
+    }
+    ALWAYS_ASSERT( *stl_itr == *stl_oset.end() );
+
+    std::cout << "Done. Final size: " << cc_size( &our_oset ) << "\n";
+    cc_cleanup( &our_oset );
   }
 
   ALWAYS_ASSERT( oustanding_allocs.empty() );

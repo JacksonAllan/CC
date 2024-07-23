@@ -4453,13 +4453,13 @@ static inline cc_allocing_fn_result_ty cc_oset_insert(
     replace,
     0,        // Zero element size.
     layout,
-    hash,
+    NULL,     // Dummy.
     cmpr,
-    max_load,
+    0.0,      // Dummy.
     el_dtor,
     NULL,     // Only one destructor.
     realloc_,
-    free_
+    NULL      // Dummy.
   );
 }
 
@@ -4472,7 +4472,7 @@ static inline void *cc_oset_get(
   cc_cmpr_fnptr_ty cmpr
 )
 {
-  return cc_omap_get( cntr, key, 0 /* Zero element size */, layout, hash, cmpr );
+  return cc_omap_get( cntr, key, 0 /* Zero element size */, layout, NULL /* Dummy */, cmpr );
 }
 
 static inline void *cc_oset_bounded_first_or_last(
@@ -4503,7 +4503,7 @@ static inline void *cc_oset_erase_itr(
     itr,
     0,       // Zero element size.
     layout,
-    hash,
+    NULL,    // Dummy.
     el_dtor,
     NULL,    // Only one destructor.
     free_
@@ -4527,7 +4527,7 @@ static inline void *cc_oset_erase(
     key,
     0,       // Zero element size.
     layout,
-    hash,
+    NULL,    // Dummy.
     cmpr,
     el_dtor,
     NULL,    // Only one destructor.
