@@ -534,6 +534,7 @@ static void test_vec_iteration( void )
   };
 
   // Empty.
+
   size_t n_iterations = 0;
   for( int *i = first( &our_vec ); i != end( &our_vec ); i = next( &our_vec, i ) )
     ++n_iterations;
@@ -544,6 +545,7 @@ static void test_vec_iteration( void )
   ALWAYS_ASSERT( n_iterations == 0 );
 
   // Non-empty.
+
   UNTIL_SUCCESS( push_n( &our_vec, expected, 30 ) );
   for( int *i = first( &our_vec ); i != end( &our_vec ); i = next( &our_vec, i ) )
     ++n_iterations;

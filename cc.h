@@ -21,7 +21,7 @@ Usage example:
 
   +---------------------------------------------------------+----------------------------------------------------------+
   | Vector:                                                 | List:                                                    |
-  +---------------------------------------------------------+----------------------------------------------------------+
+  |---------------------------------------------------------|----------------------------------------------------------|
   | #include <stdio.h>                                      | #include <stdio.h>                                       |
   | #include "cc.h"                                         | #include "cc.h"                                          |
   |                                                         |                                                          |
@@ -80,7 +80,7 @@ Usage example:
   |                                                         | }                                                        |
   +---------------------------------------------------------+----------------------------------------------------------+
   | Map:                                                    | Set:                                                     |
-  +---------------------------------------------------------+----------------------------------------------------------+
+  |---------------------------------------------------------|----------------------------------------------------------|
   | #include <stdio.h>                                      | #include <stdio.h>                                       |
   | #include "cc.h"                                         | #include "cc.h"                                          |
   |                                                         |                                                          |
@@ -135,72 +135,72 @@ Usage example:
   | }                                                       |                                                          |
   +---------------------------------------------------------+----------------------------------------------------------+
   | Ordered map:                                            | Ordered set:                                             |
+  |---------------------------------------------------------|----------------------------------------------------------|
+  | #include <stdio.h>                                      | #include <stdio.h>                                       |
+  | #include "cc.h"                                         | #include "cc.h"                                          |
+  |                                                         |                                                          |
+  | int main( void )                                        | int main( void )                                         |
+  | {                                                       | {                                                        |
+  |   // Declare an ordered map with int keys and short     |   oset( int ) our_oset;                                  |
+  |   // elements.                                          |   init( &our_oset );                                     |
+  |   omap( int, short ) our_omap;                          |                                                          |
+  |   init( &our_omap );                                    |   // Inserting elements.                                 |
+  |                                                         |   for( int i = 0; i < 10; ++i )                          |
+  |   // Inserting elements.                                |     if( !insert( &our_oset, i ) )                        |
+  |   for( int i = 0; i < 10; ++i )                         |     {                                                    |
+  |     if( !insert( &our_omap, i, i + 1 ) )                |       // Out of memory, so abort.                        |
+  |     {                                                   |       cleanup( &our_oset );                              |
+  |       // Out of memory, so abort.                       |       return 1;                                          |
+  |       cleanup( &our_omap );                             |     }                                                    |
+  |       return 1;                                         |                                                          |
+  |     }                                                   |   // Erasing elements.                                   |
+  |                                                         |   for( int i = 0; i < 10; i += 3 )                       |
+  |   // Erasing elements.                                  |     erase( &our_oset, i );                               |
+  |   for( int i = 0; i < 10; i += 3 )                      |                                                          |
+  |     erase( &our_omap, i );                              |   // Retrieving elements.                                |
+  |                                                         |   for( int i = 0; i < 10; ++i )                          |
+  |   // Retrieving elements.                               |   {                                                      |
+  |   for( int i = 0; i < 10; ++i )                         |     int *el = get( &our_oset, i );                       |
+  |   {                                                     |     if( el )                                             |
+  |     short *el = get( &our_omap, i );                    |       printf( "%d ", *el );                              |
+  |     if( el )                                            |   }                                                      |
+  |       printf( "%d:%d ", i, *el );                       |   // Printed: 1 2 4 5 7 8                                |
+  |   }                                                     |                                                          |
+  |   // Printed: 1:2 2:3 4:5 5:6 7:8 8:9                   |   // Iteration #1.                                       |
+  |                                                         |   for_each( &our_oset, el )                              |
+  |   // Iteration #1 (elements only).                      |     printf( "%d ", *el );                                |
+  |   for_each( &our_omap, el )                             |   // Printed: 1 2 4 5 7 8                                |
+  |     printf( "%d ", *el );                               |                                                          |
+  |   // Printed: 2 3 5 6 8 9                               |   // Iteration #2.                                       |
+  |                                                         |   for(                                                   |
+  |   // Iteration #2 (elements and keys).                  |     int *el = first( &our_oset );                        |
+  |   for_each( &our_omap, key, el )                        |     el != end( &our_oset );                              |
+  |     printf( "%d:%d ", *key, *el );                      |     el = next( &our_oset, el )                           |
+  |   // Printed: 1:2 2:3 4:5 5:6 7:8 8:9                   |   )                                                      |
+  |                                                         |     printf( "%d ", *el );                                |
+  |   // Iteration #3.                                      |   // Printed: Same as above.                             |
+  |   for(                                                  |                                                          |
+  |     short *el = first( &our_omap );                     |   // Iteration over an element range, namely from 2      |
+  |     el != end( &our_omap );                             |   // (inclusive) to 7 (exclusive).                       |
+  |     el = next( &our_omap, el )                          |   for(                                                   |
+  |   )                                                     |     int *el = first( &our_oset, 2 ),                     |
+  |     printf( "%d:%d ", *key_for( &our_omap, el ), *el ); |     *range_end = first( &our_oset, 7 );                  |
+  |   // Printed: Same as above.                            |     el != range_end;                                     |
+  |                                                         |     el = next( &our_oset, el )                           |
+  |   // Iteration over a key range, namely from 2          |   )                                                      |
+  |   // (inclusive) to 7 (exclusive).                      |     printf( "%d ", *el );                                |
+  |   for(                                                  |   // Printed: 2 4 5                                      |
+  |     short *el = first( &our_omap, 2 ),                  |                                                          |
+  |     *range_end = first( &our_omap, 7 );                 |   cleanup( &our_oset );                                  |
+  |     el != range_end;                                    | }                                                        |
+  |     el = next( &our_omap, el )                          |                                                          |
+  |   )                                                     |                                                          |
+  |     printf( "%d:%d ", *key_for( &our_omap, el ), *el ); |                                                          |
+  |   // Printed: 2:3 4:5 5:6                               |                                                          |
+  |                                                         |                                                          |
+  |   cleanup( &our_omap );                                 |                                                          |
+  | }                                                       |                                                          |
   +---------------------------------------------------------+----------------------------------------------------------+
-  | #include <stdio.h>                                      |
-  | #include "cc.h"                                         |
-  |                                                         |
-  | int main( void )                                        |
-  | {                                                       |
-  |   // Declare an ordered map with int keys and short     |
-  |   // elements.                                          |
-  |   omap( int, short ) our_omap;                          |
-  |   init( &our_omap );                                    |
-  |                                                         |
-  |   // Inserting elements.                                |
-  |   for( int i = 0; i < 10; ++i )                         |
-  |     if( !insert( &our_omap, i, i + 1 ) )                |
-  |     {                                                   |
-  |       // Out of memory, so abort.                       |
-  |       cleanup( &our_omap );                             |
-  |       return 1;                                         |
-  |     }                                                   |
-  |                                                         |
-  |   // Erasing elements.                                  |
-  |   for( int i = 0; i < 10; i += 3 )                      |
-  |     erase( &our_omap, i );                              |
-  |                                                         |
-  |   // Retrieving elements.                               |
-  |   for( int i = 0; i < 10; ++i )                         |
-  |   {                                                     |
-  |     short *el = get( &our_omap, i );                    |
-  |     if( el )                                            |
-  |       printf( "%d:%d ", i, *el );                       |
-  |   }                                                     |
-  |   // Printed: 1:2 2:3 4:5 5:6 7:8 8:9                   |
-  |                                                         |
-  |   // Iteration #1 (elements only).                      |
-  |   for_each( &our_omap, el )                             |
-  |     printf( "%d ", *el );                               |
-  |   // Printed: 2 3 5 6 8 9                               |
-  |                                                         |
-  |   // Iteration #2 (elements and keys).                  |
-  |   for_each( &our_omap, key, el )                        |
-  |     printf( "%d:%d ", *key, *el );                      |
-  |   // Printed: 1:2 2:3 4:5 5:6 7:8 8:9                   |
-  |                                                         |
-  |   // Iteration #3.                                      |
-  |   for(                                                  |
-  |     short *el = first( &our_omap );                     |
-  |     el != end( &our_omap );                             |
-  |     el = next( &our_omap, el )                          |
-  |   )                                                     |
-  |     printf( "%d:%d ", *key_for( &our_omap, el ), *el ); |
-  |   // Printed: Same as above.                            |
-  |                                                         |
-  |   // Iteration over a key range, namely from 2          |
-  |   // (inclusive) to 7 (exclusive).                      |
-  |   for(                                                  |
-  |     short *el = first( &our_omap, 2 ),                  |
-  |     *range_end = first( &our_omap, 7 );                 |
-  |     el != range_end;                                    |
-  |     el = next( &our_omap, el )                          |
-  |   )                                                     |
-  |     printf( "%d:%d ", *key_for( &our_omap, el ), *el ); |
-  |   // Printed: 2:3 4:5 5:6                               |
-  |                                                         |
-  |   cleanup( &our_omap );                                 |
-  | }                                                       |
-  +---------------------------------------------------------+
 
 Including the library:
 
@@ -240,7 +240,7 @@ API:
 
   All containers:
 
-    The following macros behave the same way for all containers:
+    The following function-like macros operate on all containers:
 
     void init( <any container type> *cntr )
 
@@ -264,6 +264,21 @@ API:
 
       Erases all elements (calling the element and key types' destructors if they exist), frees any other memory
       associated with the container, and initializes the container for reuse.
+
+    el_ty *first( <any container type> *cntr )
+
+      Returns a pointer-iterator to the first element, or an end pointer-iterator if the container is empty.
+
+    el_ty *next( <any container type> *cntr, el_ty *i )
+
+      Returns a pointer-iterator to the element after the one pointed to by i.
+      If i points to the last element, the return value is an end pointer-iterator.
+      If i points to r_end (for the containers that support reverse iteration), the return value is a pointer-iterator
+      to the first element, or an end pointer-iterator if the container is empty.
+
+    el_ty *end( <any container type> *cntr )
+
+      Returns an end pointer-iterator for the container.
 
     for_each( <any container type> *cntr, i_name )
 
@@ -302,7 +317,7 @@ API:
 
     el_ty *get( vec( el_ty ) *cntr, size_t i )
 
-      Returns an a pointer-iterator to the element at index i.
+      Returns a pointer-iterator to the element at index i.
 
     el_ty *push( vec( el_ty ) *cntr, el_ty el )
 
@@ -337,31 +352,15 @@ API:
       Returns a pointer-iterator to the element after the erased elements, or an end pointer-iterator if there is no
       subsequent element.
 
-    el_ty *end( vec( el_ty ) *cntr )
-
-      Returns an end pointer-iterator.
-      This call is synonymous with get( cntr, size( cntr ) ).
-
-    el_ty *first( vec( el_ty ) *cntr )
-
-      Returns an pointer-iterator to the first element, or an end pointer-iterator if the vector is empty.
-      This call is synonymous with get( cntr, 0 ).
-
     el_ty *last( vec( el_ty ) *cntr )
 
       Returns a pointer-iterator to the last element.
-      This call is synonymous with get( cntr, size( cntr ) - 1 ).
-      It assumes that at the vector is not empty.
-
-   el_ty *next( vec( el_ty ) *cntr, el_ty *i )
-
-      Returns a pointer-iterator to the element after the element pointed to by i, or an end pointer-iterator if i
-      points to the last element.
+      This call is synonymous with get( cntr, size( cntr ) - 1 ) and assumes that at the vector is not empty.
 
     Notes:
     * Vector pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
 
-  List (a doubly linked list with sentinels):
+  List (a doubly linked list):
 
     list( el_ty ) cntr
 
@@ -380,39 +379,20 @@ API:
 
     el_ty *erase( list( el_ty ) *cntr, el_ty *i )
 
-      Erases element pointed to by pointer-iterator i, calling the element type's destructor if it exists.
+      Erases the element pointed to by pointer-iterator i, calling the element type's destructor if it exists.
       Returns a pointer-iterator to the element after i, or an end pointer-iterator if i was the last element.
 
     bool splice( list( el_ty ) *cntr, el_ty *i, list( el_ty ) src, el_ty *src_i )
 
-      Removes element pointed to by pointer-iterator src_i from src and inserts it before the element pointed to by
+      Removes the element pointed to by pointer-iterator src_i from src and inserts it before the element pointed to by
       pointer-iterator i in cntr.
       Returns true, or false if unsuccessful.
       This call only allocates memory, and therefore can only fail, if the list has not had any element inserted,
       pushed, or spliced into it since it was initialized.
 
-    el_ty *first( list( el_ty ) *cntr )
-
-      Returns a pointer-iterator to the first element, or an end pointer-iterator if the list is empty.
-
     el_ty *last( list( el_ty ) *cntr )
 
       Returns a pointer-iterator to the last element, or an r_end pointer-iterator if the list is empty.
-
-    el_ty *r_end( list( el_ty ) *cntr )
-
-      Returns an r_end (reverse end) pointer-iterator for the list. r_end acts as a sentinel node.
-
-    el_ty *end( list( el_ty ) *cntr )
-
-      Returns an end pointer-iterator for the list. End acts as a sentinel node.
-
-    el_ty *next( list( el_ty ) *cntr, el_ty *i )
-
-      Returns a pointer-iterator to the element after the one pointed to by i.
-      If i points to the last element, the return value is an end pointer-iterator.
-      If i points to r_end, the return value is a pointer-iterator to the first element, or an end pointer-iterator if
-      the list is empty.
 
     el_ty *prev( list( el_ty ) *cntr, el_ty *i )
 
@@ -420,6 +400,10 @@ API:
       If i points to the first element, the return value is an r_end pointer-iterator.
       If i points to end, then the return value is a pointer-iterator to the last element, or an r_end pointer-iterator
       if the list is empty.
+
+    el_ty *r_end( list( el_ty ) *cntr )
+
+      Returns an r_end (reverse end) pointer-iterator for the list.
 
     r_for_each( list( el_ty ) *cntr, i_name )
 
@@ -439,7 +423,8 @@ API:
     map( key_ty, el_ty ) cntr
 
       Declares an uninitialized map named cntr.
-      TODO
+      key_ty must be a type, or alias for a type, for which comparison and hash functions have been defined (this
+      requirement is enforced internally such that neglecting it causes a compiler error).
       For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash
       functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
 
@@ -491,36 +476,6 @@ API:
       Returns a pointer-iterator to the next element in the map, or an end pointer-iterator if the erased element was
       the last one.
 
-    el_ty *first( map( key_ty, el_ty ) *cntr )
-
-      Returns a pointer-iterator to the first element, or an end pointer-iterator if the map is empty.
-
-    el_ty *last( map( key_ty, el_ty ) *cntr )
-
-      Returns a pointer-iterator to the last element, or an r_end pointer-iterator if the map is empty.
-
-    el_ty *r_end( map( key_ty, el_ty ) *cntr )
-
-      Returns an r_end (reverse end) pointer-iterator for the map.
-
-    el_ty *end( map( key_ty, el_ty ) *cntr )
-
-      Returns an end pointer-iterator for the map.
-
-    el_ty *next( map( key_ty, el_ty ) *cntr, el_ty *i )
-
-      Returns a pointer-iterator to the element after the one pointed to by i.
-      If i points to the last element, the value returned is an end pointer-iterator.
-      If i points to r_end, the value returned points to the first element, or is an end pointer-iterator if the map is
-      empty.
-
-    el_ty *prev( map( key_ty, el_ty ) *cntr, el_ty *i )
-
-      Returns a pointer-iterator to the element before the one pointed to by i.
-      If i points to the first element, the value returned is an r_end pointer-iterator.
-      If i points to end, then the value returned points to the last element, or is an r_end pointer-iterator if the map
-      is empty.
-
     for_each( map( key_ty, el_ty ) *cntr, key_ptr_name, i_name )
 
       Creates a loop iterating over all elements from first to last, with easy access to the corresponding keys.
@@ -528,24 +483,8 @@ API:
       named i_name.
       It should be followed by the body of the loop.
 
-    r_for_each( map( key_ty, el_ty ) *cntr, i_name )
-
-      Creates a loop iterating over all elements from last to first.
-      This macro declares an el_ty * pointer-iterator named i_name.
-      It is equivalent to
-        for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )
-      and should be followed by the body of the loop.
-
-    r_for_each( map( key_ty, el_ty ) *cntr, key_ptr_name, i_name )
-
-      Creates a loop iterating over all elements from last to first, with easy access to the corresponding keys.
-      This macro declares a pointer to the key (const key_ty *) named key_ptr_name and a pointer-iterator (el_ty *)
-      named i_name.
-      It should be followed by the body of the loop.
-
     Notes:
-    * Map pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
-      reallocation.
+    * Map pointer-iterators (including end) may be invalidated by any API calls that cause memory reallocation.
 
   Set (an unordered associative container for elements without a separate key, implemented as a hybrid open-addressing,
   chained hash table):
@@ -553,7 +492,8 @@ API:
     set( el_ty ) cntr
 
       Declares an uninitialized set named cntr.
-      TODO
+      el_ty must be a type, or alias for a type, for which comparison and hash functions have been defined (this
+      requirement is enforced internally such that neglecting it causes a compiler error).  
       For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash
       functions, see "Destructor, comparison, and hash functions and custom max load factors" below.
 
@@ -598,58 +538,19 @@ API:
     el_ty *erase_itr( set( el_ty ) *cntr, el_ty *i )
 
       Erases the element pointed to by pointer-iterator i.
-      Returns an pointer-iterator to the next element in the set, or an end pointer-iterator if the erased element was
+      Returns a pointer-iterator to the next element in the set, or an end pointer-iterator if the erased element was
       the last one.
 
-    el_ty *first( set( el_ty ) *cntr )
-
-      Returns a pointer-iterator to the first element, or an end pointer-iterator if the set is empty.
-
-    el_ty *last( set( el_ty ) *cntr )
-
-      Returns a pointer-iterator to the last element, or an r_end pointer-iterator if the set is empty.
-
-    el_ty *r_end( set( el_ty ) *cntr )
-
-      Returns an r_end (reverse end) pointer-iterator for the set.
-
-    el_ty *end( set( el_ty ) *cntr )
-
-      Returns an end pointer-iterator for the set.
-
-    el_ty *next( set( el_ty ) *cntr, el_ty *i )
-
-      Returns a pointer-iterator to the element after the one pointed to by i.
-      If i points to the last element, the pointer-iterator returned is an end pointer-iterator.
-      If i points to r_end, then the pointer-iterator returned points to the first element, or is an end
-      pointer-iterator if the set is empty.
-
-    el_ty *prev( set( el_ty ) *cntr, el_ty *i )
-
-      Returns a pointer-iterator to the element before the one pointed to by i.
-      If i points to the first element, the return value is an r_end pointer-iterator.
-      If i points to end, then the pointer-iterator returned points to the last element, or is an r_end pointer-iterator
-      if the set is empty.
-
-    r_for_each( set( el_ty ) *cntr, i_name )
-
-      Creates a loop iterating over all elements from last to first.
-      This macro declares an el_ty * pointer-iterator named i_name.
-      It is equivalent to
-        for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )
-      and should be followed by the body of the loop.
-
     Notes:
-    * Set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
-      reallocation.
+    * Set pointer-iterators (including end) may be invalidated by any API calls that cause memory reallocation.
 
   Ordered map (an ordered associative container mapping elements to keys, implemented as a red-black tree):
 
     omap( key_ty, el_ty ) cntr
 
       Declares an uninitialized ordered map named cntr.
-      key_ty must be a type, or alias for a type, for which a comparison function has been defined.
-      This requirement is enforced internally such that neglecting it causes a compiler error.
+      key_ty must be a type, or alias for a type, for which a comparison function has been defined (this requirement is
+      enforced internally such that neglecting it causes a compiler error).
       For types with in-built comparison functions, and for details on how to declare new comparison functions, see
       "Destructor, comparison, and hash functions and custom max load factors" below.
 
@@ -665,7 +566,7 @@ API:
 
     el_ty *get_or_insert( omap( key_ty, el_ty ) *cntr, key_ty key, el_ty el )
 
-      Inserts element el if no element with the specified key already exist.
+      Inserts element el if no element with the specified key already exists.
       Returns a pointer-iterator to the new element if it was inserted, or a pointer-iterator to the existing element
       with the same key, or NULL in the case of memory allocation failure.
       Determine whether an element was inserted by comparing the ordered map's size before and after the call.
@@ -685,10 +586,6 @@ API:
       Returns a pointer-iterator to the next element in the ordered map, or an end pointer-iterator if the erased
       element was the last one.
 
-    el_ty *first( omap( key_ty, el_ty ) *cntr )
-
-      Returns a pointer-iterator to the first element, or an end pointer-iterator if the ordered map is empty.
-
     el_ty *first( omap( key_ty, el_ty ) *cntr, key_ty key )
 
       Returns a pointer-iterator to the first element with a key greater than or equal to the specified key, or an end
@@ -703,27 +600,16 @@ API:
       Returns a pointer-iterator to the last element with a key less than or equal to the specified key, or an r_end
       pointer-iterator if the ordered map is empty.
 
-    el_ty *r_end( omap( key_ty, el_ty ) *cntr )
-
-      Returns an r_end (reverse end) pointer-iterator for the ordered map.
-
-    el_ty *end( omap( key_ty, el_ty ) *cntr )
-
-      Returns an end pointer-iterator for the ordered map.
-
-    el_ty *next( omap( key_ty, el_ty ) *cntr, el_ty *i )
-
-      Returns a pointer-iterator to the element after the one pointed to by i.
-      If i points to the last element, the value returned is an end pointer-iterator.
-      If i points to r_end, the value returned points to the first element, or is an end pointer-iterator if the
-      ordered map is empty.
-
     el_ty *prev( omap( key_ty, el_ty ) *cntr, el_ty *i )
 
       Returns a pointer-iterator to the element before the one pointed to by i.
       If i points to the first element, the value returned is an r_end pointer-iterator.
       If i points to end, then the value returned points to the last element, or is an r_end pointer-iterator if the
       ordered map is empty.
+
+    el_ty *r_end( omap( key_ty, el_ty ) *cntr )
+
+      Returns an r_end (reverse end) pointer-iterator for the ordered map.
 
     for_each( omap( key_ty, el_ty ) *cntr, key_ptr_name, i_name )
 
@@ -751,13 +637,88 @@ API:
     * Ordered map pointer-iterators (including r_end and end) are not invalidated by any API calls besides init and
       cleanup, unless they point to erased elements.
 
+  Ordered set (an ordered associative container for elements without a separate key, implemented as a red-black tree:
+
+    oset( el_ty ) cntr
+
+      Declares an uninitialized ordered set named cntr.
+      el_ty must be a type, or alias for a type, for which a comparison function has been defined (this requirement is
+      enforced internally such that neglecting it causes a compiler error).
+      For types with in-built comparison functions, and for details on how to declare new comparison functions, see
+      "Destructor, comparison, and hash functions and custom max load factors" below.
+
+    el_ty *insert( oset( el_ty ) *cntr, el_ty el )
+
+      Inserts element el.
+      If the element already exists, the existing element is replaced.
+      Returns a pointer-iterator to the new element, or NULL in the case of memory allocation failure.
+
+    el_ty *get( oset( el_ty ) *cntr, el_ty el )
+
+      Returns a pointer-iterator to element el, or NULL if no such element exists.
+
+    el_ty *get_or_insert( oset( el_ty ) *cntr, el_ty el )
+
+      Inserts element el if it does not already exist.
+      Returns a pointer-iterator to the new element if it was inserted, or a pointer-iterator to the existing element,
+      or NULL in the case of memory allocation failure.
+      Determine whether an element was inserted by comparing the ordered set's size before and after the call.
+
+    bool erase( oset( el_ty ) *cntr, el_ty el )
+
+      Erases the element el, if it exists.
+      Returns true if an element was erased, or false if no such element exists.
+
+    el_ty *erase_itr( oset( el_ty ) *cntr, el_ty *i )
+
+      Erases the element pointed to by pointer-iterator i.
+      Returns a pointer-iterator to the next element in the ordered set, or an end pointer-iterator if the erased
+      element was the last one.
+
+    el_ty *first( oset( key_ty, el_ty ) *cntr, el_ty el )
+
+      Returns a pointer-iterator to the first element greater than or equal to el, or an end pointer-iterator if no such
+      element exists.
+
+    el_ty *last( oset( el_ty ) *cntr )
+
+      Returns a pointer-iterator to the last element, or an r_end pointer-iterator if the ordered set is empty.
+
+    el_ty *last( oset( key_ty, el_ty ) *cntr, el_ty el )
+
+      Returns a pointer-iterator to the last element less than or equal to el, or an end pointer-iterator if no such
+      element exists.
+
+    el_ty *prev( oset( el_ty ) *cntr, el_ty *i )
+
+      Returns a pointer-iterator to the element before the one pointed to by i.
+      If i points to the first element, the return value is an r_end pointer-iterator.
+      If i points to end, then the pointer-iterator returned points to the last element, or is an r_end pointer-iterator
+      if the ordered set is empty.
+
+    el_ty *r_end( oset( el_ty ) *cntr )
+
+      Returns an r_end (reverse end) pointer-iterator for the ordered set.
+
+    r_for_each( oset( el_ty ) *cntr, i_name )
+
+      Creates a loop iterating over all elements from last to first.
+      This macro declares an el_ty * pointer-iterator named i_name.
+      It is equivalent to
+        for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )
+      and should be followed by the body of the loop.
+
+    Notes:
+    * Ordered set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
+      reallocation.
+
   Destructor, comparison, and hash functions and custom max load factors:
 
     This part of the API allows the user to define custom destructor, comparison, and hash functions and max load
     factors for a type.
     Once these functions are defined, any container using that type for its elements or keys will call them
     automatically.
-    Once the max load factor is defined, any map using the type for its key and any set using the type for its elements
+    Once the max load factor is defined, any map using the type for its keys and any set using the type for its elements
     will use the defined load factor to determine when rehashing is necessary.
 
     #define CC_DTOR ty, { function body }
@@ -785,8 +746,8 @@ API:
 
       Defines the max load factor for type ty.
       max_load_factor should be a float or double between 0.0 and 1.0.
-      The default max load factor is 0.8.
-    
+      The default max load factor is 0.9.
+
     Trivial example:
 
       typedef struct { int x; } our_type;
@@ -799,7 +760,7 @@ API:
     Notes:
     * These functions are inline and have static scope, so you need to either redefine them in each translation unit
       from which they should be called or (preferably) define them in a shared header. For structs or unions, a sensible
-      place to define them would be immediately after the definition of the struct or union.
+      place to define them is immediately after the definition of the struct or union.
     * Only one destructor, comparison, or hash function or max load factor should be defined by the user for each type.
     * Including cc.h in these cases does not include the full header, so you still need to include it separately at the
       top of your files.
@@ -810,10 +771,11 @@ API:
 
 Version history:
 
-  ../../.... 1.3.0: ...
+  28/07/2024 1.3.0: Added ordered map and ordered set.
                     Fixed cc_erase_itr to return a correctly typed pointer-iterator instead of void *. 
                     Fixed a bug in list that caused cc_next and cc_prev to behave incorrectly when passed an r_end and
                     end pointer-iterator, respectively.
+                    Deprecated reverse iteration (cc_last, cc_prev, and cc_r_end) for maps and sets.
   12/07/2024 1.2.0: Added MSVC support.
                     Added README examples to the documentation in the header.
   27/05/2024 1.1.1: Fixed a bug in map and set that could theoretically cause a crash on rehash (triggerable in testing
@@ -948,7 +910,7 @@ License (MIT):
 #endif
 
 // Marks a point where the program never reaches.
-#if defined( __GNUC__ )
+#ifdef __GNUC__
 #define CC_UNREACHABLE __builtin_unreachable()
 #elif defined( _MSC_VER )
 #define CC_UNREACHABLE __assume( false )
@@ -1040,6 +1002,15 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #else
 #define CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ) (void)0
 #endif
+
+// We also generate a warning (GCC, Clang) or error (MSVC) if the user makes a deprecated API macro call.
+// Disable this warning or error by defining CC_ALLOW_DEPRECATED.
+#define CC_COMMA() ,
+#define CC_IS_DEFINED( macro ) CC_2ND_ARG( CC_COMMA macro () true, false, )
+#define CC_WARN_DEPRECATED_IF( cond )                                                      \
+(void)(                                                                                    \
+  "WARNING: THIS API CALL IS DEPRECATED" &&1/(CC_IS_DEFINED(CC_ALLOW_DEPRECATED)||!(cond)) \
+)                                                                                          \
 
 // MSVC has traditionally provided a nonconforming preprocessor, which requires an extra level of expansion in some
 // variadic macros.
@@ -1418,6 +1389,7 @@ static inline int cc_first_nonzero_uint16( uint64_t a )
   return __builtin_clzll( a ) / 16;
 }
 
+// DEPRECATED.
 static inline int cc_last_nonzero_uint16( uint64_t a )
 {
   if( cc_is_little_endian() )
@@ -1447,6 +1419,7 @@ static inline int cc_first_nonzero_uint16( uint64_t a )
   return result / 16;
 }
 
+// DEPRECATED.
 static inline int cc_last_nonzero_uint16( uint64_t a )
 {
   unsigned long result;
@@ -1481,6 +1454,7 @@ static inline int cc_first_nonzero_uint16( uint64_t a )
   return result;
 }
 
+// DEPRECATED.
 static inline int cc_last_nonzero_uint16( uint64_t a )
 {
   int result = 3;
@@ -2113,7 +2087,7 @@ static inline void cc_list_attach(
 static inline cc_allocing_fn_result_ty cc_list_insert(
   void *cntr,
   void *el,
-  void *key, // Pointer to void pointer-interator.
+  void *key, // Pointer to void pointer-iterator.
   CC_UNUSED( bool, replace ),
   size_t el_size,
   CC_UNUSED( uint64_t, layout ),
@@ -2183,7 +2157,7 @@ static inline cc_allocing_fn_result_ty cc_list_push(
 // the element was the last element in the list).
 static inline void *cc_list_erase(
   void *cntr,
-  void *key, // Pointer to void pointer-interator.
+  void *key, // Pointer to void pointer-iterator.
   CC_UNUSED( size_t, el_size ),
   CC_UNUSED( uint64_t, layout ),
   CC_UNUSED( cc_hash_fnptr_ty, hash ),
@@ -3026,6 +3000,7 @@ static inline void *cc_map_get(
   }
 }
 
+// DEPRECATED.
 // For maps, the container handle doubles up as r_end.
 static inline void *cc_map_r_end( void *cntr )
 {
@@ -3059,6 +3034,7 @@ static inline void *cc_map_leap_forward( void *cntr, void *itr, size_t el_size, 
   }
 }
 
+// DEPRECATED.
 // Finds the first occupied bucket before the bucket pointed to by itr.
 // This function also scans four buckets at a time, ideally using intrinsics.
 // However, because the r_end pointer-iterator, unlike end, constitutes a special case, this function is less efficient
@@ -3106,6 +3082,7 @@ static inline void *cc_map_first(
   return cc_map_leap_forward( cntr, itr, el_size, layout );
 }
 
+// DEPRECATED.
 static inline void *cc_map_last(
   void *cntr,
   size_t el_size,
@@ -3115,6 +3092,7 @@ static inline void *cc_map_last(
   return cc_map_leap_backward( cntr, cc_map_end( cntr, el_size, layout ), el_size, layout );
 }
 
+// DEPRECATED.
 static inline void *cc_map_prev(
   void *cntr,
   void *itr,
@@ -3233,7 +3211,7 @@ static inline bool cc_map_erase_raw(
       cc_map_hdr( cntr )->metadata[ prev ] |= CC_MAP_DISPLACEMENT_MASK;
       cc_map_hdr( cntr )->metadata[ bucket ] = CC_MAP_EMPTY;
 
-      // Whether an pointer-iterator pointing to erase_bucket should be advanced depends on whether the key-element pair
+      // Whether a pointer-iterator pointing to erase_bucket should be advanced depends on whether the key-element pair
       // moved to the erase_bucket came from before or after that bucket.
       // In the former case, the iteration would already have hit the moved key-element pair, so the pointer-iterator
       // should still be advanced.
@@ -3604,6 +3582,7 @@ static inline void cc_set_cleanup(
   cc_map_cleanup( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one destructor */, free_ );
 }
 
+// DEPRECATED.
 static inline void *cc_set_r_end( void *cntr )
 {
   return cc_map_r_end( cntr );
@@ -3627,6 +3606,7 @@ static inline void *cc_set_first(
   return cc_map_first( cntr, 0 /* Zero element size */, layout );
 }
 
+// DEPRECATED.
 static inline void *cc_set_last(
   void *cntr,
   CC_UNUSED( size_t, el_size ),
@@ -3636,6 +3616,7 @@ static inline void *cc_set_last(
   return cc_map_last( cntr, 0 /* Zero element size */, layout );
 }
 
+// DEPRECATED.
 static inline void *cc_set_prev(
   void *cntr,
   void *itr,
@@ -5204,6 +5185,10 @@ static inline void *cc_oset_next(
 #define cc_r_end( cntr )                                 \
 (                                                        \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                \
+  CC_WARN_DEPRECATED_IF(                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                      \
+  ),                                                     \
   CC_STATIC_ASSERT(                                      \
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
@@ -5323,6 +5308,10 @@ static inline void *cc_oset_next(
 #define cc_last_1( cntr )                               \
 (                                                       \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),               \
+  CC_WARN_DEPRECATED_IF(                                \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                     \
+  ),                                                    \
   CC_STATIC_ASSERT(                                     \
     CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                 \
@@ -5412,6 +5401,10 @@ static inline void *cc_oset_next(
 #define cc_prev( cntr, itr )                            \
 (                                                       \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),               \
+  CC_WARN_DEPRECATED_IF(                                \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                     \
+  ),                                                    \
   CC_STATIC_ASSERT(                                     \
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                 \
@@ -5940,7 +5933,7 @@ CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( size_t, size_t )
 
 // In MSVC under C, char is an alias for unsigned char or signed char, contrary to the C Standard, which requires all
 // three to be distinct types.
-// To accomodate this bug, we have to ensure that char doesn't clash with either of the other two types in _Generic
+// To accommodate this bug, we have to ensure that char doesn't clash with either of the other two types in _Generic
 // statements.
 // If char is an alias, cc_maybe_char will be a dummy type used in no other context.
 // Otherwise, it will be an alias for char.
