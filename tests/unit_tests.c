@@ -1361,25 +1361,22 @@ static void test_map_iteration_and_get_key( void )
 
   // Test first and last.
   ALWAYS_ASSERT( first( &our_map ) == end( &our_map ) );
-  ALWAYS_ASSERT( last( &our_map ) == r_end( &our_map ) );
 
   size_t n_iterations = 0;
+
   for( size_t *i = first( &our_map ); i != end( &our_map ); i = next( &our_map, i ) )
     ++n_iterations;
-  for( size_t *i = last( &our_map ); i != r_end( &our_map ); i = prev( &our_map, i ) )
-    ++n_iterations;
+
   for_each( &our_map, i )
     ++n_iterations;
-  r_for_each( &our_map, i )
-    ++n_iterations;
+
   for_each( &our_map, k, i )
-    ++n_iterations;
-  r_for_each( &our_map, k, i )
     ++n_iterations;
 
   ALWAYS_ASSERT( n_iterations == 0 );
 
   // Non-empty.
+
   for( int i = 0; i < 30; ++i )
     UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
   
@@ -1388,15 +1385,8 @@ static void test_map_iteration_and_get_key( void )
     ALWAYS_ASSERT( (size_t)*key_for( &our_map, i ) == *i - 1 );
     ++n_iterations;
   }
-  for( size_t *i = last( &our_map ); i != r_end( &our_map ); i = prev( &our_map, i ) )
-  {
-    ALWAYS_ASSERT( (size_t)*key_for( &our_map, i ) == *i - 1 );
-    ++n_iterations;
-  }
 
   for_each( &our_map, i )
-    ++n_iterations;
-  r_for_each( &our_map, i )
     ++n_iterations;
 
   for_each( &our_map, k, i )
@@ -1404,13 +1394,8 @@ static void test_map_iteration_and_get_key( void )
     ALWAYS_ASSERT( (size_t)*k == *i - 1 );
     ++n_iterations;
   }
-  r_for_each( &our_map, k, i )
-  {
-    ALWAYS_ASSERT( (size_t)*k == *i - 1 );
-    ++n_iterations;
-  }
 
-  ALWAYS_ASSERT( n_iterations == 180 );
+  ALWAYS_ASSERT( n_iterations == 90 );
 
   // Iteration over empty, non-placeholder map.
 
@@ -1419,9 +1404,6 @@ static void test_map_iteration_and_get_key( void )
   n_iterations = 0;
 
   for_each( &our_map, i )
-    ++n_iterations;
-
-  r_for_each( &our_map, i )
     ++n_iterations;
 
   ALWAYS_ASSERT( n_iterations == 0 );
@@ -1911,36 +1893,29 @@ static void test_set_iteration( void )
 
   // Test first and last.
   ALWAYS_ASSERT( first( &our_set ) == end( &our_set ) );
-  ALWAYS_ASSERT( last( &our_set ) == r_end( &our_set ) );
 
   size_t n_iterations = 0;
+
   for( int *i = first( &our_set ); i != end( &our_set ); i = next( &our_set, i ) )
     ++n_iterations;
-  for( int *i = last( &our_set ); i != r_end( &our_set ); i = prev( &our_set, i ) )
-    ++n_iterations;
+
   for_each( &our_set, i )
-    ++n_iterations;
-  r_for_each( &our_set, i )
     ++n_iterations;
 
   ALWAYS_ASSERT( n_iterations == 0 );
 
   // Non-empty.
+
   for( int i = 0; i < 30; ++i )
     UNTIL_SUCCESS( insert( &our_set, i ) );
   
   for( int *i = first( &our_set ); i != end( &our_set ); i = next( &our_set, i ) )
     ++n_iterations;
-  for( int *i = last( &our_set ); i != r_end( &our_set ); i = prev( &our_set, i ) )
-    ++n_iterations;
 
   for_each( &our_set, i )
     ++n_iterations;
 
-  r_for_each( &our_set, i )
-    ++n_iterations;
-
-  ALWAYS_ASSERT( n_iterations == 120 );
+  ALWAYS_ASSERT( n_iterations == 60 );
 
   // Iteration over empty, non-placeholder set.
 
@@ -1949,9 +1924,6 @@ static void test_set_iteration( void )
   n_iterations = 0;
 
   for_each( &our_set, i )
-    ++n_iterations;
-
-  r_for_each( &our_set, i )
     ++n_iterations;
 
   ALWAYS_ASSERT( n_iterations == 0 );

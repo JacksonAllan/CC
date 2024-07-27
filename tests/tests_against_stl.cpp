@@ -768,6 +768,8 @@ int main()
     }
 
     // Check our_omap against STL's ordered map.
+
+    // Forward iteration.
     auto stl_itr = stl_omap.begin();
     cc_for_each( &our_omap, cc_itr )
     {
@@ -776,6 +778,16 @@ int main()
       ++stl_itr;
     }
     ALWAYS_ASSERT( stl_itr == stl_omap.end() );
+
+    // Reverse iteration.
+    auto stl_r_itr = stl_omap.rbegin();
+    cc_r_for_each( &our_omap, cc_itr )
+    {
+      ALWAYS_ASSERT( *cc_key_for( &our_omap, cc_itr ) == stl_r_itr->first );
+      ALWAYS_ASSERT( *cc_itr == stl_r_itr->second );
+      ++stl_r_itr;
+    }
+    ALWAYS_ASSERT( stl_r_itr == stl_omap.rend() );
 
     std::cout << "Done. Final size: " << cc_size( &our_omap ) << "\n";
     cc_cleanup( &our_omap );
@@ -875,13 +887,24 @@ int main()
     }
 
     // Check our_oset against STL's ordered set.
+
+    // Forward iteration.
     auto stl_itr = stl_oset.begin();
     cc_for_each( &our_oset, cc_itr )
     {
       ALWAYS_ASSERT( *cc_itr == *stl_itr );
       ++stl_itr;
     }
-    ALWAYS_ASSERT( *stl_itr == *stl_oset.end() );
+    ALWAYS_ASSERT( stl_itr == stl_oset.end() );
+
+    // Reverse iteration.
+    auto stl_r_itr = stl_oset.rbegin();
+    cc_r_for_each( &our_oset, cc_itr )
+    {
+      ALWAYS_ASSERT( *cc_itr == *stl_r_itr );
+      ++stl_r_itr;
+    }
+    ALWAYS_ASSERT( stl_r_itr == stl_oset.rend() );
 
     std::cout << "Done. Final size: " << cc_size( &our_oset ) << "\n";
     cc_cleanup( &our_oset );

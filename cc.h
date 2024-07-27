@@ -1007,10 +1007,10 @@ CC_CAST_MAYBE_UNUSED(                                               \
 // Disable this warning or error by defining CC_ALLOW_DEPRECATED.
 #define CC_COMMA() ,
 #define CC_IS_DEFINED( macro ) CC_2ND_ARG( CC_COMMA macro () true, false, )
-#define CC_WARN_DEPRECATED_IF( cond )                                                      \
-(void)(                                                                                    \
-  "WARNING: THIS API CALL IS DEPRECATED" &&1/(CC_IS_DEFINED(CC_ALLOW_DEPRECATED)||!(cond)) \
-)                                                                                          \
+#define CC_WARN_DEPRECATED_IF( cond )                                                           \
+(void)(                                                                                         \
+  "WARNING: THIS API CALL IS DEPRECATED" &&1/(int)(CC_IS_DEFINED(CC_ALLOW_DEPRECATED)||!(cond)) \
+)                                                                                               \
 
 // MSVC has traditionally provided a nonconforming preprocessor, which requires an extra level of expansion in some
 // variadic macros.
