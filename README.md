@@ -99,12 +99,12 @@ int main( void )
   int *our_vec = NULL;
   vec_push( our_vec, 5 );
   printf( "%d\n", our_vec[ 0 ] );
-  free( our_vec );
+  vec_cleanup( our_vec );
 
   int_float_pair *our_map = NULL;
   map_insert( our_map, 5, 0.5f );
   printf( "%f\n", *map_get( our_map, 5 ) );
-  free( our_map );
+  map_cleanup( our_map );
 }
 ```
 
@@ -560,11 +560,13 @@ int main( void )
 
 ```
 
-### Custom comparison and hash functions
+### Custom hash and comparison functions
 
-**CC** includes default comparison and hash functions for fundamental integer types and `NULL`-terminated strings (`char *`). Hence, these types can be used as `map` and `omap` keys, and `set` and `oset` elements, straight away.
+**CC** includes default hash and comparison functions for fundamental integer types and `NULL`-terminated strings (`char *`). Hence, these types can be used as map and ordered map keys, and set and ordered set elements, straight away.
 
-To use other types or overwrite the default functions for the aforementioned types, define custom comparison and hash functions with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )`, respectively.
+To use other types or overwrite the default functions for the aforementioned types, define custom hash and/or comparison functions with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )`, respectively.
+
+Maps and sets require both a hash and comparison function, whereas ordered maps and ordered sets require only a comparison function.
 
 ```c
 #include "cc.h"
@@ -583,9 +585,11 @@ typedef struct
 
 int main( void )
 {
-  // Now we can use our own type as map keys and set elements.
+  // Now we can use our own type as map and ordered map keys and set and ordered set elements.
   map( our_type, int ) our_map;
+  omap( our_type, int ) our_omap;
   set( our_type ) our_set;
+  oset( our_type ) our_oset;
 }
 
 ```

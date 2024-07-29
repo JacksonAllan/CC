@@ -771,7 +771,7 @@ API:
 
 Version history:
 
-  28/07/2024 1.3.0: Added ordered map and ordered set.
+  29/07/2024 1.3.0: Added ordered map and ordered set.
                     Fixed cc_erase_itr to return a correctly typed pointer-iterator instead of void *. 
                     Fixed a bug in list that caused cc_next and cc_prev to behave incorrectly when passed an r_end and
                     end pointer-iterator, respectively.
