@@ -1253,7 +1253,7 @@ CC_TYPEOF_XP(                                                                   
 // The reason that a uint64_t, rather than a struct, is used is that GCC seems to have trouble properly optimizing the
 // passing of the struct - even if only 8 bytes - into some container functions (e.g. cc_map_insert), apparently because
 // it declines to pass by register.
-//
+
 // Macro for ensuring valid layout on container declaration.
 // Since the key size occupies four bytes and the padding values each occupy two bytes, the key size must be <=
 // UINT32_MAX (about 4.3GB) and the alignment of the element and key must be <= UINT16_MAX + 1 (i.e. 65536).
