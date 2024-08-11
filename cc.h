@@ -851,6 +851,7 @@ License (MIT):
 #define set( ... )           CC_MSVC_PP_FIX( cc_set( __VA_ARGS__ ) )
 #define omap( ... )          CC_MSVC_PP_FIX( cc_omap( __VA_ARGS__ ) )
 #define oset( ... )          CC_MSVC_PP_FIX( cc_oset( __VA_ARGS__ ) )
+#define str( ... )           CC_MSVC_PP_FIX( cc_str( __VA_ARGS__ ) )
 #define init( ... )          CC_MSVC_PP_FIX( cc_init( __VA_ARGS__ ) )
 #define init_clone( ... )    CC_MSVC_PP_FIX( cc_init_clone( __VA_ARGS__ ) )
 #define size( ... )          CC_MSVC_PP_FIX( cc_size( __VA_ARGS__ ) )
@@ -879,6 +880,7 @@ License (MIT):
 #define prev( ... )          CC_MSVC_PP_FIX( cc_prev( __VA_ARGS__ ) )
 #define for_each( ... )      CC_MSVC_PP_FIX( cc_for_each( __VA_ARGS__ ) )
 #define r_for_each( ... )    CC_MSVC_PP_FIX( cc_r_for_each( __VA_ARGS__ ) )
+#define set_floating_point_precision( ... ) CC_MSVC_PP_FIX( cc_set_floating_point_precision( __VA_ARGS__ ) )
 #endif
 
 #ifndef CC_H
@@ -1023,8 +1025,12 @@ CC_CAST_MAYBE_UNUSED(                                               \
 // CC_SELECT_ON_NUM_ARGS macro for overloading API macros based on the number of arguments.
 #define CC_CAT_2_( a, b ) a##b
 #define CC_CAT_2( a, b ) CC_CAT_2_( a, b )
-#define CC_N_ARGS_( _1, _2, _3, _4, _5, _6, n, ... ) n
-#define CC_N_ARGS( ... ) CC_MSVC_PP_FIX( CC_N_ARGS_( __VA_ARGS__, _6, _5, _4, _3, _2, _1, x ) )
+// #define CC_N_ARGS_( _1, _2, _3, _4, _5, _6, n, ... ) n
+// #define CC_N_ARGS( ... ) CC_MSVC_PP_FIX( CC_N_ARGS_( __VA_ARGS__, _6, _5, _4, _3, _2, _1, x ) )
+// #define CC_N_ARGS_( _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, n, ... ) n
+// #define CC_N_ARGS( ... ) CC_MSVC_PP_FIX( CC_N_ARGS_( __VA_ARGS__, _18, _17, _16, _15, _14, _13, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, x ) )
+#define CC_N_ARGS_( _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, n, ... ) n
+#define CC_N_ARGS( ... ) CC_MSVC_PP_FIX( CC_N_ARGS_( __VA_ARGS__, _18, _17, _16, _15, _14, _13, _12, _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, x ) )
 #define CC_SELECT_ON_NUM_ARGS( func, ... ) CC_CAT_2( func, CC_N_ARGS( __VA_ARGS__ ) )( __VA_ARGS__ )
 
 // If the user has defined CC_REALLOC and CC_FREE, then CC_GET_REALLOC and CC_GET_FREE are replaced with those macros.
@@ -1093,6 +1099,7 @@ typedef void ( *cc_free_fnptr_ty )( void * );
 #define CC_SET  4
 #define CC_OMAP 5
 #define CC_OSET 6
+#define CC_STR  7
 
 // Produces the underlying function pointer type for a given element/key type pair.
 #define CC_MAKE_BASE_FNPTR_TY( el_ty, key_ty ) CC_TYPEOF_TY( CC_TYPEOF_TY( el_ty ) (*)( CC_TYPEOF_TY( key_ty )* ) )
@@ -1158,6 +1165,20 @@ typedef void ( *cc_free_fnptr_ty )( void * );
                                      CC_SATISFIES_LAYOUT_CONSTRAINTS( el_ty, el_ty )                                \
                                    ) ? 1 : -1 )                                                                     \
                                  )                                                                                  \
+
+#define CC_IS_STRING_EL_TY( el_ty ) \
+_Generic( (el_ty){ 0 },             \
+  cc_maybe_char: true,              \
+  unsigned char: true,              \
+  signed char: true,                \
+  default: false                    \
+)                                   \
+
+#define cc_str( el_ty )          CC_MAKE_CNTR_TY(                           \
+                                   el_ty,                                   \
+                                   size_t, /* String key type is size_t. */ \
+                                   CC_STR * CC_IS_STRING_EL_TY( el_ty )     \
+                                 )                                          \
 
 // Retrieves a container's id (e.g. CC_VEC) from its handle.
 #define CC_CNTR_ID( cntr ) ( sizeof( *cntr ) / sizeof( **cntr ) )
@@ -4604,6 +4625,359 @@ static inline void *cc_oset_next(
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
+/*                                                      String                                                        */
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+// String header.
+typedef struct
+{
+  alignas( cc_max_align_ty )
+  size_t size;
+  size_t cap;
+} cc_str_hdr_ty;
+
+// Global placeholders for strings with no allocated storage.
+static const struct{ cc_str_hdr_ty header; char terminatior; } cc_str_placeholder_char = { { 0, 0 }, 0 };
+static const struct{ cc_str_hdr_ty header; unsigned char terminatior; } cc_str_placeholder_unsigned_char = { { 0, 0 }, 0 };
+static const struct{ cc_str_hdr_ty header; signed char terminatior; } cc_str_placeholder_signed_char = { { 0, 0 }, 0 };
+
+#define CC_STR_PLACEHOLDER( el_ty )                 \
+_Generic( (el_ty){ 0 },                             \
+  cc_maybe_char: &cc_str_placeholder_char,          \
+  unsigned char: &cc_str_placeholder_unsigned_char, \
+  signed char:   &cc_str_placeholder_signed_char,   \
+  default:       NULL                               \
+)                                                   \
+
+// Easy header access function.
+static inline cc_str_hdr_ty *cc_str_hdr( void *cntr )
+{
+  return (cc_str_hdr_ty *)cntr;
+}
+
+static inline size_t cc_str_size( void *cntr )
+{
+  return cc_str_hdr( cntr )->size;
+}
+
+static inline size_t cc_str_cap( void *cntr )
+{
+  return cc_str_hdr( cntr )->cap;
+}
+
+static inline bool cc_str_is_placeholder( void *cntr )
+{
+  return cc_str_hdr( cntr )->cap == 0;
+}
+
+// Returns a pointer-iterator to the element at a specified index.
+static inline void *cc_str_get(
+  void *cntr,
+  void *key, // Pointer to a size_t index.
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( cc_cmpr_fnptr_ty, cmpr )
+)
+{
+  return (char *)cntr + sizeof( cc_str_hdr_ty ) + el_size * *(size_t *)key;
+}
+
+static inline cc_allocing_fn_result_ty cc_str_reserve(
+  void *cntr,
+  size_t n,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( double, max_load ),
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  if( cc_str_cap( cntr ) >= n )
+    return cc_make_allocing_fn_result( cntr, cc_dummy_true_ptr );
+
+  bool is_placeholder = cc_str_is_placeholder( cntr );
+
+  cc_str_hdr_ty *new_cntr = (cc_str_hdr_ty *)realloc_(
+    is_placeholder ? NULL : cntr,
+    sizeof( cc_str_hdr_ty ) + el_size * n + el_size // Terminator.
+  );
+
+  if( CC_UNLIKELY( !new_cntr ) )
+    return cc_make_allocing_fn_result( cntr, NULL );
+
+  if( is_placeholder )
+  {
+    new_cntr->size = 0;
+
+    // Ensure NULL termination.
+    memset( new_cntr + 1, 0, el_size );
+  }
+
+  new_cntr->cap = n;
+  return cc_make_allocing_fn_result( new_cntr, cc_dummy_true_ptr );
+}
+
+static inline cc_allocing_fn_result_ty cc_str_insert_n(
+  void *cntr,
+  size_t index,
+  void *els,
+  size_t n,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  if( n == 0 )
+    return cc_make_allocing_fn_result( cntr, NULL );
+
+  if( cc_str_size( cntr ) + n > cc_str_cap( cntr ) )
+  {
+    size_t cap = cc_str_cap( cntr );
+    if( !cap )
+      cap = 2;
+
+    while( cap < cc_str_size( cntr ) + n )
+      cap *= 2;
+
+    cc_allocing_fn_result_ty result = cc_str_reserve(
+      cntr,
+      cap,
+      el_size,
+      0,        // Dummy.
+      NULL,     // Dummy.
+      0.0,      // Dummy.
+      realloc_,
+      NULL      // Dummy.
+    );
+    if( CC_UNLIKELY( !result.other_ptr ) )
+      return result;
+
+    cntr = result.new_cntr;
+  }
+
+  char *new_els = (char *)cntr + sizeof( cc_str_hdr_ty ) + el_size * index;
+  memmove( new_els + n * el_size, new_els, el_size * ( cc_str_hdr( cntr )->size - index ) + el_size /* Terminator */ );
+  memcpy( new_els, els, el_size * n );
+  cc_str_hdr( cntr )->size += n;
+
+  return cc_make_allocing_fn_result( cntr, new_els );
+}
+
+#define CC_STR_INSERT_ARG_UNSIGNED_INTEGER  0
+#define CC_STR_INSERT_ARG_INTEGER           1
+#define CC_STR_INSERT_ARG_FLOATING_POINT    2
+#define CC_STR_INSERT_ARG_C_STRING          3
+#define CC_STR_INSERT_ARG_STR               4
+#define CC_STR_INSERT_ARG_DECIMAL_PRECISION 5
+#define CC_STR_INSERT_ARG_END               6
+
+typedef struct
+{
+  unsigned char type;
+
+  union
+  {
+    unsigned long long unsigned_integer;
+    long long integer;
+    double floating_point;
+    void *pointer; // ...
+  };
+} cc_wrapped_str_insert_arg_ty;
+
+static inline cc_allocing_fn_result_ty cc_str_insert_wrapped_args(
+  void *cntr,
+  cc_wrapped_str_insert_arg_ty *wrapped_args,
+  size_t index,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  int floating_point_precision = 2;
+
+  // Count the number of characters needed to complete all the inserts.
+  size_t total = 0;
+  
+  for(
+    cc_wrapped_str_insert_arg_ty *wrapped_arg = wrapped_args;
+    wrapped_arg->type != CC_STR_INSERT_ARG_END;
+    ++wrapped_arg
+  )
+  {
+    switch( wrapped_arg->type )
+    {
+    case CC_STR_INSERT_ARG_UNSIGNED_INTEGER:
+      total += snprintf( NULL, 0, "%llu", wrapped_arg->unsigned_integer );
+    break;
+    case CC_STR_INSERT_ARG_INTEGER:
+      total += snprintf( NULL, 0, "%lld", wrapped_arg->integer );
+    break;
+    case CC_STR_INSERT_ARG_FLOATING_POINT:
+      total += snprintf( NULL, 0, "%.*f", floating_point_precision, wrapped_arg->floating_point );
+    break;
+    case CC_STR_INSERT_ARG_C_STRING:
+      total += strlen( wrapped_arg->pointer );
+    break;
+    case CC_STR_INSERT_ARG_STR:
+      total += ( (cc_str_hdr_ty *)wrapped_arg->pointer )->size;
+    break;
+    case CC_STR_INSERT_ARG_DECIMAL_PRECISION:
+      floating_point_precision = (int)wrapped_arg->integer;
+    break;
+    }
+  }
+
+  // Make room.
+  if( cc_str_size( cntr ) + total > cc_str_cap( cntr ) )
+  {
+    size_t cap = cc_str_cap( cntr );
+    if( !cap )
+      cap = 2;
+
+    while( cap < cc_str_size( cntr ) + total )
+      cap *= 2;
+
+    cc_allocing_fn_result_ty result = cc_str_reserve(
+      cntr,
+      cap,
+      el_size,
+      0,        // Dummy.
+      NULL,     // Dummy.
+      0.0,      // Dummy.
+      realloc_,
+      NULL      // Dummy.
+    );
+    if( CC_UNLIKELY( !result.other_ptr ) )
+      return result;
+
+    cntr = result.new_cntr;
+  }
+
+  // Move the latter part of the string backwards.
+  char *new_els = (char *)cntr + sizeof( cc_str_hdr_ty ) + el_size * index;
+  memmove( new_els + total * el_size, new_els, el_size * ( cc_str_hdr( cntr )->size - index ) + el_size /* Terminator */ );
+  cc_str_hdr( cntr )->size += total;
+
+  // Do the insertations.
+  floating_point_precision = 2;
+  char *cursor = new_els;
+
+  for(
+    cc_wrapped_str_insert_arg_ty *wrapped_arg = wrapped_args;
+    wrapped_arg->type != CC_STR_INSERT_ARG_END;
+    ++wrapped_arg
+  )
+  {
+    switch( wrapped_arg->type )
+    {
+    case CC_STR_INSERT_ARG_UNSIGNED_INTEGER:
+    {
+      int n = sprintf( cursor, "%llu", wrapped_arg->unsigned_integer );
+      cursor += n * el_size;
+    }
+    break;
+    case CC_STR_INSERT_ARG_INTEGER:
+    {
+      int n = sprintf( cursor, "%lld", wrapped_arg->integer );
+      cursor += n * el_size;
+    }
+    break;
+    case CC_STR_INSERT_ARG_FLOATING_POINT:
+    {
+      int n = sprintf( cursor, "%.*f", floating_point_precision, wrapped_arg->floating_point );
+      cursor += n * el_size;
+    }
+    break;
+    case CC_STR_INSERT_ARG_C_STRING:
+    {
+      size_t n = strlen( wrapped_arg->pointer );
+      if( n != 0 )
+        memcpy( cursor, wrapped_arg->pointer, n * el_size );
+
+      cursor += n * el_size;
+    }
+    break;
+    case CC_STR_INSERT_ARG_STR:
+    {
+      size_t n = ( (cc_str_hdr_ty *)wrapped_arg->pointer )->size;
+
+      if( n != 0 )
+        memcpy( cursor, (cc_str_hdr_ty *)wrapped_arg->pointer + 1, n * el_size );
+
+      cursor += n * el_size;
+    }
+    break;
+    case CC_STR_INSERT_ARG_DECIMAL_PRECISION:
+      floating_point_precision = (int)wrapped_arg->integer;
+    break;
+    }
+  }
+
+  return cc_make_allocing_fn_result( cntr, new_els );
+}
+
+static inline cc_allocing_fn_result_ty cc_str_push(
+  void *cntr,
+  void *el,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  return cc_str_insert_wrapped_args( cntr, (cc_wrapped_str_insert_arg_ty *)el, cc_str_size( cntr ), el_size, realloc_ );
+}
+
+static inline cc_allocing_fn_result_ty cc_str_insert(
+  void *cntr,
+  void *el,  // Pointer to an array of cc_wrapped_str_insert_arg_ty.
+  void *key, // Pointer to size_t index.
+  CC_UNUSED( bool, replace ),
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( cc_cmpr_fnptr_ty, cmpr ),
+  CC_UNUSED( double, max_load ),
+  CC_UNUSED( cc_dtor_fnptr_ty, el_dtor ),
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  return cc_str_insert_wrapped_args( cntr, (cc_wrapped_str_insert_arg_ty *)el, *(size_t *)key, el_size, realloc_ );
+}
+
+// Clears the string and frees its memory if it is not a placeholder.
+static inline void cc_str_cleanup(
+  void *cntr,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  cc_dtor_fnptr_ty el_dtor,
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_free_fnptr_ty free_
+)
+{
+  /*cc_vec_clear(
+    cntr,
+    el_size,
+    0,       // Dummy.
+    el_dtor,
+    NULL,    // Dummy.
+    NULL     // Dummy.
+  );*/
+
+  if( !cc_str_is_placeholder( cntr ) )
+    free_( cntr );
+}
+
+static inline void *cc_str_first(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return (char *)cntr + sizeof( cc_str_hdr_ty );
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
 /*                                                        API                                                         */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
@@ -4616,7 +4990,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                                                   \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                    \
   ),                                                                                   \
   *(cntr) = (                                                                          \
     CC_CNTR_ID( *(cntr) ) == CC_VEC  ? (CC_TYPEOF_XP( *(cntr) ))&cc_vec_placeholder  : \
@@ -4624,7 +4999,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? (CC_TYPEOF_XP( *(cntr) ))&cc_map_placeholder  : \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ? (CC_TYPEOF_XP( *(cntr) ))&cc_map_placeholder  : \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ? (CC_TYPEOF_XP( *(cntr) ))&cc_omap_placeholder : \
-                         /* CC_OSET */ (CC_TYPEOF_XP( *(cntr) ))&cc_omap_placeholder   \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ? (CC_TYPEOF_XP( *(cntr) ))&cc_omap_placeholder : \
+                          /* CC_STR */ (CC_TYPEOF_XP( *(cntr) ))CC_STR_PLACEHOLDER( CC_EL_TY( *(cntr ) ) ) \
   ),                                                                                   \
   (void)0                                                                              \
 )                                                                                      \
@@ -4739,6 +5115,109 @@ static inline void *cc_oset_next(
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
 
+
+
+
+
+cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_unsigned_integer( unsigned long long arg )
+{
+  cc_wrapped_str_insert_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_INSERT_ARG_UNSIGNED_INTEGER;
+  wrapped_arg.unsigned_integer = arg;
+  return wrapped_arg;
+}
+
+cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_integer( long long arg )
+{
+  cc_wrapped_str_insert_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_INSERT_ARG_INTEGER;
+  wrapped_arg.integer = arg;
+  return wrapped_arg;
+}
+
+cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_floating_point( double arg )
+{
+  cc_wrapped_str_insert_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_INSERT_ARG_FLOATING_POINT;
+  wrapped_arg.floating_point = arg;
+  return wrapped_arg;
+}
+
+cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_c_string( void *arg )
+{
+  cc_wrapped_str_insert_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_INSERT_ARG_C_STRING;
+  wrapped_arg.pointer = arg;
+  return wrapped_arg;
+}
+
+cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_str( void *arg )
+{
+  cc_wrapped_str_insert_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_INSERT_ARG_STR;
+  wrapped_arg.pointer = arg;
+  return wrapped_arg;
+}
+
+cc_wrapped_str_insert_arg_ty cc_set_floating_point_precision( int precision )
+{
+  cc_wrapped_str_insert_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_INSERT_ARG_DECIMAL_PRECISION;
+  wrapped_arg.integer = precision;
+  return wrapped_arg;
+}
+
+cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_passthrough( cc_wrapped_str_insert_arg_ty arg )
+{
+  return arg;
+}
+
+#define CC_WRAP_STR_INSERT_ARG( cntr, arg ) _Generic( (arg),     \
+  bool:                 cc_wrap_str_insert_arg_unsigned_integer, \
+  unsigned short:       cc_wrap_str_insert_arg_unsigned_integer, \
+  short:                cc_wrap_str_insert_arg_integer,          \
+  unsigned int:         cc_wrap_str_insert_arg_unsigned_integer, \
+  int:                  cc_wrap_str_insert_arg_integer,          \
+  unsigned long:        cc_wrap_str_insert_arg_unsigned_integer, \
+  long:                 cc_wrap_str_insert_arg_integer,          \
+  unsigned long long:   cc_wrap_str_insert_arg_unsigned_integer, \
+  long long:            cc_wrap_str_insert_arg_integer,          \
+  cc_maybe_size_t:      cc_wrap_str_insert_arg_unsigned_integer, \
+  float:                cc_wrap_str_insert_arg_floating_point,   \
+  double:               cc_wrap_str_insert_arg_floating_point,   \
+  CC_EL_TY( cntr ) *:   cc_wrap_str_insert_arg_c_string,         \
+  CC_TYPEOF_XP( cntr ): cc_wrap_str_insert_arg_str,               \
+  cc_wrapped_str_insert_arg_ty: cc_wrap_str_insert_arg_passthrough \
+)( arg )                                                         \
+
+#define CC_IF_STR_WRAPPED_ARG_ARRAY_ELSE_PTR_TO_EL_TY_LVAL_COPY( cntr, arg ) \
+_Generic( (char (*)[ 1 + ( CC_CNTR_ID( cntr ) == CC_STR ) ]){ 0 },           \
+  char (*)[ 1 ]: &CC_MAKE_LVAL_COPY(                                         \
+    CC_EL_TY( cntr ),                                                        \
+    _Generic( (char (*)[ 1 + ( CC_CNTR_ID( cntr ) == CC_STR ) ]){ 0 },       \
+      char (*)[ 1 ]: (arg),                                                  \
+      char (*)[ 2 ]: (CC_EL_TY( cntr )){ 0 } /* Dummy */                     \
+    )                                                                        \
+  ),                                                                         \
+  char (*)[ 2 ]: (cc_wrapped_str_insert_arg_ty[]){                           \
+    CC_WRAP_STR_INSERT_ARG(                                                  \
+      (cntr),                                                                \
+      _Generic( (char (*)[ 1 + ( CC_CNTR_ID( cntr ) == CC_STR ) ]){ 0 },     \
+        char (*)[ 1 ]: 0, /* Dummy */                                        \
+        char (*)[ 2 ]: (arg)                                                 \
+      )                                                                      \
+    ),                                                                       \
+    (cc_wrapped_str_insert_arg_ty){ CC_STR_INSERT_ARG_END }                  \
+  }                                                                          \
+)                                                                            \
+
+
+
+
+
+
+
+
 #define cc_insert_3( cntr, key, el )                                                         \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
@@ -4746,7 +5225,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                      \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                                                         \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
   ),                                                                                         \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
     *(cntr),                                                                                 \
@@ -4755,12 +5235,14 @@ static inline void *cc_oset_next(
       CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_insert  :                                    \
       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_insert :                                    \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_insert  :                                    \
-                           /* CC_OMAP */ cc_omap_insert                                      \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_insert :                                    \
+                            /* CC_STR */ cc_str_insert                                       \
     )                                                                                        \
     /* Function arguments */                                                                 \
     (                                                                                        \
       *(cntr),                                                                               \
-      &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
+      /*&CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),*/                                       \
+      CC_IF_STR_WRAPPED_ARG_ARRAY_ELSE_PTR_TO_EL_TY_LVAL_COPY( *(cntr), (el) ),                \
       &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
       true,                                                                                  \
       CC_EL_SIZE( *(cntr) ),                                                                 \
@@ -4777,6 +5259,62 @@ static inline void *cc_oset_next(
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
 
+
+#define CC_WRAP_STR_INSERT_ARG_LIST_1( cntr, arg )      CC_WRAP_STR_INSERT_ARG( cntr, arg ),
+#define CC_WRAP_STR_INSERT_ARG_LIST_2( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_1( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_3( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_2( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_4( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_3( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_5( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_4( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_6( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_5( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_7( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_6( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_8( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_7( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_9( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_8( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_10( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_9( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_11( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_10( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_12( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_11( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_13( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_12( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_14( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_13( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_15( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_14( cntr, __VA_ARGS__ )
+#define CC_WRAP_STR_INSERT_ARG_LIST_16( cntr, arg, ... ) CC_WRAP_STR_INSERT_ARG( cntr, arg ), CC_WRAP_STR_INSERT_ARG_LIST_15( cntr, __VA_ARGS__ )
+
+#define cc_insert_4( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 2, __VA_ARGS__ )
+#define cc_insert_5( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 3, __VA_ARGS__ )
+#define cc_insert_6( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 4, __VA_ARGS__ )
+#define cc_insert_7( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 5, __VA_ARGS__ )
+#define cc_insert_8( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 6, __VA_ARGS__ )
+#define cc_insert_9( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 7, __VA_ARGS__ )
+#define cc_insert_10( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 8, __VA_ARGS__ )
+#define cc_insert_11( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 9, __VA_ARGS__ )
+#define cc_insert_12( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 10, __VA_ARGS__ )
+#define cc_insert_13( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 11, __VA_ARGS__ )
+#define cc_insert_14( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 12, __VA_ARGS__ )
+#define cc_insert_15( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 13, __VA_ARGS__ )
+#define cc_insert_16( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 14, __VA_ARGS__ )
+#define cc_insert_17( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 15, __VA_ARGS__ )
+#define cc_insert_18( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 16, __VA_ARGS__ )
+
+#define cc_str_insert_variadic( cntr, index, n, ... ) \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT(                                                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
+  ),                                                                                         \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    cc_str_insert_wrapped_args(                                                              \
+      *(cntr), \
+      (cc_wrapped_str_insert_arg_ty[]){ \
+        CC_WRAP_STR_INSERT_ARG_LIST_##n( *(cntr), __VA_ARGS__ ) \
+        (cc_wrapped_str_insert_arg_ty){ CC_STR_INSERT_ARG_END } \
+      }, \
+      index, \
+      CC_EL_SIZE( *(cntr) ), \
+      CC_REALLOC_FN \
+    )                                                                                        \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                                            \
+
 #define cc_insert_n( cntr, index, els, n )                                                   \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
@@ -4788,30 +5326,75 @@ static inline void *cc_oset_next(
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
 
-#define cc_push( cntr, el )                                                                  \
+#define cc_push( ... ) CC_SELECT_ON_NUM_ARGS( cc_push, __VA_ARGS__ )
+
+#define cc_push_2( cntr, el )                                                                \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
   CC_STATIC_ASSERT(                                                                          \
     CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST                                                         \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                      \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                         \
   ),                                                                                         \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
     *(cntr),                                                                                 \
     /* Function select */                                                                    \
     (                                                                                        \
-      CC_CNTR_ID( *(cntr) ) == CC_VEC  ?  cc_vec_push  :                                     \
-                            /* CC_LIST */ cc_list_push                                       \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_push  :                                     \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_push :                                     \
+                            /* CC_STR */ cc_str_push                                       \
     )                                                                                        \
     /* Function arguments */                                                                 \
     (                                                                                        \
       *(cntr),                                                                               \
-      &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
+      /*&CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),*/                                    \
+       CC_IF_STR_WRAPPED_ARG_ARRAY_ELSE_PTR_TO_EL_TY_LVAL_COPY( *(cntr), (el) ),                \
       CC_EL_SIZE( *(cntr) ),                                                                 \
       CC_REALLOC_FN                                                                          \
     )                                                                                        \
   ),                                                                                         \
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
+
+#define cc_push_3( cntr, ... )  cc_str_push_variadic( cntr, 2, __VA_ARGS__ )
+#define cc_push_4( cntr, ... )  cc_str_push_variadic( cntr, 3, __VA_ARGS__ )
+#define cc_push_5( cntr, ... )  cc_str_push_variadic( cntr, 4, __VA_ARGS__ )
+#define cc_push_6( cntr, ... )  cc_str_push_variadic( cntr, 5, __VA_ARGS__ )
+#define cc_push_7( cntr, ... )  cc_str_push_variadic( cntr, 6, __VA_ARGS__ )
+#define cc_push_8( cntr, ... )  cc_str_push_variadic( cntr, 7, __VA_ARGS__ )
+#define cc_push_9( cntr, ... )  cc_str_push_variadic( cntr, 8, __VA_ARGS__ )
+#define cc_push_10( cntr, ... ) cc_str_push_variadic( cntr, 9, __VA_ARGS__ )
+#define cc_push_11( cntr, ... ) cc_str_push_variadic( cntr, 10, __VA_ARGS__ )
+#define cc_push_12( cntr, ... ) cc_str_push_variadic( cntr, 11, __VA_ARGS__ )
+#define cc_push_13( cntr, ... ) cc_str_push_variadic( cntr, 12, __VA_ARGS__ )
+#define cc_push_14( cntr, ... ) cc_str_push_variadic( cntr, 13, __VA_ARGS__ )
+#define cc_push_15( cntr, ... ) cc_str_push_variadic( cntr, 14, __VA_ARGS__ )
+#define cc_push_16( cntr, ... ) cc_str_push_variadic( cntr, 15, __VA_ARGS__ )
+#define cc_push_17( cntr, ... ) cc_str_push_variadic( cntr, 16, __VA_ARGS__ )
+
+#define cc_str_push_variadic( cntr, n, ... ) \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT(                                                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
+  ),                                                                                         \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    cc_str_insert_wrapped_args(                                                              \
+      *(cntr), \
+      (cc_wrapped_str_insert_arg_ty[]){ \
+        CC_WRAP_STR_INSERT_ARG_LIST_##n( *(cntr), __VA_ARGS__ ) \
+        (cc_wrapped_str_insert_arg_ty){ CC_STR_INSERT_ARG_END } \
+      }, \
+      cc_str_size( *(cntr) ), \
+      CC_EL_SIZE( *(cntr) ), \
+      CC_REALLOC_FN \
+    )                                                                                        \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                                            \
+
+
 
 #define cc_push_n( cntr, els, n )                                                            \
 (                                                                                            \
@@ -4899,7 +5482,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                     \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                      \
   ),                                                     \
   CC_CAST_MAYBE_UNUSED(                                  \
     CC_EL_TY( *(cntr) ) *,                               \
@@ -4909,7 +5493,8 @@ static inline void *cc_oset_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_get  :   \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_get  :   \
       CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_get :   \
-                           /* CC_OSET */ cc_oset_get     \
+      CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_get :   \
+                            /* CC_STR */ cc_str_get      \
     )                                                    \
     /* Function arguments */                             \
     (                                                    \
@@ -5159,7 +5744,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                     \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                      \
   ),                                                     \
   /* Function select */                                  \
   (                                                      \
@@ -5168,7 +5754,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_cleanup  : \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_cleanup  : \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_cleanup : \
-                         /* CC_OSET */ cc_oset_cleanup   \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_cleanup : \
+                          /* CC_STR */ cc_str_cleanup    \
   )                                                      \
   /* Function arguments */                               \
   (                                                      \
@@ -5255,7 +5842,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                     \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                      \
   ),                                                     \
   CC_CAST_MAYBE_UNUSED(                                  \
     CC_EL_TY( *(cntr) ) *,                               \
@@ -5266,7 +5854,8 @@ static inline void *cc_oset_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_first  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_first  : \
       CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_first : \
-                           /* CC_OSET */ cc_oset_first   \
+      CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_first : \
+                            /* CC_STR */ cc_str_first    \
     )                                                    \
     /* Function arguments */                             \
     (                                                    \

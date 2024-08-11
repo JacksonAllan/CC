@@ -3436,9 +3436,98 @@ static void test_oset_default_integer_types( void )
 
 #endif
 
+
+#include <uchar.h>
+#include <locale.h>
+
+
 int main( void )
 {
   srand( (unsigned int)time( NULL ) );
+
+// TEMP
+  cc_str( char ) our_str = (void *)&cc_str_placeholder_char;
+
+  /*insert( &our_str, 0, (unsigned)10 );
+  printf( "size: %zu\n", cc_str_size( our_str ) );
+  printf( (char *)our_str + sizeof( cc_str_hdr_ty ) );
+  printf( "\n" );
+
+  insert( &our_str, 0, -10 );
+  printf( "size: %zu\n", cc_str_size( our_str ) );
+  printf( (char *)our_str + sizeof( cc_str_hdr_ty ) );
+  printf( "\n" );
+
+  insert( &our_str, 0, "I live in a giant bucket" );
+  printf( "size: %zu\n", cc_str_size( our_str ) );
+  printf( (char *)our_str + sizeof( cc_str_hdr_ty ) );
+  printf( "\n" );*/
+
+  /*UNTIL_SUCCESS( insert( &our_str, 0, "My name is ", "Foobar ", "and I am ", 18, " or ", 20.5, " years old.\n" ) );
+  UNTIL_SUCCESS( insert( &our_str, 0, "Bennet Foddy's Getting Over It was published in ", 2016, "\n" ) );
+  printf( (char *)our_str + sizeof( cc_str_hdr_ty ) );
+  printf( "\n" );
+
+  cc_str( char ) our_str2 = (void *)&cc_str_placeholder_char;
+  //UNTIL_SUCCESS( insert( &our_str2, 0, our_str, " Okay mofo\n" ) );
+  UNTIL_SUCCESS( push( &our_str2, our_str, "Foobar" ) );
+  UNTIL_SUCCESS( push( &our_str2, "Okay mofo\n", "Cat!\n" ) );
+  printf( (char *)our_str2 + sizeof( cc_str_hdr_ty ) );
+  printf( "\n" );*/
+
+  // Building some strings using a combination of C string literals and fundamental integer and floating point types.
+
+  cc_str( char ) hornet900_desc; // Also accepts unsigned char, signed char, and possibly char16_t and char32_t (not implemented yet).
+  init( &hornet900_desc );
+
+  UNTIL_SUCCESS( push(
+    &hornet900_desc,
+    "A ", "Hornet 900", " is a motorcycle manufactured by, ", "Honda", " from ", 2002, " to ", 2007,
+    ". It has an engine capacity of ", 919, "cc and produces up to ", cc_set_floating_point_precision( 1 ), 103.0,
+    "hp of power and ", 84.9, "Nm of torque."
+  ) );
+
+  cc_str( char ) bandit250_desc; // Also accepts unsigned char, signed char, and possibly char16_t and char32_t (not implemented yet).
+  init( &bandit250_desc );
+
+  UNTIL_SUCCESS( push(
+    &bandit250_desc,
+    "A ", "Bandit 250", " is a motorcycle manufactured by, ", "Suzuki", " from ", 1989, " to ", 2000,
+    ". It has an engine capacity of ", 248, "cc and produces up to ", cc_set_floating_point_precision( 1 ), 45.0,
+    "hp of power and ", 25.5, "Nm of torque."
+  ) );
+
+  // Building a string from other CC strings.
+
+  cc_str( char ) motorcycle_descs;
+  init( &motorcycle_descs );
+
+  push( &motorcycle_descs, hornet900_desc, "\n", bandit250_desc );
+
+  // Print the result.
+  printf( first( &motorcycle_descs ) ); // Either first( &motorcycle_descs ) or first( &motorcycle_descs, 0 ).
+
+  // Cleanup.
+  cleanup( &hornet900_desc );
+  cleanup( &bandit250_desc );
+  cleanup( &motorcycle_descs );
+
+  // Building a string 
+
+  /*cc_str( uint16_t ) our_str16 = (void *)&cc_str_placeholder_uint16;
+  UNTIL_SUCCESS( insert( &our_str16, 0, u"My name is ", u"Foobar ", u"and I am ", 18, 18.5, u" years old.\n" ) );
+  printf( "size: %zu\n", cc_str_size( our_str16 ) );
+
+  setlocale( LC_ALL, "en_US.UTF-8" );
+  for( size_t i = 0; i < cc_str_size( our_str16 ); ++i )
+  {
+    char buffer[ MB_LEN_MAX + 1 ] = { 0 };
+    mbstate_t state = { 0 };
+    c16rtomb( buffer, *(uint16_t *)cc_str_get( our_str16, &i, CC_EL_SIZE( our_str16 ), 0, NULL, NULL ), &state );
+    printf( buffer );
+  }*/
+
+// END TEMP
 
   // Repeat 1000 times since realloc failures are random.
   for( int i = 0; i < 1000; ++i )
