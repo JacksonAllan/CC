@@ -1,6 +1,6 @@
 /*
 
-Convenient Containers v1.3.0 - benchmarks/omap_and_oset/bench_omap_and_oset.cpp
+Convenient Containers v1.3.1 - benchmarks/omap_and_oset/bench_omap_and_oset.cpp
 
 This file benchmarks CC's ordered map and ordered set against the equivalent C++ STL containers.
 

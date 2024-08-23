@@ -1,4 +1,4 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.3.0 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.3.1 -------------------------------------------
 
 This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, unordered sets,
 ordered maps, and ordered sets).
@@ -771,6 +771,7 @@ API:
 
 Version history:
 
+  23/08/2024 1.3.1: Fixed missing static inline qualifier on an internal omap function.
   29/07/2024 1.3.0: Added ordered map and ordered set.
                     Fixed cc_erase_itr to return a correctly typed pointer-iterator instead of void *. 
                     Fixed a bug in list that caused cc_next and cc_prev to behave incorrectly when passed an r_end and

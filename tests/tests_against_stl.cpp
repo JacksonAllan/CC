@@ -1,6 +1,6 @@
 /*
 
-Convenient Containers v1.3.0 - tests/tests_against_stl.cpp
+Convenient Containers v1.3.1 - tests/tests_against_stl.cpp
 
 This file tests CC containers against the equivalent C++ STL containers.
 Primarily, it checks that a CC container and its equivalent STL container end up in the same state after a random
