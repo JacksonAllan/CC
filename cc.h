@@ -4082,7 +4082,7 @@ static inline void *cc_omap_bounded_first_or_last(
 // Niemann's implementation of this function assumes that if the starting node is a sentinel, its parent pointer has
 // been temporarily set to point to the appropriate parent.
 // Since we never write to the sentinel, we instead pass the initial parent into the function via a parameter.
-void cc_omap_post_erase_fixup(
+static inline void cc_omap_post_erase_fixup(
   void *cntr,
   cc_omapnode_hdr_ty *node,
   cc_omapnode_hdr_ty *parent
