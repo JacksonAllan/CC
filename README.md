@@ -5,7 +5,7 @@
 </picture>
 </div>
 
-## About
+## Introduction
 Convenient Containers (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, **unordered sets**, **ordered maps**, and **ordered sets**.
 
 Its features include:
