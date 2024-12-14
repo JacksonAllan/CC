@@ -640,7 +640,7 @@ int main( void )
 
 ```
 
-## API Reference
+## API reference
 
 Full API documentation is available [here](api_reference.md).
 
