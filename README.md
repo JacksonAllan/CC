@@ -568,7 +568,7 @@ int main( void )
 
 ### Custom hash and comparison functions
 
-**CC** includes default hash and comparison functions for fundamental integer types and `NULL`-terminated strings (`char *`). Hence, these types can be used as map and ordered map keys, and set and ordered set elements, straight away.
+**CC** includes default hash and comparison functions for fundamental integer types and null-terminated strings (`char *` and `const char *`). Hence, these types can be used as map and ordered map keys, and set and ordered set elements, straight away.
 
 To use other types or overwrite the default functions for the aforementioned types, define custom hash and/or comparison functions with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )`, respectively.
 
@@ -660,4 +660,4 @@ Destructor, comparison, and hash functions are also deduced via a novel techniqu
 
 ### What's next?
 
-Future versions should include `NULL`-terminated dynamic strings and more performance benchmarks.
+Future versions should include null-terminated dynamic strings and more performance benchmarks.

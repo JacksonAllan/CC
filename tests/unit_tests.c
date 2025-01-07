@@ -1469,6 +1469,8 @@ static void test_map_dtors( void )
 // Strings are a special case that warrant seperate testing.
 static void test_map_strings( void )
 {
+  // Non-const strings.
+
   map( char *, char * ) our_map;
   init( &our_map );
 
@@ -1511,6 +1513,50 @@ static void test_map_strings( void )
     ALWAYS_ASSERT( strcmp( *i, "test" ) == 0 || strcmp( *i, str_4 ) == 0 );
 
   cleanup( &our_map );
+
+  // const strings.
+
+  map( const char *, const char * ) our_const_map;
+  init( &our_const_map );
+
+  const char **const_el;
+
+  // String literals.
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_map, "This", "is" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "is" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = get_or_insert( &our_const_map, "a", "test" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "test" ) == 0 );
+
+  const char *const_str_1 = str_1;
+  const char *const_str_2 = str_2;
+  const char *const_str_3 = str_3;
+  const char *const_str_4 = str_4;
+
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_map, const_str_1, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = get_or_insert( &our_const_map, const_str_3, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_const_map ) == 4 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_map, "This" ), "is" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_map, "a" ), "test" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_map, const_str_1, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_map, const_str_3, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+  ALWAYS_ASSERT( size( &our_const_map ) == 4 );
+
+  // Erase.
+  erase( &our_const_map, "This" );
+  erase( &our_const_map, const_str_1 );
+  ALWAYS_ASSERT( size( &our_const_map ) == 2 );
+
+  // Iteration.
+  for_each( &our_const_map, i )
+    ALWAYS_ASSERT( strcmp( *i, "test" ) == 0 || strcmp( *i, const_str_4 ) == 0 );
+
+  cleanup( &our_const_map );
 }
 
 #define TEST_MAP_DEFAULT_INTEGER_TYPE( ty )    \
@@ -1984,6 +2030,8 @@ static void test_set_dtors( void )
 
 static void test_set_strings( void )
 {
+  // Non-const strings.
+
   set( char * ) our_set;
   init( &our_set );
 
@@ -2026,6 +2074,51 @@ static void test_set_strings( void )
   ALWAYS_ASSERT( strcmp( *get( &our_set, "strings" ), str_4 ) == 0 );
 
   cleanup( &our_set );
+
+  // const strings.
+
+  set( const char * ) our_const_set;
+  init( &our_const_set );
+
+  const char **const_el;
+
+  // String literals.
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, "This" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "This" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, "is" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "is" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, "a" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "a" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, "test" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "test" ) == 0 );
+
+  // Other strings.
+  const char *const_str_1 = str_1;
+  const char *const_str_2 = str_2;
+  const char *const_str_3 = str_3;
+  const char *const_str_4 = str_4;
+
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, const_str_1 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_1 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, const_str_3 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_3 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_const_set ) == 8 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, "This" ), "This" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, "is" ), "is" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, "a" ), "a" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, "test" ), "test" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, str_1 ), str_1 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, str_2 ), str_2 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, str_3 ), str_3 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, str_4 ), str_4 ) == 0 );
+
+  cleanup( &our_const_set );
 }
 
 #define TEST_SET_DEFAULT_INTEGER_TYPE( ty )    \
@@ -2679,6 +2772,8 @@ static void test_omap_dtors( void )
 // Strings are a special case that warrant seperate testing.
 static void test_omap_strings( void )
 {
+  // Non-const strings.
+
   omap( char *, char * ) our_omap;
   init( &our_omap );
 
@@ -2692,7 +2787,7 @@ static void test_omap_strings( void )
 
   // Other strings.
   char str_1[] = "of";
-  char str_2[] = "maps";
+  char str_2[] = "omaps";
   char str_3[] = "with";
   char str_4[] = "strings.";
 
@@ -2721,6 +2816,50 @@ static void test_omap_strings( void )
     ALWAYS_ASSERT( strcmp( *i, "test" ) == 0 || strcmp( *i, str_4 ) == 0 );
 
   cleanup( &our_omap );
+
+  // const strings.
+
+  omap( const char *, const char * ) our_const_omap;
+  init( &our_const_omap );
+
+  const char **const_el;
+
+  // String literals.
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_omap, "This", "is" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "is" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = get_or_insert( &our_const_omap, "a", "test" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "test" ) == 0 );
+
+  const char *const_str_1 = str_1;
+  const char *const_str_2 = str_2;
+  const char *const_str_3 = str_3;
+  const char *const_str_4 = str_4;
+
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_omap, const_str_1, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = get_or_insert( &our_const_omap, const_str_3, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_const_omap ) == 4 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_omap, "This" ), "is" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_omap, "a" ), "test" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_omap, const_str_1, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_omap, const_str_3, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+  ALWAYS_ASSERT( size( &our_const_omap ) == 4 );
+
+  // Erase.
+  erase( &our_const_omap, "This" );
+  erase( &our_const_omap, const_str_1 );
+  ALWAYS_ASSERT( size( &our_const_omap ) == 2 );
+
+  // Iteration.
+  for_each( &our_const_omap, i )
+    ALWAYS_ASSERT( strcmp( *i, "test" ) == 0 || strcmp( *i, const_str_4 ) == 0 );
+
+  cleanup( &our_const_omap );
 }
 
 #define TEST_OMAP_DEFAULT_INTEGER_TYPE( ty )    \
@@ -3377,7 +3516,7 @@ static void test_oset_strings( void )
 
   // Other strings.
   char str_1[] = "of";
-  char str_2[] = "sets";
+  char str_2[] = "osets";
   char str_3[] = "with";
   char str_4[] = "strings";
 
@@ -3397,11 +3536,56 @@ static void test_oset_strings( void )
   ALWAYS_ASSERT( strcmp( *get( &our_oset, "a" ), "a" ) == 0 );
   ALWAYS_ASSERT( strcmp( *get( &our_oset, "test" ), "test" ) == 0 );
   ALWAYS_ASSERT( strcmp( *get( &our_oset, "of" ), str_1 ) == 0 );
-  ALWAYS_ASSERT( strcmp( *get( &our_oset, "sets" ), str_2 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_oset, "osets" ), str_2 ) == 0 );
   ALWAYS_ASSERT( strcmp( *get( &our_oset, "with" ), str_3 ) == 0 );
   ALWAYS_ASSERT( strcmp( *get( &our_oset, "strings" ), str_4 ) == 0 );
 
   cleanup( &our_oset );
+
+  // const strings.
+
+  oset( const char * ) our_const_oset;
+  init( &our_const_oset );
+
+  const char **const_el;
+
+  // String literals.
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, "This" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "This" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, "is" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "is" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, "a" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "a" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, "test" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "test" ) == 0 );
+
+  // Other strings.
+  const char *const_str_1 = str_1;
+  const char *const_str_2 = str_2;
+  const char *const_str_3 = str_3;
+  const char *const_str_4 = str_4;
+
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, const_str_1 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_1 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, const_str_3 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_3 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_const_oset ) == 8 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, "This" ), "This" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, "is" ), "is" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, "a" ), "a" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, "test" ), "test" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, str_1 ), str_1 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, str_2 ), str_2 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, str_3 ), str_3 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, str_4 ), str_4 ) == 0 );
+
+  cleanup( &our_const_oset );
 }
 
 #define TEST_OSET_DEFAULT_INTEGER_TYPE( ty )    \

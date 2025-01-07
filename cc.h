@@ -766,8 +766,8 @@ API:
       top of your files.
     * In-built comparison and hash functions are already defined for the following types: char, unsigned char, signed
       char, unsigned short, short, unsigned int, int, unsigned long, long, unsigned long long, long long, size_t, and
-      char * (a NULL-terminated string). Defining a comparison or hash function for one of these types will overwrite
-      the in-built function.
+      null-terminated strings (char * and const char *). Defining a comparison or hash function for one of these types
+      will overwrite the in-built function.
 
 Version history:
 
@@ -1204,6 +1204,7 @@ CC_TYPEOF_XP(                                                                   
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          ( long long ){ 0 },          \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    ( size_t ){ 0 },             \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             ( char * ){ 0 },             \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * ):       ( const char * ){ 0 },       \
       CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), void * ):             ( void * ){ 0 },             \
       default: (char){ 0 } /* Nothing. */                                                         \
     )                                                                                             \
@@ -5607,6 +5608,8 @@ std::is_same<CC_TYPEOF_XP(**arg), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( arg ), cc_cmp
     cc_cmpr_size_t_select                                                                                  : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * )>::value             ? \
     cc_cmpr_c_string_select                                                                                : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * )>::value       ? \
+    cc_cmpr_c_string_select                                                                                : \
   cc_cmpr_dummy_select                                                                                       \
 )( CC_CNTR_ID( cntr ) )                                                                                      \
 
@@ -5645,6 +5648,8 @@ std::is_same<                                                \
     cc_hash_size_t                                                                                         : \
   std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * )>::value             ? \
     cc_hash_c_string                                                                                       : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * )>::value       ? \
+    cc_hash_c_string                                                                                       : \
   (cc_hash_fnptr_ty)NULL                                                                                     \
 )                                                                                                            \
 
@@ -5664,6 +5669,7 @@ std::is_same<                                                \
   std::is_same<ty, signed long long>::value   ? true : \
   std::is_same<ty, size_t>::value             ? true : \
   std::is_same<ty, char *>::value             ? true : \
+  std::is_same<ty, const char *>::value       ? true : \
   CC_FOR_EACH_CMPR( CC_HAS_CMPR_SLOT, ty )             \
   false                                                \
 )                                                      \
@@ -5684,6 +5690,7 @@ std::is_same<                                                \
   std::is_same<ty, signed long long>::value   ? true : \
   std::is_same<ty, size_t>::value             ? true : \
   std::is_same<ty, char *>::value             ? true : \
+  std::is_same<ty, const char *>::value       ? true : \
   CC_FOR_EACH_HASH( CC_HAS_HASH_SLOT, ty )             \
   false                                                \
 )                                                      \
@@ -5742,6 +5749,7 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_cmpr_long_long_select,          \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_cmpr_size_t_select,             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_cmpr_c_string_select,           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * ):       cc_cmpr_c_string_select,           \
     default: cc_cmpr_dummy_select                                                                     \
   )                                                                                                   \
 )( CC_CNTR_ID( cntr ) )                                                                               \
@@ -5764,6 +5772,7 @@ _Generic( (**cntr),                                                             
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_hash_long_long,          \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_hash_size_t,             \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_hash_c_string,           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * ):       cc_hash_c_string,           \
     default: (cc_hash_fnptr_ty)NULL                                                            \
   )                                                                                            \
 )                                                                                              \
@@ -5786,6 +5795,7 @@ _Generic( (ty){ 0 },                    \
     long long:          true,           \
     cc_maybe_size_t:    true,           \
     char *:             true,           \
+    const char *:       true,           \
     default:            false           \
   )                                     \
 )                                       \
@@ -5808,6 +5818,7 @@ _Generic( (ty){ 0 },                    \
     long long:          true,           \
     cc_maybe_size_t:    true,           \
     char *:             true,           \
+    const char *:       true,           \
     default:            false           \
   )                                     \
 )                                       \
@@ -5853,6 +5864,8 @@ _Generic( (**cntr),                                                             
       ( cc_key_details_ty ){ sizeof( size_t ), alignof( size_t ) },                         \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):                                      \
       ( cc_key_details_ty ){ sizeof( char * ), alignof( char * ) },                         \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * ):                                \
+      ( cc_key_details_ty ){ sizeof( const char * ), alignof( const char * ) },             \
     default: ( cc_key_details_ty ){ 0 }                                                     \
   )                                                                                         \
 )                                                                                           \
