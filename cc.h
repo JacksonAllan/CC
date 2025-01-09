@@ -1383,21 +1383,21 @@ static inline bool cc_is_little_endian( void )
 
 #if defined( __GNUC__ ) && ULLONG_MAX == 0xFFFFFFFFFFFFFFFF
 
-static inline int cc_first_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_first_nonzero_uint16( uint64_t a )
 {
   if( cc_is_little_endian() )
-    return __builtin_ctzll( a ) / 16;
+    return (unsigned int)__builtin_ctzll( a ) / 16;
   
-  return __builtin_clzll( a ) / 16;
+  return (unsigned int)__builtin_clzll( a ) / 16;
 }
 
 // DEPRECATED.
-static inline int cc_last_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_last_nonzero_uint16( uint64_t a )
 {
   if( cc_is_little_endian() )
-    return __builtin_clzll( a ) / 16;
+    return (unsigned int)__builtin_clzll( a ) / 16;
   
-  return __builtin_ctzll( a ) / 16;
+  return (unsigned int)__builtin_ctzll( a ) / 16;
 }
 
 #elif defined( _MSC_VER ) && ( defined( _M_X64 ) || defined( _M_ARM64 ) )
@@ -1406,7 +1406,7 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
 #pragma intrinsic(_BitScanForward64)
 #pragma intrinsic(_BitScanReverse64)
 
-static inline int cc_first_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_first_nonzero_uint16( uint64_t a )
 {
   unsigned long result;
 
@@ -1422,7 +1422,7 @@ static inline int cc_first_nonzero_uint16( uint64_t a )
 }
 
 // DEPRECATED.
-static inline int cc_last_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_last_nonzero_uint16( uint64_t a )
 {
   unsigned long result;
 
@@ -1439,9 +1439,9 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
 
 #else
 
-static inline int cc_first_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_first_nonzero_uint16( uint64_t a )
 {
-  int result = 0;
+  unsigned int result = 0;
 
   uint32_t half;
   memcpy( &half, &a, sizeof( uint32_t ) );
@@ -1457,9 +1457,9 @@ static inline int cc_first_nonzero_uint16( uint64_t a )
 }
 
 // DEPRECATED.
-static inline int cc_last_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_last_nonzero_uint16( uint64_t a )
 {
-  int result = 3;
+  unsigned int result = 3;
 
   uint32_t half;
   memcpy( &half, (char *)&a + sizeof( uint32_t ), sizeof( uint32_t ) );
@@ -2468,7 +2468,7 @@ static inline void *cc_map_key_for(
 
 static inline size_t cc_map_bucket_index_from_itr( void *cntr, void *itr, size_t el_size, uint64_t layout )
 {
-  return ( (char *)itr - (char *)cc_map_el( cntr, 0, el_size, layout ) ) / CC_BUCKET_SIZE( el_size, layout );
+  return (size_t)( (char *)itr - (char *)cc_map_el( cntr, 0, el_size, layout ) ) / CC_BUCKET_SIZE( el_size, layout );
 }
 
 static inline size_t cc_map_min_cap_for_n_els(
@@ -2481,7 +2481,7 @@ static inline size_t cc_map_min_cap_for_n_els(
 
   // Round up to a power of two.
   size_t cap = CC_MAP_MIN_NONZERO_BUCKET_COUNT;
-  while( n > cap * max_load )
+  while( n > (size_t)( (double)cap * max_load ) )
     cap *= 2;
 
   return cap;
@@ -2592,7 +2592,7 @@ static inline bool cc_map_evict(
   }
 
   // Disconnect the key-element pair from chain.
-  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
+  cc_map_hdr( cntr )->metadata[ prev ] = (uint16_t)( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
     ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_DISPLACEMENT_MASK );
 
   // Find the empty bucket to which to move the key-element pair.
@@ -2614,8 +2614,9 @@ static inline bool cc_map_evict(
   // Re-link the key-element pair to the chain from its new bucket.
   cc_map_hdr( cntr )->metadata[ empty ] = ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_HASH_FRAG_MASK ) |
     ( cc_map_hdr( cntr )->metadata[ prev ] & CC_MAP_DISPLACEMENT_MASK );
-  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
-    displacement;
+  cc_map_hdr( cntr )->metadata[ prev ] = (uint16_t)(
+    ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) | displacement
+  );
 
   return true;
 }
@@ -2657,7 +2658,7 @@ static inline void *cc_map_insert_raw(
   if( !( cc_map_hdr( cntr )->metadata[ home_bucket ] & CC_MAP_IN_HOME_BUCKET_MASK ) )
   {
     // Load-factor check.
-    if( CC_UNLIKELY( cc_map_hdr( cntr )->size + 1 > max_load * cc_map_cap( cntr ) ) )
+    if( CC_UNLIKELY( cc_map_hdr( cntr )->size + 1 > (size_t)( max_load * (double)cc_map_cap( cntr ) ) ) )
       return NULL;
 
     // Vacate the home bucket if it contains a key-element pair.
@@ -2710,7 +2711,7 @@ static inline void *cc_map_insert_raw(
   }
 
   // Load-factor check.
-  if( CC_UNLIKELY( cc_map_hdr( cntr )->size + 1 > max_load * cc_map_cap( cntr ) ) )
+  if( CC_UNLIKELY( cc_map_hdr( cntr )->size + 1 > (size_t)( max_load * (double)cc_map_cap( cntr ) ) ) )
     return NULL;
 
   // Find the earliest empty bucket, per quadratic probing.
@@ -2728,8 +2729,9 @@ static inline void *cc_map_insert_raw(
 
   cc_map_hdr( cntr )->metadata[ empty ] = hashfrag | ( cc_map_hdr( cntr )->metadata[ prev ] & CC_MAP_DISPLACEMENT_MASK
     );
-  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
-    displacement;
+  cc_map_hdr( cntr )->metadata[ prev ] = (uint16_t)(
+     ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) | displacement
+  );
 
   ++cc_map_hdr( cntr )->size;
 
@@ -2785,8 +2787,9 @@ static inline void *cc_map_reinsert(
 
   cc_map_hdr( cntr )->metadata[ empty ] = hashfrag | ( cc_map_hdr( cntr )->metadata[ prev ] & CC_MAP_DISPLACEMENT_MASK
     );
-  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
-    displacement;
+  cc_map_hdr( cntr )->metadata[ prev ] = (uint16_t)(
+    ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) | displacement
+  );
 
   ++cc_map_hdr( cntr )->size;
 
@@ -3207,8 +3210,10 @@ static inline bool cc_map_erase_raw(
         CC_BUCKET_SIZE( el_size, layout )
       );
 
-      cc_map_hdr( cntr )->metadata[ erase_bucket ] = ( cc_map_hdr( cntr )->metadata[ erase_bucket ] &
-        ~CC_MAP_HASH_FRAG_MASK ) | ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_HASH_FRAG_MASK );
+      cc_map_hdr( cntr )->metadata[ erase_bucket ] = (uint16_t)(
+        ( cc_map_hdr( cntr )->metadata[ erase_bucket ] & ~CC_MAP_HASH_FRAG_MASK ) |
+        ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_HASH_FRAG_MASK )
+      );
 
       cc_map_hdr( cntr )->metadata[ prev ] |= CC_MAP_DISPLACEMENT_MASK;
       cc_map_hdr( cntr )->metadata[ bucket ] = CC_MAP_EMPTY;

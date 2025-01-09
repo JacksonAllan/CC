@@ -658,6 +658,17 @@ Destructor, comparison, and hash functions are also deduced via a novel techniqu
 
 **CC** has been tested under GCC, Clang, MinGW, and MSVC. `tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivalent **CC** and C++ STL containers and then check that they remain in sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
 
+### What compiler warning options does it support?
+
+CC should not generate any compiler warnings under the following settings:
+
+<table>
+<tr><th>Compiler</th><th>Warnings flags</th></tr>
+<tr><td>GCC</td><td>`-Wall` `-Wpedantic` `-Wextra` `-Wconversion`</td></tr>
+<tr><td>Clang</td><td>`-Wall` `-Wpedantic` `-Wextra` `-Wconversion`</td></tr>
+<tr><td>MSVC</td><td>`/W3`</td></tr>
+</table>
+
 ### What's next?
 
 Future versions should include null-terminated dynamic strings and more performance benchmarks.

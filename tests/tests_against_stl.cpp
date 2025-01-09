@@ -145,7 +145,7 @@ int main()
         {
           size_t i = 0;
           if( cc_size( &our_vec ) )
-            i = rand() % ( cc_size( &our_vec ) + 1 );
+            i = (size_t)rand() % ( cc_size( &our_vec ) + 1 );
 
           int *el;
           int el_val = rand();
@@ -153,14 +153,14 @@ int main()
 
           ALWAYS_ASSERT( *el == el_val );
 
-          stl_vec.insert( stl_vec.begin() + i, el_val );
+          stl_vec.insert( stl_vec.begin() + (std::vector<int>::difference_type)i, el_val );
         }
         break;
         case 3: // cc_insert_n.
         {
           size_t i = 0;
           if( cc_size( &our_vec ) )
-            i = rand() % ( cc_size( &our_vec ) + 1 );
+            i = (size_t)rand() % ( cc_size( &our_vec ) + 1 );
 
           int *el;
           int els[ 5 ] = { rand(), rand(), rand(), rand(), rand() };
@@ -168,7 +168,7 @@ int main()
 
           ALWAYS_ASSERT( *el == els[ 0 ] );
 
-          stl_vec.insert( stl_vec.begin() + i, std::begin( els ), std::end( els ) );
+          stl_vec.insert( stl_vec.begin() + (std::vector<int>::difference_type)i, std::begin( els ), std::end( els ) );
         }
         break;
         case 4: // cc_erase.
@@ -176,7 +176,7 @@ int main()
           if( !cc_size( &our_vec ) )
             break;
 
-          size_t i = rand() % cc_size( &our_vec );
+          size_t i = (size_t)rand() % cc_size( &our_vec );
           int *el = cc_erase( &our_vec, i );
 
           if( i == cc_size( &our_vec ) )
@@ -184,7 +184,7 @@ int main()
           else
             ALWAYS_ASSERT( *el == *cc_get( &our_vec, i ) );
 
-          stl_vec.erase( stl_vec.begin() + i );
+          stl_vec.erase( stl_vec.begin() + (std::vector<int>::difference_type)i );
         }
         break;
         case 5: // cc_erase_n.
@@ -192,8 +192,8 @@ int main()
           if( !cc_size( &our_vec ) )
             break;
 
-          size_t i = rand() % cc_size( &our_vec );
-          size_t n = rand() % 5;
+          size_t i = (size_t)rand() % cc_size( &our_vec );
+          size_t n = (size_t)rand() % 5;
           if( i + n > cc_size( &our_vec ) )
             break;
 
@@ -204,7 +204,10 @@ int main()
           else
             ALWAYS_ASSERT( *el == *cc_get( &our_vec, i ) );         
 
-          stl_vec.erase( stl_vec.begin() + i, stl_vec.begin() + i + n );
+          stl_vec.erase(
+            stl_vec.begin() + (std::vector<int>::difference_type)i,
+            stl_vec.begin() + (std::vector<int>::difference_type)( i + n )
+          );
         }
         break;
         case 6: // cc_reserve.
@@ -290,7 +293,7 @@ int main()
         {
           size_t i = 0;
           if( cc_size( &our_list[ list ] ) != 0 )
-            i = rand() % cc_size( &our_list[ list ] );
+            i = (size_t)rand() % cc_size( &our_list[ list ] );
           
           int *cc_itr = cc_first( &our_list[ list ] );
           for( size_t j = 0; j < i; ++j )
@@ -313,7 +316,7 @@ int main()
           if( cc_size( &our_list[ list ] ) == 0 )
             break;
 
-          size_t i = rand() % cc_size( &our_list[ list ] );
+          size_t i = (size_t)rand() % cc_size( &our_list[ list ] );
 
           int *cc_itr = cc_first( &our_list[ list ] );
           for( size_t j = 0; j < i; ++j )
@@ -331,7 +334,7 @@ int main()
           if( cc_size( &our_list[ list ] ) == 0 )
             break;
 
-          size_t i_src = rand() % cc_size( &our_list[ list ] );
+          size_t i_src = (size_t)rand() % cc_size( &our_list[ list ] );
 
           int *cc_itr_src = cc_first( &our_list[ list ] );
           for( size_t j = 0; j < i_src; ++j )
@@ -342,7 +345,7 @@ int main()
 
           size_t i_dest = 0;
           if( cc_size( &our_list[ !list ] ) != 0 )
-            i_dest = rand() % ( cc_size( &our_list[ !list ] ) + 1 );
+            i_dest = (size_t)rand() % ( cc_size( &our_list[ !list ] ) + 1 );
 
           int *cc_itr_dest = cc_first( &our_list[ !list ] );
           for( size_t j = 0; j < i_dest; ++j )
@@ -360,8 +363,8 @@ int main()
           if( cc_size( &our_list[ list ] ) == 0 )
             break;
 
-          size_t i_src = rand() % cc_size( &our_list[ list ] );
-          size_t i_dest = rand() % ( cc_size( &our_list[ list ] ) + 1 );
+          size_t i_src = (size_t)rand() % cc_size( &our_list[ list ] );
+          size_t i_dest = (size_t)rand() % ( cc_size( &our_list[ list ] ) + 1 );
           if( i_src == i_dest )
             break;
 
@@ -530,8 +533,8 @@ int main()
         {
           if( rand() % 2 )
             UNTIL_SUCCESS( cc_reserve( &our_map, cc_cap( &our_map ) ) ); // Reserve above the current capacity.
-          else if( cc_cap( &our_map ) * CC_DEFAULT_LOAD  >= 5 ) // Reserve below the current capacity.
-            UNTIL_SUCCESS( cc_reserve( &our_map, (size_t)( cc_cap( &our_map ) * CC_DEFAULT_LOAD - 5 ) ) );
+          else if( (double)cc_cap( &our_map ) * CC_DEFAULT_LOAD  >= 5 ) // Reserve below the current capacity.
+            UNTIL_SUCCESS( cc_reserve( &our_map, (size_t)( (double)cc_cap( &our_map ) * CC_DEFAULT_LOAD - 5 ) ) );
         }
         break;
         case 5: // cc_shrink.
@@ -635,8 +638,8 @@ int main()
         {
           if( rand() % 2 )
             UNTIL_SUCCESS( cc_reserve( &our_set, cc_cap( &our_set ) ) );
-          else if( cc_cap( &our_set ) * CC_DEFAULT_LOAD  >= 5 )
-            UNTIL_SUCCESS( cc_reserve( &our_set, (size_t)( cc_cap( &our_set ) * CC_DEFAULT_LOAD - 5 ) ) );
+          else if( (double)cc_cap( &our_set ) * CC_DEFAULT_LOAD  >= 5 )
+            UNTIL_SUCCESS( cc_reserve( &our_set, (size_t)( (double)cc_cap( &our_set ) * CC_DEFAULT_LOAD - 5 ) ) );
         }
         break;
         case 5: // cc_shrink.
