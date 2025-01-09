@@ -663,10 +663,37 @@ Destructor, comparison, and hash functions are also deduced via a novel techniqu
 CC should not generate any compiler warnings under the following settings:
 
 <table>
-<tr><th>Compiler</th><th>Warnings flags</th></tr>
-<tr><td>GCC</td><td>`-Wall` `-Wpedantic` `-Wextra` `-Wconversion`</td></tr>
-<tr><td>Clang</td><td>`-Wall` `-Wpedantic` `-Wextra` `-Wconversion`</td></tr>
-<tr><td>MSVC</td><td>`/W3`</td></tr>
+<tr>
+<th>Compiler</th>
+<th>Warnings flags</th>
+</tr>
+<tr>
+<td>
+GCC
+</td>
+<td>
+
+`-Wall` `-Wpedantic` `-Wextra` `-Wconversion`
+</td>
+</tr>
+<tr>
+<td>
+Clang
+</td>
+<td>
+
+`-Wall` `-Wpedantic` `-Wextra` `-Wconversion`
+</td>
+</tr>
+<tr>
+<td>
+MSVC
+</td>
+<td>
+
+`/W3`
+</td>
+</tr>
 </table>
 
 ### What's next?
