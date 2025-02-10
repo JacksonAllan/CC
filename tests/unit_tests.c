@@ -1,6 +1,6 @@
 /*
 
-Convenient Containers v1.3.1 - tests/unit_tests.c
+Convenient Containers v1.3.2 - tests/unit_tests.c
 
 This file tests CC containers.
 It aims to cover the full API and to check corner cases, particularly transitions between placeholder containers and
@@ -8,7 +8,7 @@ non-placeholder containers.
 
 License (MIT):
 
-  Copyright (c) 2022-2024 Jackson L. Allan
+  Copyright (c) 2022-2025 Jackson L. Allan
 
   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
   documentation files (the "Software"), to deal in the Software without restriction, including without limitation the

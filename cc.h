@@ -1,4 +1,4 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.3.1 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.3.2 -------------------------------------------
 
 This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, unordered sets,
 ordered maps, and ordered sets).
@@ -771,6 +771,7 @@ API:
 
 Version history:
 
+  11/02/2025 1.3.2: Fixed a critical bug causing maps to call the wrong destructors during cleanup.
   23/08/2024 1.3.1: Fixed missing static inline qualifier on an internal omap function.
   29/07/2024 1.3.0: Added ordered map and ordered set.
                     Fixed cc_erase_itr to return a correctly typed pointer-iterator instead of void *. 
@@ -805,7 +806,7 @@ Version history:
 
 License (MIT):
 
-  Copyright (c) 2022-2024 Jackson L. Allan
+  Copyright (c) 2022-2025 Jackson L. Allan
 
   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
   documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -3405,7 +3406,7 @@ static inline void cc_map_cleanup(
   cc_free_fnptr_ty free_
 )
 {
-  cc_map_clear( cntr, el_size, layout, key_dtor, el_dtor, NULL /* Dummy */ );
+  cc_map_clear( cntr, el_size, layout, el_dtor, key_dtor, NULL /* Dummy */ );
 
   if( !cc_map_is_placeholder( cntr ) )
     free_( cntr );
