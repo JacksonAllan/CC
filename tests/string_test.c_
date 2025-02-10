@@ -1,0 +1,110 @@
+#include <assert.h>
+#include <stdio.h>
+
+#include "../cc.h"
+
+void print_char32( char32_t *string )
+{
+  mbstate_t state;
+  char buf[ MB_LEN_MAX + 1 ];
+  while( *string )
+  {
+  	memset( buf, 0, MB_LEN_MAX + 1 );
+    c32rtomb( buf, *string, &state );
+    ++string;
+    printf( buf );
+  }
+}
+
+int main( void )
+{
+	system( "chcp 65001 >nul" ); // UTF-8, Windows.
+
+	str( char ) foo_1;
+	str( unsigned char ) foo_2;
+	str( signed char ) foo_3;
+	str( char16_t ) foo_4;
+	str( char32_t ) foo_5;
+	// str( int ) foo_6;
+
+	init( &foo_1 );
+	init( &foo_2 );
+	init( &foo_3 );
+	init( &foo_4 );
+	init( &foo_5 );
+
+	// assert( (void *)foo_1 == (void *)&cc_str_placeholder_char );
+	// assert( (void *)foo_2 == (void *)&cc_str_placeholder_char );
+	// assert( (void *)foo_3 == (void *)&cc_str_placeholder_char );
+	// assert( (void *)foo_4 == (void *)&cc_str_placeholder_char16 );
+	// assert( (void *)foo_5 == (void *)&cc_str_placeholder_char32 );
+
+	// const char *world = "world";
+
+	// // CC_WRAP_STR_INSERT_ARG( foo_1, 12345, false );
+
+	// /*insert( &foo_1, 0, "Hello" );
+	// insert( &foo_1, 0, (unsigned)12345 );
+	// insert( &foo_1, 0, world );
+	// insert( &foo_1, 0, -12345 );
+	// insert( &foo_1, 0, 0.99 );*/
+
+	// push( &foo_1, "hello ", 10, " ", 0.1, "\n" );
+
+	// str( char ) bar_1;
+	// init( &bar_1 );
+	// insert( &bar_1, 0, "I live in a giant bucket ", "because I like it.\n" );
+
+	// printf( (char *)bar_1 + sizeof( cc_str_hdr_ty ) );
+
+	// erase_n( &bar_1, 2, 4 );
+
+	// erase( &bar_1, 2 );
+
+	// resize( &bar_1, 100, 'X' );
+	// push( &bar_1, '\n' );
+
+	// printf( (char *)bar_1 + sizeof( cc_str_hdr_ty ) );
+
+	// /*str( char ) bar_2;
+	// init_clone( &bar_2, &bar_1 );
+	// printf( get( &bar_2, 0 ) );*/
+
+	// clear( &bar_1 );
+	// int x;
+	// int *y = &x;
+	// push( &bar_1, (void *)y );
+	// printf( first( &bar_1 ) );
+
+	// cleanup( &bar_1 );
+
+	insert( &foo_1, 0, "Hello" );
+
+	struct foo { int bar; };
+
+	vec( struct foo ) v;
+	init( &v );
+	insert( &v, 0, (struct foo){ 0 } );
+
+	/*const str( char ) *bar_1_ptr = &bar_1;
+
+	insert( &foo_1, 0, &bar_1 );
+	insert( &foo_1, 0, bar_1_ptr );
+	// cleanup( &bar_1 );
+
+	printf( (char *)foo_1 + sizeof( cc_str_hdr_ty ) );
+
+	printf( "\n" );
+	print_char32( (char32_t *)( (char *)foo_5 + sizeof( cc_str_hdr_ty ) ) );
+	printf( "\n" );
+
+	insert( &foo_5, 0, U"a🍌猫🍌猫🍌猫🍌" );
+	insert( &foo_5, 0, (unsigned)12345 );
+	insert( &foo_5, 0, -12345 );
+	insert( &foo_5, 0, 0.99 );
+	print_char32( (char32_t *)( (char *)foo_5 + sizeof( cc_str_hdr_ty ) ) );*/
+
+	printf( "\nDone...\n" );
+
+	return 0;
+}
