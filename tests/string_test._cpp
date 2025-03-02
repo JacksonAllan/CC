@@ -41,6 +41,9 @@ int main( void )
 
 	const char *world = "world";
 
+	insert_n( &foo_1, size( &foo_1 ), "uvwxyz{|}~", 10 ); // End.
+	// push_n( &foo_1, "uvwxyz{|}~", 10 ); // End.
+
 	// CC_WRAP_STR_INSERT_ARG( foo_1, 12345, false );
 
 	/*insert( &foo_1, 0, "Hello" );
@@ -104,6 +107,12 @@ int main( void )
 	print_char32( (char32_t *)( (char *)foo_5 + sizeof( cc_str_hdr_ty ) ) );*/
 
 	printf( "\nDone...\n" );
+
+	map( str( char ), int ) m = initialized( &m );
+
+	str( char ) s = initialized( &s );
+	char *foo = (char *)"foo";
+	insert( &s, 0, "foo" );
 
 	return 0;
 }

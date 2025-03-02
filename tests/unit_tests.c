@@ -8,7 +8,7 @@ non-placeholder containers.
 
 License (MIT):
 
-  Copyright (c) 2022-2024 Jackson L. Allan
+  Copyright (c) 2022-2025 Jackson L. Allan
 
   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
   documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -1467,7 +1467,7 @@ static void test_map_dtors( void )
   check_dtors_arr();
 }
 
-// Strings are a special case that warrant seperate testing.
+// C strings are a special case that warrant seperate testing.
 static void test_map_strings( void )
 {
   // Non-const strings.
@@ -3624,12 +3624,12 @@ static void test_oset_default_integer_types( void )
 // Vector tests.
 #ifdef TEST_STR
 
-static bool compare_strings8( char *str_1, char *str_2 )
+static bool compare_strings8( const char *str_1, const char *str_2 )
 {
   return strcmp( str_1, str_2 ) == 0;
 }
 
-static bool compare_strings16( char16_t *str_1, char16_t *str_2 )
+static bool compare_strings16( const char16_t *str_1, const char16_t *str_2 )
 {
   while( true )
   {
@@ -3644,7 +3644,7 @@ static bool compare_strings16( char16_t *str_1, char16_t *str_2 )
   }
 }
 
-static bool compare_strings32( char32_t *str_1, char32_t *str_2 )
+static bool compare_strings32( const char32_t *str_1, const char32_t *str_2 )
 {
   while( true )
   {
@@ -4331,6 +4331,57 @@ static void test_str_push( void )
   cleanup( &our_str32 );
 }
 
+static void test_str_push_n( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // Zero-size insertion.
+  ALWAYS_ASSERT( !push_n( &our_str8, NULL, 0 ) );
+  ALWAYS_ASSERT( !push_n( &our_str16, NULL, 0 ) );
+  ALWAYS_ASSERT( !push_n( &our_str32, NULL, 0 ) );
+
+  // Normal insert.
+
+  char *el8;
+  UNTIL_SUCCESS( el8 = push_n( &our_str8, "abcdefghij", 10 ) );
+  ALWAYS_ASSERT( *el8 == 'a' );
+  UNTIL_SUCCESS( el8 = push_n( &our_str8, "klmnopqrst", 10 ) );
+  ALWAYS_ASSERT( *el8 == 'k' );
+  UNTIL_SUCCESS( el8 = push_n( &our_str8, "uvwxyz{|}~", 10 ) );
+  ALWAYS_ASSERT( *el8 == 'u' );
+
+  char16_t *el16;
+  UNTIL_SUCCESS( el16 = push_n( &our_str16, u"abcdefghij", 10 ) );
+  ALWAYS_ASSERT( *el16 == 'a' );
+  UNTIL_SUCCESS( el16 = push_n( &our_str16, u"klmnopqrst", 10 ) );
+  ALWAYS_ASSERT( *el16 == 'k' );
+  UNTIL_SUCCESS( el16 = push_n( &our_str16, u"uvwxyz{|}~", 10 ) );
+  ALWAYS_ASSERT( *el16 == 'u' );
+
+  char32_t *el32;
+  UNTIL_SUCCESS( el32 = push_n( &our_str32, U"abcdefghij", 10 ) );
+  ALWAYS_ASSERT( *el32 == 'a' );
+  UNTIL_SUCCESS( el32 = push_n( &our_str32, U"klmnopqrst", 10 ) );
+  ALWAYS_ASSERT( *el32 == 'k' );
+  UNTIL_SUCCESS( el32 = push_n( &our_str32, U"uvwxyz{|}~", 10 ) );
+  ALWAYS_ASSERT( *el32 == 'u' );
+
+  // Check.
+
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
 static void test_str_erase( void )
 {
   str( char ) our_str8;
@@ -4709,9 +4760,101 @@ static void test_str_init_clone( void )
   cleanup( &our_str32 );
 }
 
+#define TEST_STR_MAP_INEROPERABILITY( ty, string_literal_macro ) \
+{                                                          \
+  map( str( ty ), int ) our_map;  \
+  init( &our_map );  \
+  \
+  /* Insert. */ \
+  \
+  str( ty ) our_str_1 = initialized( &our_str_1 );  \
+  str( ty ) our_str_2 = initialized( &our_str_2 );  \
+  str( ty ) our_str_3 = initialized( &our_str_3 );  \
+  str( ty ) our_str_4 = initialized( &our_str_4 );  \
+  str( ty ) our_str_5 = initialized( &our_str_5 );  \
+  UNTIL_SUCCESS( push( &our_str_1, string_literal_macro( "Short string" ) ) );  \
+  UNTIL_SUCCESS( push( &our_str_2, string_literal_macro( "Medium-length string" ) ) );  \
+  UNTIL_SUCCESS( push( &our_str_3, string_literal_macro( "This here is a significantly longer string" ) ) );  \
+  UNTIL_SUCCESS( push( &our_str_4, string_literal_macro( "Cat" ) ) );  \
+  UNTIL_SUCCESS( push( &our_str_5, string_literal_macro( "Dog" ) ) );  \
+  \
+  UNTIL_SUCCESS( insert( &our_map, our_str_1, 1 ) );  \
+  UNTIL_SUCCESS( insert( &our_map, our_str_2, 2 ) );  \
+  UNTIL_SUCCESS( insert( &our_map, our_str_3, 3 ) );  \
+  UNTIL_SUCCESS( insert( &our_map, our_str_4, 4 ) );  \
+  UNTIL_SUCCESS( insert( &our_map, our_str_5, 5 ) );  \
+  \
+  /* Look-up. */ \
+  \
+  str( ty ) our_str_6;  \
+  str( ty ) our_str_7;  \
+  str( ty ) our_str_8;  \
+  str( ty ) our_str_9;  \
+  str( ty ) our_str_10;  \
+  init( &our_str_6 );  \
+  init( &our_str_7 );  \
+  init( &our_str_8 );  \
+  init( &our_str_9 );  \
+  init( &our_str_10 );  \
+  UNTIL_SUCCESS( push( &our_str_6, string_literal_macro( "Short string" ) ) );  \
+  UNTIL_SUCCESS( push( &our_str_7, string_literal_macro( "Medium-length string" ) ) );  \
+  UNTIL_SUCCESS( push( &our_str_8, string_literal_macro( "This here is a significantly longer string" ) ) );  \
+  UNTIL_SUCCESS( push( &our_str_9, string_literal_macro( "Cat" ) ) );  \
+  UNTIL_SUCCESS( push( &our_str_10, string_literal_macro( "Dog" ) ) );  \
+  \
+  ALWAYS_ASSERT( *get( &our_map, our_str_6 ) == 1 );  \
+  ALWAYS_ASSERT( *get( &our_map, our_str_7 ) == 2 );  \
+  ALWAYS_ASSERT( *get( &our_map, our_str_8 ) == 3 );  \
+  ALWAYS_ASSERT( *get( &our_map, our_str_9 ) == 4 );  \
+  ALWAYS_ASSERT( *get( &our_map, our_str_10 ) == 5 );  \
+  \
+  /* Replace. */ \
+  UNTIL_SUCCESS( insert( &our_map, our_str_6, 11 ) );  \
+  UNTIL_SUCCESS( insert( &our_map, our_str_8, 12 ) );  \
+  UNTIL_SUCCESS( insert( &our_map, our_str_10, 13 ) );  \
+  \
+  /* Look-up again. */ \
+  \
+  str( ty ) our_str_11;  \
+  str( ty ) our_str_12;  \
+  str( ty ) our_str_13;  \
+  init( &our_str_11 );  \
+  init( &our_str_12 );  \
+  init( &our_str_13 );  \
+  UNTIL_SUCCESS( push( &our_str_11, string_literal_macro( "Short string" ) ) );  \
+  UNTIL_SUCCESS( push( &our_str_12, string_literal_macro( "This here is a significantly longer string" ) ) );  \
+  UNTIL_SUCCESS( push( &our_str_13, string_literal_macro( "Dog" ) ) );  \
+  ALWAYS_ASSERT( *get( &our_map, our_str_11 ) == 11 );  \
+  ALWAYS_ASSERT( *get( &our_map, our_str_12 ) == 12 );  \
+  ALWAYS_ASSERT( *get( &our_map, our_str_13 ) == 13 );  \
+  \
+  cleanup( &our_map );  \
+  cleanup( &our_str_7 );  \
+  cleanup( &our_str_9 );  \
+  cleanup( &our_str_11 );  \
+  cleanup( &our_str_12 );  \
+  cleanup( &our_str_13 );  \
+}                         \
+
+#define STRING_LITERAL_CHAR( literal ) literal
+#define STRING_LITERAL_UNSIGNED_CHAR( literal ) (unsigned char *)literal
+#define STRING_LITERAL_SIGNED_CHAR( literal ) (signed char *)literal
+#define STRING_LITERAL_CHAR16( literal ) u##literal
+#define STRING_LITERAL_CHAR32( literal ) U##literal
+
 static void test_str_interoperability( void )
 {
-  map( str( char ), int ) our_map;
+  TEST_STR_MAP_INEROPERABILITY( char, STRING_LITERAL_CHAR );
+  TEST_STR_MAP_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR );
+  TEST_STR_MAP_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_MAP_INEROPERABILITY( char8_t, STRING_LITERAL_SIGNED_CHAR );
+#endif
+  TEST_STR_MAP_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16 );
+  TEST_STR_MAP_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32 );
+
+  /*map( str( char ), int ) our_map;
   init( &our_map );
 
   str( char ) our_str_1;
@@ -4732,8 +4875,6 @@ static void test_str_interoperability( void )
   UNTIL_SUCCESS( insert( &our_map, our_str_3, 2 ) );
   UNTIL_SUCCESS( insert( &our_map, our_str_4, 3 ) );
 
-  // TODO: Test key_for with const char string keys?
-
   str( char ) our_str_5;
   str( char ) our_str_6;
   str( char ) our_str_7;
@@ -4747,23 +4888,16 @@ static void test_str_interoperability( void )
   UNTIL_SUCCESS( push( &our_str_7, "a" ) );
   UNTIL_SUCCESS( push( &our_str_8, "test" ) );
 
-  // printf( "%p %p\n", our_str_1, our_str_5 );
   ALWAYS_ASSERT( *get( &our_map, our_str_5 ) == 0 );
   ALWAYS_ASSERT( *get( &our_map, our_str_6 ) == 1 );
   ALWAYS_ASSERT( *get( &our_map, our_str_7 ) == 2 );
   ALWAYS_ASSERT( *get( &our_map, our_str_8 ) == 3 );
 
-  printf( "%p\n", our_str_1 );
-  printf( "%p\n", our_str_2 );
-  printf( "%p\n", our_str_3 );
-  printf( "%p\n", our_str_4 );
-
-  printf( "Cleanup\n" );
   cleanup( &our_map );
   cleanup( &our_str_5 );
   cleanup( &our_str_6 );
   cleanup( &our_str_7 );
-  cleanup( &our_str_8 );
+  cleanup( &our_str_8 );*/
 }
 
 #endif
@@ -4884,13 +5018,13 @@ int main( void )
     test_str_insert();
     test_str_insert_n();
     test_str_push();
+    test_str_push_n();
     test_str_erase();
     test_str_erase_n();
     test_str_clear();
     test_str_cleanup();
     test_str_iteration();
     test_str_init_clone();
-
     test_str_interoperability();
     #endif
   }

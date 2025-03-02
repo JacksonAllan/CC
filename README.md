@@ -557,6 +557,7 @@ int main( void )
   if( !push( &our_list, our_vec ) )
   {
     // Out of memory, so abort.
+    cleanup( &our_vec );
     cleanup( &our_list );
     return 1;
   }
