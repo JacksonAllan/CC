@@ -1,0 +1,50 @@
+#include <assert.h>
+#include <stdio.h>
+
+#include "../cc.h"
+
+/*void print_char32( char32_t *string )
+{
+  mbstate_t state;
+  char buf[ MB_LEN_MAX + 1 ];
+  while( *string )
+  {
+  	memset( buf, 0, MB_LEN_MAX + 1 );
+    c32rtomb( buf, *string, &state );
+    ++string;
+    printf( buf );
+  }
+}*/
+
+struct mofo { int x; };
+
+int main( void )
+{
+	system( "chcp 65001 >nul" ); // UTF-8, Windows.
+
+  //str( char ) foo;
+  //CC_HETEROGENEOUS_LOOKUP_CONVERSION( foo, 0 );
+
+  map( str( signed char ), int ) foo = initialized( &foo );
+  str( signed char ) bar = initialized( &bar );
+
+  int *x;
+  get( &foo, bar );
+  get( &foo, (signed char*)"Foo" );
+
+
+  vec( int ) v = initialized( &v );
+  push( &v, 10 );
+
+  // int( 10 );
+
+  // mofo m( 1 );
+  // ( mofo{ m } );
+
+  //( void *{NULL} );
+	
+
+	printf( "\nDone...\n" );
+
+	return 0;
+}
