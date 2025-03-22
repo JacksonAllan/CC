@@ -20,27 +20,72 @@ int main( void )
 {
 	system( "chcp 65001 >nul" ); // UTF-8, Windows.
 
-	str( char ) foo_1;
-	map( str( char ), int ) map_1 = initialized( &map_1 );
+	map( str( char ), str( char ) ) m = initialized( &m );
 
-	init( &foo_1 );
-	push( &foo_1, "This" );
-	insert( &map_1, foo_1, 1 );
-	init( &foo_1 );
-	push( &foo_1, "is" );
-	insert( &map_1, foo_1, 2 );
-	init( &foo_1 );
-	push( &foo_1, "a" );
-	insert( &map_1, foo_1, 3 );
-	init( &foo_1 );
-	push( &foo_1, "test" );
-	insert( &map_1, foo_1, 4 );
+	str( char ) s1 = initialized( &s1 );
+	push( &s1, "Hello" );
+	str( char ) s2 = initialized( &s2 );
+	push( &s2, "World" );
 
-	assert( *get( &map_1, "This" ) == 1 );
-	assert( *get( &map_1, "is" ) == 2 );
-	assert( *get( &map_1, "a" ) == 3 );
-	assert( *get( &map_1, "test" ) == 4 );
-	assert( !get( &map_1, "Foobar" ) );
+	insert( &m, s1, s2 );
+	insert( &m, "Bar", "Baz" );
+
+	str( char ) *el;
+
+	el = get( &m, "Hello" );
+	printf( first( el ) );
+	el = get( &m, "Bar" );
+	printf( first( el ) );
+
+
+	const str( char ) *key = key_for( &m, el );
+	printf( first( key ) );
+
+
+	vec( str( char ) ) v = initialized( &v );
+	insert( &v, size( &v), "Hello, " );
+	insert( &v, size( &v), "I " );
+	insert( &v, size( &v), "live " );
+	insert( &v, size( &v), "in " );
+	insert( &v, size( &v), "a " );
+	insert( &v, size( &v), "giant " );
+	insert( &v, size( &v), "bucket." );
+	for_each( &v, itr )
+		printf( first( itr ) );
+
+
+
+	/*for_each( &v, i )
+		printf( "%d ", *i );
+
+	map( int, int ) m = initialized( &m );
+	for( int i = 0; i < 10000; ++i )
+		insert( &m, i, i );
+
+	for_each( &m, i )
+		printf( "%d ", *i );*/
+
+	// str( char ) foo_1;
+	// map( str( char ), int ) map_1 = initialized( &map_1 );
+
+	// init( &foo_1 );
+	// push( &foo_1, "This" );
+	// insert( &map_1, foo_1, 1 );
+	// init( &foo_1 );
+	// push( &foo_1, "is" );
+	// insert( &map_1, foo_1, 2 );
+	// init( &foo_1 );
+	// push( &foo_1, "a" );
+	// insert( &map_1, foo_1, 3 );
+	// init( &foo_1 );
+	// push( &foo_1, "test" );
+	// insert( &map_1, foo_1, 4 );
+
+	// assert( *get( &map_1, "This" ) == 1 );
+	// assert( *get( &map_1, "is" ) == 2 );
+	// assert( *get( &map_1, "a" ) == 3 );
+	// assert( *get( &map_1, "test" ) == 4 );
+	// assert( !get( &map_1, "Foobar" ) );
 
 	// assert( (void *)foo_1 == (void *)&cc_str_placeholder_char );
 	// assert( (void *)foo_2 == (void *)&cc_str_placeholder_char );

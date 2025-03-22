@@ -1635,8 +1635,8 @@ cntr = (CC_TYPEOF_XP( cntr ))&CC_MAKE_LVAL_COPY( cc_allocing_fn_result_ty, fn_ca
 #define CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr )                                              \
 cc_memcpy_and_return_ptr(                                                                     \
   &cntr,                                                                                      \
-  /* &CC_MAKE_LVAL_COPY( CC_TYPEOF_XP( cntr ), ( (cc_allocing_fn_result_ty *)cntr )->new_cntr ),*/ \
-  &CC_MAKE_LVAL_COPY( CC_TYPEOF_XP( cntr ), (CC_TYPEOF_XP( cntr ))( (cc_allocing_fn_result_ty *)cntr )->new_cntr ), \
+  &CC_MAKE_LVAL_COPY( CC_TYPEOF_XP( cntr ), ( (cc_allocing_fn_result_ty *)cntr )->new_cntr ), \
+  /* &CC_MAKE_LVAL_COPY( CC_TYPEOF_XP( cntr ), (CC_TYPEOF_XP( cntr ))( (cc_allocing_fn_result_ty *)cntr )->new_cntr ), */ \
   sizeof( cntr ),                                                                             \
   ( (cc_allocing_fn_result_ty *)cntr )->other_ptr                                             \
 )                                                                                             \
@@ -6514,6 +6514,473 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
 
+// #define cc_insert_3( cntr, key, el )                                                         \
+// (                                                                                            \
+//   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+//   CC_STATIC_ASSERT(                                                                          \
+//     CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
+//   ),                                                                                         \
+//   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+//     *(cntr),                                                                                 \
+//     /* Function select */                                                                    \
+//     (                                                                                        \
+//       CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_insert  :                                    \
+//       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_insert :                                    \
+//       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_insert  :                                    \
+//       CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_insert :                                    \
+//                             /* CC_STR */ cc_str_insert                                       \
+//     )                                                                                        \
+//     /* Function arguments */                                                                 \
+//     (                                                                                        \
+//       *(cntr),                                                                               \
+//       &CC_IF_STR_WRAPPED_ARG_ELSE_EL_TY_LVAL_COPY( *(cntr), (el) ),                          \
+//       &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
+//       true,                                                                                  \
+//       CC_EL_SIZE( *(cntr) ),                                                                 \
+//       CC_LAYOUT( *(cntr) ),                                                                  \
+//       CC_KEY_HASH( *(cntr) ),                                                                \
+//       CC_KEY_CMPR( *(cntr) ),                                                                \
+//       CC_KEY_LOAD( *(cntr) ),                                                                \
+//       CC_EL_DTOR( *(cntr) ),                                                                 \
+//       CC_KEY_DTOR( *(cntr) ),                                                                \
+//       CC_REALLOC_FN,                                                                         \
+//       CC_FREE_FN                                                                             \
+//     )                                                                                        \
+//   ),                                                                                         \
+//   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+// )                                                                                            \
+
+// #define CC_HOMOGENEOUS_STR_CHAR          1
+// #define CC_HOMOGENEOUS_STR_UNSIGNED_CHAR 2
+// #define CC_HOMOGENEOUS_STR_SIGNED_CHAR   3
+// #define CC_HOMOGENEOUS_STR_CHAR8         4
+// #define CC_HOMOGENEOUS_STR_CHAR16        5
+// #define CC_HOMOGENEOUS_STR_CHAR32        6
+
+// typedef struct
+// {
+//   void *val;
+//   unsigned char homogenous_condition;
+// } cc_homogenous_insert_val_wrapper;
+
+// void *cc_to_str_char( void *c_string, CC_STR_RAW( char ) *dest )
+// {
+//   return dest;
+// }
+// void *cc_to_str_unsigned_char( void *c_string, CC_STR_RAW( unsigned char ) *dest )
+// {
+//   return dest;
+// }
+// void *cc_to_str_signed_char( void *c_string, CC_STR_RAW( signed char ) *dest )
+// {
+//   return dest;
+// }
+// #if defined( __cplusplus ) && __cplusplus >= 202101L
+// void *cc_to_str_char8( void *c_string, CC_STR_RAW( char8_t ) *dest )
+// {
+//   return dest;
+// }
+// #endif
+// void *cc_to_str_char16( void *c_string, CC_STR_RAW( char16_t ) *dest )
+// {
+//   return dest;
+// }
+// void *cc_to_str_char32( void *c_string, CC_STR_RAW( char32_t ) *dest )
+// {
+//   return dest;
+// }
+
+// static inline CC_ALWAYS_INLINE cc_allocing_fn_result_ty cc_homogeneous_insert_wrapper(
+//   void *cntr,
+//   cc_homogenous_insert_val_wrapper wrapped_el,
+//   cc_homogenous_insert_val_wrapper wrapped_key,
+//   bool replace,
+//   size_t el_size,
+//   uint64_t layout,
+//   cc_hash_fnptr_ty hash,
+//   cc_cmpr_fnptr_ty cmpr,
+//   double max_load,
+//   cc_dtor_fnptr_ty el_dtor,
+//   cc_dtor_fnptr_ty key_dtor,
+//   cc_realloc_fnptr_ty realloc_,
+//   cc_free_fnptr_ty free_,
+//   cc_allocing_fn_result_ty (*insert_func)(
+//     void *cntr,
+//     void *el,
+//     void *key,
+//     bool replace,
+//     size_t el_size,
+//     uint64_t layout,
+//     cc_hash_fnptr_ty hash,
+//     cc_cmpr_fnptr_ty cmpr,
+//     double max_load,
+//     cc_dtor_fnptr_ty el_dtor,
+//     cc_dtor_fnptr_ty key_dtor,
+//     cc_realloc_fnptr_ty realloc_,
+//     cc_free_fnptr_ty free_
+//   )
+// )
+// {
+//   if( wrapped_el.homogenous_condition )
+//   {
+//     switch( wrapped_el.homogenous_condition )
+//     {
+//     case CC_HOMOGENEOUS_STR_CHAR:
+//       wrapped_el.val = cc_to_str_char( wrapped_el.val, &(CC_STR_RAW( char )){ 0 } );
+//     break;
+//     case CC_HOMOGENEOUS_STR_UNSIGNED_CHAR:
+//       wrapped_el.val = cc_to_str_unsigned_char( wrapped_el.val, &(CC_STR_RAW( unsigned char )){ 0 } );
+//     break;
+//     case CC_HOMOGENEOUS_STR_SIGNED_CHAR:
+//       wrapped_el.val = cc_to_str_signed_char( wrapped_el.val, &(CC_STR_RAW( signed char )){ 0 } );
+//     break;
+// #if defined( __cplusplus ) && __cplusplus >= 202101L
+//     case CC_HOMOGENEOUS_STR_CHAR8:
+//       wrapped_el.val = cc_to_str_char8( wrapped_el.val, &(CC_STR_RAW( char8_t )){ 0 } );
+//     break;
+// #endif
+//     case CC_HOMOGENEOUS_STR_CHAR16:
+//       wrapped_el.val = cc_to_str_char16( wrapped_el.val, &(CC_STR_RAW( char16_t )){ 0 } );
+//     break;
+//     case CC_HOMOGENEOUS_STR_CHAR32:
+//       wrapped_el.val = cc_to_str_char32( wrapped_el.val, &(CC_STR_RAW( char32_t )){ 0 } );
+//     break;
+//     }
+
+//     if( !wrapped_el.val )
+//       return cc_make_allocing_fn_result( cntr, NULL );
+//   }
+
+//   if( wrapped_key.homogenous_condition )
+//   {
+//     switch( wrapped_key.homogenous_condition )
+//     {
+//     case CC_HOMOGENEOUS_STR_CHAR:
+//       wrapped_key.val = cc_to_str_char( wrapped_key.val, &(CC_STR_RAW( char )){ 0 } );
+//     break;
+//     case CC_HOMOGENEOUS_STR_UNSIGNED_CHAR:
+//       wrapped_key.val = cc_to_str_unsigned_char( wrapped_key.val, &(CC_STR_RAW( unsigned char )){ 0 } );
+//     break;
+//     case CC_HOMOGENEOUS_STR_SIGNED_CHAR:
+//       wrapped_key.val = cc_to_str_signed_char( wrapped_key.val, &(CC_STR_RAW( signed char )){ 0 } );
+//     break;
+// #if defined( __cplusplus ) && __cplusplus >= 202101L
+//     case CC_HOMOGENEOUS_STR_CHAR8:
+//       wrapped_key.val = cc_to_str_char8( wrapped_key.val, &(CC_STR_RAW( char8_t )){ 0 } );
+//     break;
+// #endif
+//     case CC_HOMOGENEOUS_STR_CHAR16:
+//       wrapped_key.val = cc_to_str_char16( wrapped_key.val, &(CC_STR_RAW( char16_t )){ 0 } );
+//     break;
+//     case CC_HOMOGENEOUS_STR_CHAR32:
+//       wrapped_key.val = cc_to_str_char32( wrapped_key.val, &(CC_STR_RAW( char32_t )){ 0 } );
+//     break;
+//     }
+
+//     if( !wrapped_key.val )
+//     {
+//       if( wrapped_el.homogenous_condition )
+//         free_( wrapped_el.val );
+//       return cc_make_allocing_fn_result( cntr, NULL );
+//     }
+//   }
+
+
+
+//   /*if( wrapped_el.homogeneous_transform )
+//   {
+//     wrapped_el.val = wrapped_el.homogeneous_transform( wrapped_el.val );
+//     if( !wrapped_el.val )
+//       return cc_make_allocing_fn_result( cntr, NULL );
+//   }
+
+//   if( wrapped_key.homogeneous_transform )
+//   {
+//     wrapped_key.val = wrapped_key.homogeneous_transform( wrapped_key.val );
+//     if( !wrapped_key.val )
+//     {
+//       if( wrapped_el.homogeneous_transform )
+//         wrapped_el.homogeneous_free( wrapped_el.val );
+
+//       return cc_make_allocing_fn_result( cntr, NULL );
+//     }
+//   }*/
+
+//   cc_allocing_fn_result_ty result = insert_func( cntr, wrapped_el.val, wrapped_key.val, replace, el_size, layout, hash, cmpr, max_load, el_dtor, key_dtor, realloc_, free_ );
+
+//   if( !result.other_ptr )
+//   {
+//     if( wrapped_el.homogenous_condition )
+//       free_( wrapped_el.val );
+//     if( wrapped_key.homogenous_condition )
+//       free_( wrapped_key.val );
+//   }
+
+//   return result;
+// }
+
+// #define cc_insert_3( cntr, key, el )                                                         \
+// (                                                                                            \
+//   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+//   CC_STATIC_ASSERT(                                                                          \
+//     CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
+//   ),                                                                                         \
+//   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+//     *(cntr),                                                                                 \
+//     cc_homogeneous_insert_wrapper(                                                           \
+//       *(cntr),                                                                               \
+//       (cc_homogenous_insert_val_wrapper){ &CC_IF_STR_WRAPPED_ARG_ELSE_EL_TY_LVAL_COPY( *(cntr), (el) ), 0 }, \
+//       (cc_homogenous_insert_val_wrapper){ &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ), 0 },            \
+//       true,                                                                                  \
+//       CC_EL_SIZE( *(cntr) ),                                                                 \
+//       CC_LAYOUT( *(cntr) ),                                                                  \
+//       CC_KEY_HASH( *(cntr) ),                                                                \
+//       CC_KEY_CMPR( *(cntr) ),                                                                \
+//       CC_KEY_LOAD( *(cntr) ),                                                                \
+//       CC_EL_DTOR( *(cntr) ),                                                                 \
+//       CC_KEY_DTOR( *(cntr) ),                                                                \
+//       CC_REALLOC_FN,                                                                         \
+//       CC_FREE_FN,                                                                             \
+//       (                                                                                        \
+//         CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_insert  :                                    \
+//         CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_insert :                                    \
+//         CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_insert  :                                    \
+//         CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_insert :                                    \
+//                               /* CC_STR */ cc_str_insert                                       \
+//       )                                                                                        \
+//     )                                                                                        \
+//   ),                                                                                         \
+//   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+// )                                                                                            \
+
+
+static inline void *cc_to_str_char8( const void *c_string, cc_realloc_fnptr_ty realloc_ )
+{
+  size_t length = strlen( c_string );
+  if( !length )
+    return (void *)&cc_str_placeholder_char8;
+
+  cc_str_hdr_ty *hdr = (cc_str_hdr_ty *)realloc_( NULL, sizeof( cc_str_hdr_ty ) + length + 1 /* Terminator */ );
+  if( !hdr )
+    return NULL;
+
+  hdr->cap = length;
+  hdr->size = length;
+  hdr->data = hdr + 1;
+  memcpy( hdr->data, c_string, length + 1 );
+  return hdr;
+}
+
+static inline void *cc_to_str_char16( const void *c_string, cc_realloc_fnptr_ty realloc_ )
+{
+  size_t length = cc_strlen_char16( c_string );
+  if( !length )
+    return (void *)&cc_str_placeholder_char8;
+
+  cc_str_hdr_ty *hdr = (cc_str_hdr_ty *)realloc_(
+    NULL,
+    sizeof( cc_str_hdr_ty ) + sizeof( char16_t ) * length + sizeof( char16_t ) // Terminator.
+  );
+  if( !hdr )
+    return NULL;
+
+  hdr->cap = length;
+  hdr->size = length;
+  hdr->data = hdr + 1;
+  memcpy( hdr->data, c_string, sizeof( char16_t ) * length + sizeof( char16_t ) );
+  return hdr;
+}
+
+static inline void *cc_to_str_char32( const void *c_string, cc_realloc_fnptr_ty realloc_ )
+{
+  size_t length = cc_strlen_char32( c_string );
+  if( !length )
+    return (void *)&cc_str_placeholder_char8;
+
+  cc_str_hdr_ty *hdr = (cc_str_hdr_ty *)realloc_(
+    NULL,
+    sizeof( cc_str_hdr_ty ) + sizeof( char32_t ) * length + sizeof( char32_t ) // Terminator.
+  );
+  if( !hdr )
+    return NULL;
+
+  hdr->cap = length;
+  hdr->size = length;
+  hdr->data = hdr + 1;
+  memcpy( hdr->data, c_string, sizeof( char32_t ) * length + sizeof( char32_t ) );
+  return hdr;
+}
+
+
+#define CC_KEY_MAYBE_CONVERTED_FOR_HETEROINSERT( cntr, key )                                                          \
+_Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },                                                  \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( char * ):                                         \
+    cc_to_str_char8( _Generic( key, char *: key, default: NULL ), CC_REALLOC_FN ),                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( const char * ):                                   \
+    cc_to_str_char8( _Generic( key, const char *: key, default: NULL ), CC_REALLOC_FN ),                   \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( unsigned char * ):                       \
+    cc_to_str_char8( _Generic( key, unsigned char *: key, default: NULL ), CC_REALLOC_FN ),       \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( const unsigned char * ):                 \
+    cc_to_str_char8( _Generic( key, const unsigned char *: key, default: NULL ), CC_REALLOC_FN ), \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( signed char * ):                           \
+    cc_to_str_char8( _Generic( key, signed char *: key, default: NULL ), CC_REALLOC_FN ),           \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( const signed char * ):                     \
+    cc_to_str_char8( _Generic( key, const signed char *: key, default: NULL ), CC_REALLOC_FN ),     \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( char16_t * ):                                 \
+    cc_to_str_char16( _Generic( key, char16_t *: key, default: NULL ), CC_REALLOC_FN ),                   \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( const char16_t * ):                           \
+    cc_to_str_char16( _Generic( key, const char16_t *: key, default: NULL ), CC_REALLOC_FN ),             \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( char32_t * ):                                 \
+    cc_to_str_char32( _Generic( key, char32_t *: key, default: NULL ), CC_REALLOC_FN ),                   \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( const char32_t * ):                           \
+    cc_to_str_char32( _Generic( key, const char32_t *: key, default: NULL ), CC_REALLOC_FN ),             \
+  default: key                                                                                                         \
+)                                                                                                                      \
+
+#define CC_CHECK_HETEROINSERT_KEY_CONVERSION( cntr, key )                                                          \
+_Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },                                                  \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( char * ):                                         \
+    (bool)*(CC_STR_RAW( char ) *)key,                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( const char * ):                                   \
+    (bool)*(CC_STR_RAW( char ) *)key,                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( unsigned char * ):                       \
+    (bool)*(CC_STR_RAW( unsigned char ) *)key,                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( const unsigned char * ):                 \
+    (bool)*(CC_STR_RAW( unsigned char ) *)key,                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( signed char * ):                           \
+    (bool)*(CC_STR_RAW( signed char ) *)key,                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( const signed char * ):                     \
+    (bool)*(CC_STR_RAW( signed char ) *)key,                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( char16_t * ):                                 \
+    (bool)*(CC_STR_RAW( char16_t ) *)key,                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( const char16_t * ):                           \
+    (bool)*(CC_STR_RAW( char16_t ) *)key,                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( char32_t * ):                                 \
+    (bool)*(CC_STR_RAW( char32_t ) *)key,                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( const char32_t * ):                           \
+    (bool)*(CC_STR_RAW( char32_t ) *)key,                         \
+  default: true                                                                                                         \
+)                                                                                                                      \
+
+#define CC_CLEANUP_HETEROINSERT_KEY( cntr, key )                                                                      \
+_Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },                                                  \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( char * ):                                         \
+    CC_FREE_FN( *(CC_STR_RAW( char ) *)key ),                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( const char * ):                                   \
+    CC_FREE_FN( *(CC_STR_RAW( char ) *)key ),                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( unsigned char * ):                       \
+    CC_FREE_FN( *(CC_STR_RAW( unsigned char ) *)key ),                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( const unsigned char * ):                 \
+    CC_FREE_FN( *(CC_STR_RAW( unsigned char ) *)key ),                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( signed char * ):                           \
+    CC_FREE_FN( *(CC_STR_RAW( signed char ) *)key ),                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( const signed char * ):                     \
+    CC_FREE_FN( *(CC_STR_RAW( signed char ) *)key ),                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( char16_t * ):                                 \
+    CC_FREE_FN( *(CC_STR_RAW( char16_t ) *)key ),                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( const char16_t * ):                           \
+    CC_FREE_FN( *(CC_STR_RAW( char16_t ) *)key ),                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( char32_t * ):                                 \
+    CC_FREE_FN( *(CC_STR_RAW( char32_t ) *)key ),                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( const char32_t * ):                           \
+    CC_FREE_FN( *(CC_STR_RAW( char32_t ) *)key ),                         \
+  default: (void)0                                                                                                     \
+)                                                                                                                      \
+
+
+
+
+#define CC_EL_MAYBE_CONVERTED_FOR_HETEROINSERT( cntr, el )                                                          \
+_Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },                                                  \
+  CC_STR_RAW( char ) (*)( char * ):                                         \
+    cc_to_str_char8( _Generic( el, char *: el, default: NULL ), CC_REALLOC_FN ),                         \
+  CC_STR_RAW( char ) (*)( const char * ):                                   \
+    cc_to_str_char8( _Generic( el, const char *: el, default: NULL ), CC_REALLOC_FN ),                   \
+  CC_STR_RAW( unsigned char ) (*)( unsigned char * ):                       \
+    cc_to_str_char8( _Generic( el, unsigned char *: el, default: NULL ), CC_REALLOC_FN ),       \
+  CC_STR_RAW( unsigned char ) (*)( const unsigned char * ):                 \
+    cc_to_str_char8( _Generic( el, const unsigned char *: el, default: NULL ), CC_REALLOC_FN ), \
+  CC_STR_RAW( signed char ) (*)( signed char * ):                           \
+    cc_to_str_char8( _Generic( el, signed char *: el, default: NULL ), CC_REALLOC_FN ),           \
+  CC_STR_RAW( signed char ) (*)( const signed char * ):                     \
+    cc_to_str_char8( _Generic( el, const signed char *: el, default: NULL ), CC_REALLOC_FN ),     \
+  CC_STR_RAW( char16_t ) (*)( char16_t * ):                                 \
+    cc_to_str_char16( _Generic( el, char16_t *: el, default: NULL ), CC_REALLOC_FN ),                   \
+  CC_STR_RAW( char16_t ) (*)( const char16_t * ):                           \
+    cc_to_str_char16( _Generic( el, const char16_t *: el, default: NULL ), CC_REALLOC_FN ),             \
+  CC_STR_RAW( char32_t ) (*)( char32_t * ):                                 \
+    cc_to_str_char32( _Generic( el, char32_t *: el, default: NULL ), CC_REALLOC_FN ),                   \
+  CC_STR_RAW( char32_t ) (*)( const char32_t * ):                           \
+    cc_to_str_char32( _Generic( el, const char32_t *: el, default: NULL ), CC_REALLOC_FN ),             \
+  default: el                                                                                                         \
+)                                                                                                                      \
+
+#define CC_CHECK_HETEROINSERT_EL_CONVERSION( cntr, el )                                                                \
+_Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },                                                         \
+  CC_STR_RAW( char ) (*)( char * ):                                         \
+    (bool)*(CC_STR_RAW( char ) *)el,                         \
+  CC_STR_RAW( char ) (*)( const char * ):                                   \
+    (bool)*(CC_STR_RAW( char ) *)el,                         \
+  CC_STR_RAW( unsigned char ) (*)( unsigned char * ):                       \
+    (bool)*(CC_STR_RAW( unsigned char ) *)el,                         \
+  CC_STR_RAW( unsigned char ) (*)( const unsigned char * ):                 \
+    (bool)*(CC_STR_RAW( unsigned char ) *)el,                         \
+  CC_STR_RAW( signed char ) (*)( signed char * ):                           \
+    (bool)*(CC_STR_RAW( signed char ) *)el,                         \
+  CC_STR_RAW( signed char ) (*)( const signed char * ):                     \
+    (bool)*(CC_STR_RAW( signed char ) *)el,                         \
+  CC_STR_RAW( char16_t ) (*)( char16_t * ):                                 \
+    (bool)*(CC_STR_RAW( char16_t ) *)el,                         \
+  CC_STR_RAW( char16_t ) (*)( const char16_t * ):                           \
+    (bool)*(CC_STR_RAW( char16_t ) *)el,                         \
+  CC_STR_RAW( char32_t ) (*)( char32_t * ):                                 \
+    (bool)*(CC_STR_RAW( char32_t ) *)el,                         \
+  CC_STR_RAW( char32_t ) (*)( const char32_t * ):                           \
+    (bool)*(CC_STR_RAW( char32_t ) *)el,                         \
+  default: true                                                    \
+)                                                                  \
+
+#define CC_CLEANUP_HETEROINSERT_EL( cntr, el )                              \
+_Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },              \
+  CC_STR_RAW( char ) (*)( char * ):                                         \
+    CC_FREE_FN( *(CC_STR_RAW( char ) *)el ),                         \
+  CC_STR_RAW( char ) (*)( const char * ):                                   \
+    CC_FREE_FN( *(CC_STR_RAW( char ) *)el ),                         \
+  CC_STR_RAW( unsigned char ) (*)( unsigned char * ):                       \
+    CC_FREE_FN( *(CC_STR_RAW( unsigned char ) *)el ),                         \
+  CC_STR_RAW( unsigned char ) (*)( const unsigned char * ):                 \
+    CC_FREE_FN( *(CC_STR_RAW( unsigned char ) *)el ),                         \
+  CC_STR_RAW( signed char ) (*)( signed char * ):                           \
+    CC_FREE_FN( *(CC_STR_RAW( signed char ) *)el ),                         \
+  CC_STR_RAW( signed char ) (*)( const signed char * ):                     \
+    CC_FREE_FN( *(CC_STR_RAW( signed char ) *)el ),                         \
+  CC_STR_RAW( char16_t ) (*)( char16_t * ):                                 \
+    CC_FREE_FN( *(CC_STR_RAW( char16_t ) *)el ),                         \
+  CC_STR_RAW( char16_t ) (*)( const char16_t * ):                           \
+    CC_FREE_FN( *(CC_STR_RAW( char16_t ) *)el ),                         \
+  CC_STR_RAW( char32_t ) (*)( char32_t * ):                                 \
+    CC_FREE_FN( *(CC_STR_RAW( char32_t ) *)el ),                         \
+  CC_STR_RAW( char32_t ) (*)( const char32_t * ):                           \
+    CC_FREE_FN( *(CC_STR_RAW( char32_t ) *)el ),                         \
+  default: (void)0                                                       \
+)                                                                        \
+
+typedef struct
+{
+  alignas( cc_max_align_ty )
+  cc_allocing_fn_result_ty insert_result;
+  void *el_;
+  void *key_;
+} cc_heteroinsert_helper_ty;
+
 #define cc_insert_3( cntr, key, el )                                                         \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
@@ -6524,8 +6991,14 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                      \
     CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
   ),                                                                                         \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
-    *(cntr),                                                                                 \
+  *(cntr) = (CC_TYPEOF_XP( *(cntr) ))&(cc_heteroinsert_helper_ty){ \
+    { *(cntr), NULL }, \
+    &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), CC_EL_MAYBE_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ) ), \
+    &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), CC_KEY_MAYBE_CONVERTED_FOR_HETEROINSERT( *(cntr), (key) ) ) \
+  }, \
+  !CC_CHECK_HETEROINSERT_EL_CONVERSION( *(cntr), ( (cc_heteroinsert_helper_ty *)*(cntr) )->el_ ) || \
+  !CC_CHECK_HETEROINSERT_KEY_CONVERSION( *(cntr), ( (cc_heteroinsert_helper_ty *)*(cntr) )->key_ ) || \
+  !( ( (cc_heteroinsert_helper_ty *)*(cntr) )->insert_result = \
     /* Function select */                                                                    \
     (                                                                                        \
       CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_insert  :                                    \
@@ -6536,9 +7009,9 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
     )                                                                                        \
     /* Function arguments */                                                                 \
     (                                                                                        \
-      *(cntr),                                                                               \
-      &CC_IF_STR_WRAPPED_ARG_ELSE_EL_TY_LVAL_COPY( *(cntr), (el) ),                          \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
+      ( (cc_heteroinsert_helper_ty *)*(cntr) )->insert_result.new_cntr,                   \
+      ( (cc_heteroinsert_helper_ty *)*(cntr) )->el_,                                      \
+      ( (cc_heteroinsert_helper_ty *)*(cntr) )->key_,                                     \
       true,                                                                                  \
       CC_EL_SIZE( *(cntr) ),                                                                 \
       CC_LAYOUT( *(cntr) ),                                                                  \
@@ -6550,41 +7023,65 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
       CC_REALLOC_FN,                                                                         \
       CC_FREE_FN                                                                             \
     )                                                                                        \
-  ),                                                                                         \
+  ).other_ptr ? \
+  ( \
+    CC_CLEANUP_HETEROINSERT_EL( *(cntr), ( (cc_heteroinsert_helper_ty *)*(cntr) )->el_ ), \
+    CC_CLEANUP_HETEROINSERT_KEY( *(cntr), ( (cc_heteroinsert_helper_ty *)*(cntr) )->key_ ) \
+  ) : (void)0, \
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
-)                                                                                            \
+) \
 
-#define cc_insert_4( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 2, __VA_ARGS__ )
-#define cc_insert_5( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 3, __VA_ARGS__ )
-#define cc_insert_6( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 4, __VA_ARGS__ )
-#define cc_insert_7( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 5, __VA_ARGS__ )
-#define cc_insert_8( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 6, __VA_ARGS__ )
-#define cc_insert_9( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 7, __VA_ARGS__ )
-#define cc_insert_10( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 8, __VA_ARGS__ )
-#define cc_insert_11( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 9, __VA_ARGS__ )
-#define cc_insert_12( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 10, __VA_ARGS__ )
-#define cc_insert_13( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 11, __VA_ARGS__ )
-#define cc_insert_14( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 12, __VA_ARGS__ )
-#define cc_insert_15( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 13, __VA_ARGS__ )
-#define cc_insert_16( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 14, __VA_ARGS__ )
-#define cc_insert_17( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 15, __VA_ARGS__ )
-#define cc_insert_18( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 16, __VA_ARGS__ )
-#define cc_insert_19( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 17, __VA_ARGS__ )
-#define cc_insert_20( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 18, __VA_ARGS__ )
-#define cc_insert_21( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 19, __VA_ARGS__ )
-#define cc_insert_22( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 20, __VA_ARGS__ )
-#define cc_insert_23( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 21, __VA_ARGS__ )
-#define cc_insert_24( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 22, __VA_ARGS__ )
-#define cc_insert_25( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 23, __VA_ARGS__ )
-#define cc_insert_26( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 24, __VA_ARGS__ )
-#define cc_insert_27( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 25, __VA_ARGS__ )
-#define cc_insert_28( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 26, __VA_ARGS__ )
-#define cc_insert_29( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 27, __VA_ARGS__ )
-#define cc_insert_30( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 28, __VA_ARGS__ )
-#define cc_insert_31( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 29, __VA_ARGS__ )
-#define cc_insert_32( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 30, __VA_ARGS__ )
-#define cc_insert_33( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 31, __VA_ARGS__ )
-#define cc_insert_34( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 32, __VA_ARGS__ )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define cc_insert_fmt( ... ) CC_SELECT_ON_NUM_ARGS( cc_insert_fmt, __VA_ARGS__ )
+
+#define cc_insert_fmt_3( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 1, __VA_ARGS__ )
+#define cc_insert_fmt_4( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 2, __VA_ARGS__ )
+#define cc_insert_fmt_5( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 3, __VA_ARGS__ )
+#define cc_insert_fmt_6( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 4, __VA_ARGS__ )
+#define cc_insert_fmt_7( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 5, __VA_ARGS__ )
+#define cc_insert_fmt_8( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 6, __VA_ARGS__ )
+#define cc_insert_fmt_9( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 7, __VA_ARGS__ )
+#define cc_insert_fmt_10( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 8, __VA_ARGS__ )
+#define cc_insert_fmt_11( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 9, __VA_ARGS__ )
+#define cc_insert_fmt_12( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 10, __VA_ARGS__ )
+#define cc_insert_fmt_13( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 11, __VA_ARGS__ )
+#define cc_insert_fmt_14( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 12, __VA_ARGS__ )
+#define cc_insert_fmt_15( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 13, __VA_ARGS__ )
+#define cc_insert_fmt_16( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 14, __VA_ARGS__ )
+#define cc_insert_fmt_17( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 15, __VA_ARGS__ )
+#define cc_insert_fmt_18( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 16, __VA_ARGS__ )
+#define cc_insert_fmt_19( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 17, __VA_ARGS__ )
+#define cc_insert_fmt_20( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 18, __VA_ARGS__ )
+#define cc_insert_fmt_21( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 19, __VA_ARGS__ )
+#define cc_insert_fmt_22( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 20, __VA_ARGS__ )
+#define cc_insert_fmt_23( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 21, __VA_ARGS__ )
+#define cc_insert_fmt_24( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 22, __VA_ARGS__ )
+#define cc_insert_fmt_25( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 23, __VA_ARGS__ )
+#define cc_insert_fmt_26( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 24, __VA_ARGS__ )
+#define cc_insert_fmt_27( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 25, __VA_ARGS__ )
+#define cc_insert_fmt_28( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 26, __VA_ARGS__ )
+#define cc_insert_fmt_29( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 27, __VA_ARGS__ )
+#define cc_insert_fmt_30( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 28, __VA_ARGS__ )
+#define cc_insert_fmt_31( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 29, __VA_ARGS__ )
+#define cc_insert_fmt_32( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 30, __VA_ARGS__ )
+#define cc_insert_fmt_33( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 31, __VA_ARGS__ )
+#define cc_insert_fmt_34( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 32, __VA_ARGS__ )
 
 #define cc_str_insert_variadic( cntr, index, n, ... )                                        \
 (                                                                                            \
