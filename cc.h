@@ -1000,9 +1000,11 @@ License (MIT):
 #define shrink( ... )         CC_MSVC_PP_FIX( cc_shrink( __VA_ARGS__ ) )
 #define insert( ... )         CC_MSVC_PP_FIX( cc_insert( __VA_ARGS__ ) )
 #define insert_n( ... )       CC_MSVC_PP_FIX( cc_insert_n( __VA_ARGS__ ) )
+#define insert_fmt( ... )     CC_MSVC_PP_FIX( cc_insert_fmt( __VA_ARGS__ ) )
 #define get_or_insert( ... )  CC_MSVC_PP_FIX( cc_get_or_insert( __VA_ARGS__ ) )
 #define push( ... )           CC_MSVC_PP_FIX( cc_push( __VA_ARGS__ ) )
 #define push_n( ... )         CC_MSVC_PP_FIX( cc_push_n( __VA_ARGS__ ) )
+#define push_fmt( ... )       CC_MSVC_PP_FIX( cc_push_fmt( __VA_ARGS__ ) )
 #define splice( ... )         CC_MSVC_PP_FIX( cc_splice( __VA_ARGS__ ) )
 #define get( ... )            CC_MSVC_PP_FIX( cc_get( __VA_ARGS__ ) )
 #define key_for( ... )        CC_MSVC_PP_FIX( cc_key_for( __VA_ARGS__ ) )
@@ -6483,24 +6485,56 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
 
 #define cc_insert( ... ) CC_SELECT_ON_NUM_ARGS( cc_insert, __VA_ARGS__ )
 
-#define cc_insert_2( cntr, key )                                                             \
-(                                                                                            \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+// #define cc_insert_2( cntr, key )                                                             \
+// (                                                                                            \
+//   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+//   CC_STATIC_ASSERT(                                                                          \
+//     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_OSET                                                         \
+//   ),                                                                                         \
+//   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+//     *(cntr),                                                                                 \
+//     /* Function select */                                                                    \
+//     (                                                                                        \
+//       CC_CNTR_ID( *(cntr) ) == CC_SET   ? cc_set_insert  :                                   \
+//                             /* CC_OSET */ cc_oset_insert                                     \
+//     )                                                                                        \
+//     /* Function arguments */                                                                 \
+//     (                                                                                        \
+//       *(cntr),                                                                               \
+//       &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
+//       true,                                                                                  \
+//       CC_LAYOUT( *(cntr) ),                                                                  \
+//       CC_KEY_HASH( *(cntr) ),                                                                \
+//       CC_KEY_CMPR( *(cntr) ),                                                                \
+//       CC_KEY_LOAD( *(cntr) ),                                                                \
+//       CC_EL_DTOR( *(cntr) ),                                                                 \
+//       CC_REALLOC_FN,                                                                         \
+//       CC_FREE_FN                                                                             \
+//     )                                                                                        \
+//   ),                                                                                         \
+//   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+// )                                                                                            \
+
+#define cc_insert_2( cntr, el )                                                                                         \
+(                                                                                                                   \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                                           \
   CC_STATIC_ASSERT(                                                                          \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                      \
     CC_CNTR_ID( *(cntr) ) == CC_OSET                                                         \
   ),                                                                                         \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
-    *(cntr),                                                                                 \
-    /* Function select */                                                                    \
+  CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_ONLY( *(cntr), CC_EL_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ) ),  \
+  !CC_CHECK_HETEROINSERT_EL_CONVERSION( *(cntr), ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el ) || \
+  !( ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->result =                                                   \
+    /* Function select */                                                                                           \
     (                                                                                        \
       CC_CNTR_ID( *(cntr) ) == CC_SET   ? cc_set_insert  :                                   \
                             /* CC_OSET */ cc_oset_insert                                     \
     )                                                                                        \
-    /* Function arguments */                                                                 \
-    (                                                                                        \
-      *(cntr),                                                                               \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
+    /* Function arguments */                                                                                        \
+    (                                                                                                               \
+      ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->result.new_cntr,                                          \
+      ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el,                                                \
       true,                                                                                  \
       CC_LAYOUT( *(cntr) ),                                                                  \
       CC_KEY_HASH( *(cntr) ),                                                                \
@@ -6509,10 +6543,12 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
       CC_EL_DTOR( *(cntr) ),                                                                 \
       CC_REALLOC_FN,                                                                         \
       CC_FREE_FN                                                                             \
-    )                                                                                        \
-  ),                                                                                         \
-  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
-)                                                                                            \
+    )                                                                                                               \
+  ).other_ptr ?                                                                                                     \
+    CC_CLEANUP_HETEROINSERT_EL( *(cntr), ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el )            \
+  : (void)0,                                                                                                        \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) )                        \
+)                                                                                                                   \
 
 // #define cc_insert_3( cntr, key, el )                                                         \
 // (                                                                                            \
@@ -6549,213 +6585,6 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
 //       CC_KEY_DTOR( *(cntr) ),                                                                \
 //       CC_REALLOC_FN,                                                                         \
 //       CC_FREE_FN                                                                             \
-//     )                                                                                        \
-//   ),                                                                                         \
-//   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
-// )                                                                                            \
-
-// #define CC_HOMOGENEOUS_STR_CHAR          1
-// #define CC_HOMOGENEOUS_STR_UNSIGNED_CHAR 2
-// #define CC_HOMOGENEOUS_STR_SIGNED_CHAR   3
-// #define CC_HOMOGENEOUS_STR_CHAR8         4
-// #define CC_HOMOGENEOUS_STR_CHAR16        5
-// #define CC_HOMOGENEOUS_STR_CHAR32        6
-
-// typedef struct
-// {
-//   void *val;
-//   unsigned char homogenous_condition;
-// } cc_homogenous_insert_val_wrapper;
-
-// void *cc_to_str_char( void *c_string, CC_STR_RAW( char ) *dest )
-// {
-//   return dest;
-// }
-// void *cc_to_str_unsigned_char( void *c_string, CC_STR_RAW( unsigned char ) *dest )
-// {
-//   return dest;
-// }
-// void *cc_to_str_signed_char( void *c_string, CC_STR_RAW( signed char ) *dest )
-// {
-//   return dest;
-// }
-// #if defined( __cplusplus ) && __cplusplus >= 202101L
-// void *cc_to_str_char8( void *c_string, CC_STR_RAW( char8_t ) *dest )
-// {
-//   return dest;
-// }
-// #endif
-// void *cc_to_str_char16( void *c_string, CC_STR_RAW( char16_t ) *dest )
-// {
-//   return dest;
-// }
-// void *cc_to_str_char32( void *c_string, CC_STR_RAW( char32_t ) *dest )
-// {
-//   return dest;
-// }
-
-// static inline CC_ALWAYS_INLINE cc_allocing_fn_result_ty cc_homogeneous_insert_wrapper(
-//   void *cntr,
-//   cc_homogenous_insert_val_wrapper wrapped_el,
-//   cc_homogenous_insert_val_wrapper wrapped_key,
-//   bool replace,
-//   size_t el_size,
-//   uint64_t layout,
-//   cc_hash_fnptr_ty hash,
-//   cc_cmpr_fnptr_ty cmpr,
-//   double max_load,
-//   cc_dtor_fnptr_ty el_dtor,
-//   cc_dtor_fnptr_ty key_dtor,
-//   cc_realloc_fnptr_ty realloc_,
-//   cc_free_fnptr_ty free_,
-//   cc_allocing_fn_result_ty (*insert_func)(
-//     void *cntr,
-//     void *el,
-//     void *key,
-//     bool replace,
-//     size_t el_size,
-//     uint64_t layout,
-//     cc_hash_fnptr_ty hash,
-//     cc_cmpr_fnptr_ty cmpr,
-//     double max_load,
-//     cc_dtor_fnptr_ty el_dtor,
-//     cc_dtor_fnptr_ty key_dtor,
-//     cc_realloc_fnptr_ty realloc_,
-//     cc_free_fnptr_ty free_
-//   )
-// )
-// {
-//   if( wrapped_el.homogenous_condition )
-//   {
-//     switch( wrapped_el.homogenous_condition )
-//     {
-//     case CC_HOMOGENEOUS_STR_CHAR:
-//       wrapped_el.val = cc_to_str_char( wrapped_el.val, &(CC_STR_RAW( char )){ 0 } );
-//     break;
-//     case CC_HOMOGENEOUS_STR_UNSIGNED_CHAR:
-//       wrapped_el.val = cc_to_str_unsigned_char( wrapped_el.val, &(CC_STR_RAW( unsigned char )){ 0 } );
-//     break;
-//     case CC_HOMOGENEOUS_STR_SIGNED_CHAR:
-//       wrapped_el.val = cc_to_str_signed_char( wrapped_el.val, &(CC_STR_RAW( signed char )){ 0 } );
-//     break;
-// #if defined( __cplusplus ) && __cplusplus >= 202101L
-//     case CC_HOMOGENEOUS_STR_CHAR8:
-//       wrapped_el.val = cc_to_str_char8( wrapped_el.val, &(CC_STR_RAW( char8_t )){ 0 } );
-//     break;
-// #endif
-//     case CC_HOMOGENEOUS_STR_CHAR16:
-//       wrapped_el.val = cc_to_str_char16( wrapped_el.val, &(CC_STR_RAW( char16_t )){ 0 } );
-//     break;
-//     case CC_HOMOGENEOUS_STR_CHAR32:
-//       wrapped_el.val = cc_to_str_char32( wrapped_el.val, &(CC_STR_RAW( char32_t )){ 0 } );
-//     break;
-//     }
-
-//     if( !wrapped_el.val )
-//       return cc_make_allocing_fn_result( cntr, NULL );
-//   }
-
-//   if( wrapped_key.homogenous_condition )
-//   {
-//     switch( wrapped_key.homogenous_condition )
-//     {
-//     case CC_HOMOGENEOUS_STR_CHAR:
-//       wrapped_key.val = cc_to_str_char( wrapped_key.val, &(CC_STR_RAW( char )){ 0 } );
-//     break;
-//     case CC_HOMOGENEOUS_STR_UNSIGNED_CHAR:
-//       wrapped_key.val = cc_to_str_unsigned_char( wrapped_key.val, &(CC_STR_RAW( unsigned char )){ 0 } );
-//     break;
-//     case CC_HOMOGENEOUS_STR_SIGNED_CHAR:
-//       wrapped_key.val = cc_to_str_signed_char( wrapped_key.val, &(CC_STR_RAW( signed char )){ 0 } );
-//     break;
-// #if defined( __cplusplus ) && __cplusplus >= 202101L
-//     case CC_HOMOGENEOUS_STR_CHAR8:
-//       wrapped_key.val = cc_to_str_char8( wrapped_key.val, &(CC_STR_RAW( char8_t )){ 0 } );
-//     break;
-// #endif
-//     case CC_HOMOGENEOUS_STR_CHAR16:
-//       wrapped_key.val = cc_to_str_char16( wrapped_key.val, &(CC_STR_RAW( char16_t )){ 0 } );
-//     break;
-//     case CC_HOMOGENEOUS_STR_CHAR32:
-//       wrapped_key.val = cc_to_str_char32( wrapped_key.val, &(CC_STR_RAW( char32_t )){ 0 } );
-//     break;
-//     }
-
-//     if( !wrapped_key.val )
-//     {
-//       if( wrapped_el.homogenous_condition )
-//         free_( wrapped_el.val );
-//       return cc_make_allocing_fn_result( cntr, NULL );
-//     }
-//   }
-
-
-
-//   /*if( wrapped_el.homogeneous_transform )
-//   {
-//     wrapped_el.val = wrapped_el.homogeneous_transform( wrapped_el.val );
-//     if( !wrapped_el.val )
-//       return cc_make_allocing_fn_result( cntr, NULL );
-//   }
-
-//   if( wrapped_key.homogeneous_transform )
-//   {
-//     wrapped_key.val = wrapped_key.homogeneous_transform( wrapped_key.val );
-//     if( !wrapped_key.val )
-//     {
-//       if( wrapped_el.homogeneous_transform )
-//         wrapped_el.homogeneous_free( wrapped_el.val );
-
-//       return cc_make_allocing_fn_result( cntr, NULL );
-//     }
-//   }*/
-
-//   cc_allocing_fn_result_ty result = insert_func( cntr, wrapped_el.val, wrapped_key.val, replace, el_size, layout, hash, cmpr, max_load, el_dtor, key_dtor, realloc_, free_ );
-
-//   if( !result.other_ptr )
-//   {
-//     if( wrapped_el.homogenous_condition )
-//       free_( wrapped_el.val );
-//     if( wrapped_key.homogenous_condition )
-//       free_( wrapped_key.val );
-//   }
-
-//   return result;
-// }
-
-// #define cc_insert_3( cntr, key, el )                                                         \
-// (                                                                                            \
-//   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
-//   CC_STATIC_ASSERT(                                                                          \
-//     CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
-//     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                      \
-//     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                      \
-//     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                      \
-//     CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
-//   ),                                                                                         \
-//   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
-//     *(cntr),                                                                                 \
-//     cc_homogeneous_insert_wrapper(                                                           \
-//       *(cntr),                                                                               \
-//       (cc_homogenous_insert_val_wrapper){ &CC_IF_STR_WRAPPED_ARG_ELSE_EL_TY_LVAL_COPY( *(cntr), (el) ), 0 }, \
-//       (cc_homogenous_insert_val_wrapper){ &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ), 0 },            \
-//       true,                                                                                  \
-//       CC_EL_SIZE( *(cntr) ),                                                                 \
-//       CC_LAYOUT( *(cntr) ),                                                                  \
-//       CC_KEY_HASH( *(cntr) ),                                                                \
-//       CC_KEY_CMPR( *(cntr) ),                                                                \
-//       CC_KEY_LOAD( *(cntr) ),                                                                \
-//       CC_EL_DTOR( *(cntr) ),                                                                 \
-//       CC_KEY_DTOR( *(cntr) ),                                                                \
-//       CC_REALLOC_FN,                                                                         \
-//       CC_FREE_FN,                                                                             \
-//       (                                                                                        \
-//         CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_insert  :                                    \
-//         CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_insert :                                    \
-//         CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_insert  :                                    \
-//         CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_insert :                                    \
-//                               /* CC_STR */ cc_str_insert                                       \
-//       )                                                                                        \
 //     )                                                                                        \
 //   ),                                                                                         \
 //   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
@@ -6820,11 +6649,11 @@ static inline void *cc_to_str_char32( const void *c_string, cc_realloc_fnptr_ty 
 }
 
 
-#define CC_KEY_MAYBE_CONVERTED_FOR_HETEROINSERT( cntr, key )                                                          \
+#define CC_KEY_CONVERTED_FOR_HETEROINSERT( cntr, key )                                                          \
 _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },                                                  \
-  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( char * ):                                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( char * ):                                         \
     cc_to_str_char8( _Generic( key, char *: key, default: NULL ), CC_REALLOC_FN ),                         \
-  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( const char * ):                                   \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( const char * ):                                   \
     cc_to_str_char8( _Generic( key, const char *: key, default: NULL ), CC_REALLOC_FN ),                   \
   CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( unsigned char * ):                       \
     cc_to_str_char8( _Generic( key, unsigned char *: key, default: NULL ), CC_REALLOC_FN ),       \
@@ -6847,9 +6676,9 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
 
 #define CC_CHECK_HETEROINSERT_KEY_CONVERSION( cntr, key )                                                          \
 _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },                                                  \
-  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( char * ):                                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( char * ):                                         \
     (bool)*(CC_STR_RAW( char ) *)key,                         \
-  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( const char * ):                                   \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( const char * ):                                   \
     (bool)*(CC_STR_RAW( char ) *)key,                         \
   CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( unsigned char * ):                       \
     (bool)*(CC_STR_RAW( unsigned char ) *)key,                         \
@@ -6872,9 +6701,9 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
 
 #define CC_CLEANUP_HETEROINSERT_KEY( cntr, key )                                                                      \
 _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },                                                  \
-  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( char * ):                                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( char * ):                                         \
     CC_FREE_FN( *(CC_STR_RAW( char ) *)key ),                         \
-  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ) (*)( const char * ):                                   \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( const char * ):                                   \
     CC_FREE_FN( *(CC_STR_RAW( char ) *)key ),                         \
   CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( unsigned char * ):                       \
     CC_FREE_FN( *(CC_STR_RAW( unsigned char ) *)key ),                         \
@@ -6898,11 +6727,11 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
 
 
 
-#define CC_EL_MAYBE_CONVERTED_FOR_HETEROINSERT( cntr, el )                                                          \
+#define CC_EL_CONVERTED_FOR_HETEROINSERT( cntr, el )                                                          \
 _Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },                                                  \
-  CC_STR_RAW( char ) (*)( char * ):                                         \
+  CC_STR_RAW( cc_maybe_char ) (*)( char * ):                                         \
     cc_to_str_char8( _Generic( el, char *: el, default: NULL ), CC_REALLOC_FN ),                         \
-  CC_STR_RAW( char ) (*)( const char * ):                                   \
+  CC_STR_RAW( cc_maybe_char ) (*)( const char * ):                                   \
     cc_to_str_char8( _Generic( el, const char *: el, default: NULL ), CC_REALLOC_FN ),                   \
   CC_STR_RAW( unsigned char ) (*)( unsigned char * ):                       \
     cc_to_str_char8( _Generic( el, unsigned char *: el, default: NULL ), CC_REALLOC_FN ),       \
@@ -6925,9 +6754,9 @@ _Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },                  
 
 #define CC_CHECK_HETEROINSERT_EL_CONVERSION( cntr, el )                                                                \
 _Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },                                                         \
-  CC_STR_RAW( char ) (*)( char * ):                                         \
+  CC_STR_RAW( cc_maybe_char ) (*)( char * ):                                         \
     (bool)*(CC_STR_RAW( char ) *)el,                         \
-  CC_STR_RAW( char ) (*)( const char * ):                                   \
+  CC_STR_RAW( cc_maybe_char ) (*)( const char * ):                                   \
     (bool)*(CC_STR_RAW( char ) *)el,                         \
   CC_STR_RAW( unsigned char ) (*)( unsigned char * ):                       \
     (bool)*(CC_STR_RAW( unsigned char ) *)el,                         \
@@ -6950,9 +6779,9 @@ _Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },                  
 
 #define CC_CLEANUP_HETEROINSERT_EL( cntr, el )                              \
 _Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },              \
-  CC_STR_RAW( char ) (*)( char * ):                                         \
+  CC_STR_RAW( cc_maybe_char ) (*)( char * ):                                         \
     CC_FREE_FN( *(CC_STR_RAW( char ) *)el ),                         \
-  CC_STR_RAW( char ) (*)( const char * ):                                   \
+  CC_STR_RAW( cc_maybe_char ) (*)( const char * ):                                   \
     CC_FREE_FN( *(CC_STR_RAW( char ) *)el ),                         \
   CC_STR_RAW( unsigned char ) (*)( unsigned char * ):                       \
     CC_FREE_FN( *(CC_STR_RAW( unsigned char ) *)el ),                         \
@@ -6976,10 +6805,17 @@ _Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },              \
 typedef struct
 {
   alignas( cc_max_align_ty )
-  cc_allocing_fn_result_ty insert_result;
-  void *el_;
-  void *key_;
-} cc_heteroinsert_helper_ty;
+  cc_allocing_fn_result_ty result;
+  void *converted_el;
+  void *converted_key;
+} cc_heteroinsert_helper_el_key_ty;
+
+#define CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_KEY( cntr, converted_el, converted_key ) \
+cntr = (CC_TYPEOF_XP( cntr ))&(cc_heteroinsert_helper_el_key_ty){                        \
+  { cntr, NULL },                                                                        \
+  &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), converted_el ),                               \
+  &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), converted_key )                              \
+}                                                                                        \
 
 #define cc_insert_3( cntr, key, el )                                                         \
 (                                                                                            \
@@ -6991,14 +6827,14 @@ typedef struct
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                      \
     CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
   ),                                                                                         \
-  *(cntr) = (CC_TYPEOF_XP( *(cntr) ))&(cc_heteroinsert_helper_ty){ \
-    { *(cntr), NULL }, \
-    &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), CC_EL_MAYBE_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ) ), \
-    &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), CC_KEY_MAYBE_CONVERTED_FOR_HETEROINSERT( *(cntr), (key) ) ) \
-  }, \
-  !CC_CHECK_HETEROINSERT_EL_CONVERSION( *(cntr), ( (cc_heteroinsert_helper_ty *)*(cntr) )->el_ ) || \
-  !CC_CHECK_HETEROINSERT_KEY_CONVERSION( *(cntr), ( (cc_heteroinsert_helper_ty *)*(cntr) )->key_ ) || \
-  !( ( (cc_heteroinsert_helper_ty *)*(cntr) )->insert_result = \
+  CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_KEY(                                               \
+    *(cntr),                                                                                 \
+    CC_EL_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ),                                 \
+    CC_KEY_CONVERTED_FOR_HETEROINSERT( *(cntr), (key) )                                \
+  ),                                                                                         \
+  !CC_CHECK_HETEROINSERT_EL_CONVERSION( *(cntr), ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_el )   || \
+  !CC_CHECK_HETEROINSERT_KEY_CONVERSION( *(cntr), ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_key ) || \
+  !( ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->result = \
     /* Function select */                                                                    \
     (                                                                                        \
       CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_insert  :                                    \
@@ -7009,9 +6845,9 @@ typedef struct
     )                                                                                        \
     /* Function arguments */                                                                 \
     (                                                                                        \
-      ( (cc_heteroinsert_helper_ty *)*(cntr) )->insert_result.new_cntr,                   \
-      ( (cc_heteroinsert_helper_ty *)*(cntr) )->el_,                                      \
-      ( (cc_heteroinsert_helper_ty *)*(cntr) )->key_,                                     \
+      ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->result.new_cntr,                   \
+      ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_el,                                      \
+      ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_key,                                     \
       true,                                                                                  \
       CC_EL_SIZE( *(cntr) ),                                                                 \
       CC_LAYOUT( *(cntr) ),                                                                  \
@@ -7025,9 +6861,9 @@ typedef struct
     )                                                                                        \
   ).other_ptr ? \
   ( \
-    CC_CLEANUP_HETEROINSERT_EL( *(cntr), ( (cc_heteroinsert_helper_ty *)*(cntr) )->el_ ), \
-    CC_CLEANUP_HETEROINSERT_KEY( *(cntr), ( (cc_heteroinsert_helper_ty *)*(cntr) )->key_ ) \
-  ) : (void)0, \
+    CC_CLEANUP_HETEROINSERT_EL( *(cntr), ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_el ),    \
+    CC_CLEANUP_HETEROINSERT_KEY( *(cntr), ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_key )   \
+  ) : (void)0,                                                                               \
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 ) \
 
@@ -7049,41 +6885,40 @@ typedef struct
 
 
 #define cc_insert_fmt( ... ) CC_SELECT_ON_NUM_ARGS( cc_insert_fmt, __VA_ARGS__ )
+#define cc_insert_fmt_3( cntr, index, ... )  cc_str_insert_fmt_variadic( cntr, index, 1, __VA_ARGS__ )
+#define cc_insert_fmt_4( cntr, index, ... )  cc_str_insert_fmt_variadic( cntr, index, 2, __VA_ARGS__ )
+#define cc_insert_fmt_5( cntr, index, ... )  cc_str_insert_fmt_variadic( cntr, index, 3, __VA_ARGS__ )
+#define cc_insert_fmt_6( cntr, index, ... )  cc_str_insert_fmt_variadic( cntr, index, 4, __VA_ARGS__ )
+#define cc_insert_fmt_7( cntr, index, ... )  cc_str_insert_fmt_variadic( cntr, index, 5, __VA_ARGS__ )
+#define cc_insert_fmt_8( cntr, index, ... )  cc_str_insert_fmt_variadic( cntr, index, 6, __VA_ARGS__ )
+#define cc_insert_fmt_9( cntr, index, ... )  cc_str_insert_fmt_variadic( cntr, index, 7, __VA_ARGS__ )
+#define cc_insert_fmt_10( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 8, __VA_ARGS__ )
+#define cc_insert_fmt_11( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 9, __VA_ARGS__ )
+#define cc_insert_fmt_12( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 10, __VA_ARGS__ )
+#define cc_insert_fmt_13( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 11, __VA_ARGS__ )
+#define cc_insert_fmt_14( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 12, __VA_ARGS__ )
+#define cc_insert_fmt_15( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 13, __VA_ARGS__ )
+#define cc_insert_fmt_16( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 14, __VA_ARGS__ )
+#define cc_insert_fmt_17( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 15, __VA_ARGS__ )
+#define cc_insert_fmt_18( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 16, __VA_ARGS__ )
+#define cc_insert_fmt_19( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 17, __VA_ARGS__ )
+#define cc_insert_fmt_20( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 18, __VA_ARGS__ )
+#define cc_insert_fmt_21( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 19, __VA_ARGS__ )
+#define cc_insert_fmt_22( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 20, __VA_ARGS__ )
+#define cc_insert_fmt_23( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 21, __VA_ARGS__ )
+#define cc_insert_fmt_24( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 22, __VA_ARGS__ )
+#define cc_insert_fmt_25( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 23, __VA_ARGS__ )
+#define cc_insert_fmt_26( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 24, __VA_ARGS__ )
+#define cc_insert_fmt_27( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 25, __VA_ARGS__ )
+#define cc_insert_fmt_28( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 26, __VA_ARGS__ )
+#define cc_insert_fmt_29( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 27, __VA_ARGS__ )
+#define cc_insert_fmt_30( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 28, __VA_ARGS__ )
+#define cc_insert_fmt_31( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 29, __VA_ARGS__ )
+#define cc_insert_fmt_32( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 30, __VA_ARGS__ )
+#define cc_insert_fmt_33( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 31, __VA_ARGS__ )
+#define cc_insert_fmt_34( cntr, index, ... ) cc_str_insert_fmt_variadic( cntr, index, 32, __VA_ARGS__ )
 
-#define cc_insert_fmt_3( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 1, __VA_ARGS__ )
-#define cc_insert_fmt_4( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 2, __VA_ARGS__ )
-#define cc_insert_fmt_5( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 3, __VA_ARGS__ )
-#define cc_insert_fmt_6( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 4, __VA_ARGS__ )
-#define cc_insert_fmt_7( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 5, __VA_ARGS__ )
-#define cc_insert_fmt_8( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 6, __VA_ARGS__ )
-#define cc_insert_fmt_9( cntr, index, ... )  cc_str_insert_variadic( cntr, index, 7, __VA_ARGS__ )
-#define cc_insert_fmt_10( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 8, __VA_ARGS__ )
-#define cc_insert_fmt_11( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 9, __VA_ARGS__ )
-#define cc_insert_fmt_12( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 10, __VA_ARGS__ )
-#define cc_insert_fmt_13( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 11, __VA_ARGS__ )
-#define cc_insert_fmt_14( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 12, __VA_ARGS__ )
-#define cc_insert_fmt_15( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 13, __VA_ARGS__ )
-#define cc_insert_fmt_16( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 14, __VA_ARGS__ )
-#define cc_insert_fmt_17( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 15, __VA_ARGS__ )
-#define cc_insert_fmt_18( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 16, __VA_ARGS__ )
-#define cc_insert_fmt_19( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 17, __VA_ARGS__ )
-#define cc_insert_fmt_20( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 18, __VA_ARGS__ )
-#define cc_insert_fmt_21( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 19, __VA_ARGS__ )
-#define cc_insert_fmt_22( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 20, __VA_ARGS__ )
-#define cc_insert_fmt_23( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 21, __VA_ARGS__ )
-#define cc_insert_fmt_24( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 22, __VA_ARGS__ )
-#define cc_insert_fmt_25( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 23, __VA_ARGS__ )
-#define cc_insert_fmt_26( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 24, __VA_ARGS__ )
-#define cc_insert_fmt_27( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 25, __VA_ARGS__ )
-#define cc_insert_fmt_28( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 26, __VA_ARGS__ )
-#define cc_insert_fmt_29( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 27, __VA_ARGS__ )
-#define cc_insert_fmt_30( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 28, __VA_ARGS__ )
-#define cc_insert_fmt_31( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 29, __VA_ARGS__ )
-#define cc_insert_fmt_32( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 30, __VA_ARGS__ )
-#define cc_insert_fmt_33( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 31, __VA_ARGS__ )
-#define cc_insert_fmt_34( cntr, index, ... ) cc_str_insert_variadic( cntr, index, 32, __VA_ARGS__ )
-
-#define cc_str_insert_variadic( cntr, index, n, ... )                                        \
+#define cc_str_insert_fmt_variadic( cntr, index, n, ... )                                    \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
   CC_STATIC_ASSERT(                                                                          \
@@ -7131,67 +6966,110 @@ typedef struct
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
 
-#define cc_push( ... ) CC_SELECT_ON_NUM_ARGS( cc_push, __VA_ARGS__ )
+// #define cc_push( cntr, el )                                                                  \
+// (                                                                                            \
+//   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+//   CC_STATIC_ASSERT(                                                                          \
+//     CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
+//   ),                                                                                         \
+//   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+//     *(cntr),                                                                                 \
+//     /* Function select */                                                                    \
+//     (                                                                                        \
+//       CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_push  :                                      \
+//       CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_push :                                      \
+//                             /* CC_STR */ cc_str_push                                         \
+//     )                                                                                        \
+//     /* Function arguments */                                                                 \
+//     (                                                                                        \
+//       *(cntr),                                                                               \
+//       &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
+//       CC_EL_SIZE( *(cntr) ),                                                                 \
+//       CC_REALLOC_FN                                                                          \
+//     )                                                                                        \
+//   ),                                                                                         \
+//   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+// )                                                                                            \
 
-#define cc_push_2( cntr, el )                                                                \
-(                                                                                            \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
-  CC_STATIC_ASSERT(                                                                          \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
-  ),                                                                                         \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
-    *(cntr),                                                                                 \
-    /* Function select */                                                                    \
-    (                                                                                        \
-      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_push  :                                      \
-      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_push :                                      \
-                            /* CC_STR */ cc_str_push                                         \
-    )                                                                                        \
-    /* Function arguments */                                                                 \
-    (                                                                                        \
-      *(cntr),                                                                               \
-      &CC_IF_STR_WRAPPED_ARG_ELSE_EL_TY_LVAL_COPY( *(cntr), (el) ),                          \
-      CC_EL_SIZE( *(cntr) ),                                                                 \
-      CC_REALLOC_FN                                                                          \
-    )                                                                                        \
-  ),                                                                                         \
-  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
-)                                                                                            \
+typedef struct
+{
+  alignas( cc_max_align_ty )
+  cc_allocing_fn_result_ty result;
+  void *converted_el;
+} cc_heterinsert_helper_el_only_ty;
 
-#define cc_push_3( cntr, ... )  cc_str_push_variadic( cntr, 2, __VA_ARGS__ )
-#define cc_push_4( cntr, ... )  cc_str_push_variadic( cntr, 3, __VA_ARGS__ )
-#define cc_push_5( cntr, ... )  cc_str_push_variadic( cntr, 4, __VA_ARGS__ )
-#define cc_push_6( cntr, ... )  cc_str_push_variadic( cntr, 5, __VA_ARGS__ )
-#define cc_push_7( cntr, ... )  cc_str_push_variadic( cntr, 6, __VA_ARGS__ )
-#define cc_push_8( cntr, ... )  cc_str_push_variadic( cntr, 7, __VA_ARGS__ )
-#define cc_push_9( cntr, ... )  cc_str_push_variadic( cntr, 8, __VA_ARGS__ )
-#define cc_push_10( cntr, ... ) cc_str_push_variadic( cntr, 9, __VA_ARGS__ )
-#define cc_push_11( cntr, ... ) cc_str_push_variadic( cntr, 10, __VA_ARGS__ )
-#define cc_push_12( cntr, ... ) cc_str_push_variadic( cntr, 11, __VA_ARGS__ )
-#define cc_push_13( cntr, ... ) cc_str_push_variadic( cntr, 12, __VA_ARGS__ )
-#define cc_push_14( cntr, ... ) cc_str_push_variadic( cntr, 13, __VA_ARGS__ )
-#define cc_push_15( cntr, ... ) cc_str_push_variadic( cntr, 14, __VA_ARGS__ )
-#define cc_push_16( cntr, ... ) cc_str_push_variadic( cntr, 15, __VA_ARGS__ )
-#define cc_push_18( cntr, ... ) cc_str_push_variadic( cntr, 16, __VA_ARGS__ )
-#define cc_push_19( cntr, ... ) cc_str_push_variadic( cntr, 18, __VA_ARGS__ )
-#define cc_push_20( cntr, ... ) cc_str_push_variadic( cntr, 19, __VA_ARGS__ )
-#define cc_push_21( cntr, ... ) cc_str_push_variadic( cntr, 20, __VA_ARGS__ )
-#define cc_push_22( cntr, ... ) cc_str_push_variadic( cntr, 21, __VA_ARGS__ )
-#define cc_push_23( cntr, ... ) cc_str_push_variadic( cntr, 22, __VA_ARGS__ )
-#define cc_push_24( cntr, ... ) cc_str_push_variadic( cntr, 23, __VA_ARGS__ )
-#define cc_push_25( cntr, ... ) cc_str_push_variadic( cntr, 24, __VA_ARGS__ )
-#define cc_push_26( cntr, ... ) cc_str_push_variadic( cntr, 25, __VA_ARGS__ )
-#define cc_push_27( cntr, ... ) cc_str_push_variadic( cntr, 26, __VA_ARGS__ )
-#define cc_push_28( cntr, ... ) cc_str_push_variadic( cntr, 27, __VA_ARGS__ )
-#define cc_push_29( cntr, ... ) cc_str_push_variadic( cntr, 28, __VA_ARGS__ )
-#define cc_push_30( cntr, ... ) cc_str_push_variadic( cntr, 29, __VA_ARGS__ )
-#define cc_push_31( cntr, ... ) cc_str_push_variadic( cntr, 30, __VA_ARGS__ )
-#define cc_push_32( cntr, ... ) cc_str_push_variadic( cntr, 31, __VA_ARGS__ )
-#define cc_push_33( cntr, ... ) cc_str_push_variadic( cntr, 32, __VA_ARGS__ )
+#define CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_ONLY( cntr, converted_el ) \
+cntr = (CC_TYPEOF_XP( cntr ))&(cc_heterinsert_helper_el_only_ty){          \
+  { cntr, NULL },                                                          \
+  &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), converted_el )                  \
+}                                                                          \
 
-#define cc_str_push_variadic( cntr, n, ... )                                                 \
+#define cc_push( cntr, el )                                                                                         \
+(                                                                                                                   \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                                           \
+  CC_STATIC_ASSERT(                                                                                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                                             \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                                             \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                                                 \
+  ),                                                                                                                \
+  CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_ONLY( *(cntr), CC_EL_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ) ),       \
+  !CC_CHECK_HETEROINSERT_EL_CONVERSION( *(cntr), ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el ) || \
+  !( ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->result =                                                      \
+    /* Function select */                                                                                           \
+    (                                                                                                               \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_push  :                                                             \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_push :                                                             \
+                            /* CC_STR */ cc_str_push                                                                \
+    )                                                                                                               \
+    /* Function arguments */                                                                                        \
+    (                                                                                                               \
+      ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->result.new_cntr,                                             \
+      ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el,                                                \
+      CC_EL_SIZE( *(cntr) ),                                                                                        \
+      CC_REALLOC_FN                                                                                                 \
+    )                                                                                                               \
+  ).other_ptr ?                                                                                                     \
+    CC_CLEANUP_HETEROINSERT_EL( *(cntr), ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el )            \
+  : (void)0,                                                                                                        \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) )                        \
+)                                                                                                                   \
+
+#define cc_push_fmt( ... ) CC_SELECT_ON_NUM_ARGS( cc_push_fmt, __VA_ARGS__ )
+#define cc_push_fmt_2( cntr, ... )  cc_str_push_fmt_variadic( cntr, 1, __VA_ARGS__ )
+#define cc_push_fmt_3( cntr, ... )  cc_str_push_fmt_variadic( cntr, 2, __VA_ARGS__ )
+#define cc_push_fmt_4( cntr, ... )  cc_str_push_fmt_variadic( cntr, 3, __VA_ARGS__ )
+#define cc_push_fmt_5( cntr, ... )  cc_str_push_fmt_variadic( cntr, 4, __VA_ARGS__ )
+#define cc_push_fmt_6( cntr, ... )  cc_str_push_fmt_variadic( cntr, 5, __VA_ARGS__ )
+#define cc_push_fmt_7( cntr, ... )  cc_str_push_fmt_variadic( cntr, 6, __VA_ARGS__ )
+#define cc_push_fmt_8( cntr, ... )  cc_str_push_fmt_variadic( cntr, 7, __VA_ARGS__ )
+#define cc_push_fmt_9( cntr, ... )  cc_str_push_fmt_variadic( cntr, 8, __VA_ARGS__ )
+#define cc_push_fmt_10( cntr, ... ) cc_str_push_fmt_variadic( cntr, 9, __VA_ARGS__ )
+#define cc_push_fmt_11( cntr, ... ) cc_str_push_fmt_variadic( cntr, 10, __VA_ARGS__ )
+#define cc_push_fmt_12( cntr, ... ) cc_str_push_fmt_variadic( cntr, 11, __VA_ARGS__ )
+#define cc_push_fmt_13( cntr, ... ) cc_str_push_fmt_variadic( cntr, 12, __VA_ARGS__ )
+#define cc_push_fmt_14( cntr, ... ) cc_str_push_fmt_variadic( cntr, 13, __VA_ARGS__ )
+#define cc_push_fmt_15( cntr, ... ) cc_str_push_fmt_variadic( cntr, 14, __VA_ARGS__ )
+#define cc_push_fmt_16( cntr, ... ) cc_str_push_fmt_variadic( cntr, 15, __VA_ARGS__ )
+#define cc_push_fmt_18( cntr, ... ) cc_str_push_fmt_variadic( cntr, 16, __VA_ARGS__ )
+#define cc_push_fmt_19( cntr, ... ) cc_str_push_fmt_variadic( cntr, 18, __VA_ARGS__ )
+#define cc_push_fmt_20( cntr, ... ) cc_str_push_fmt_variadic( cntr, 19, __VA_ARGS__ )
+#define cc_push_fmt_21( cntr, ... ) cc_str_push_fmt_variadic( cntr, 20, __VA_ARGS__ )
+#define cc_push_fmt_22( cntr, ... ) cc_str_push_fmt_variadic( cntr, 21, __VA_ARGS__ )
+#define cc_push_fmt_23( cntr, ... ) cc_str_push_fmt_variadic( cntr, 22, __VA_ARGS__ )
+#define cc_push_fmt_24( cntr, ... ) cc_str_push_fmt_variadic( cntr, 23, __VA_ARGS__ )
+#define cc_push_fmt_25( cntr, ... ) cc_str_push_fmt_variadic( cntr, 24, __VA_ARGS__ )
+#define cc_push_fmt_26( cntr, ... ) cc_str_push_fmt_variadic( cntr, 25, __VA_ARGS__ )
+#define cc_push_fmt_27( cntr, ... ) cc_str_push_fmt_variadic( cntr, 26, __VA_ARGS__ )
+#define cc_push_fmt_28( cntr, ... ) cc_str_push_fmt_variadic( cntr, 27, __VA_ARGS__ )
+#define cc_push_fmt_29( cntr, ... ) cc_str_push_fmt_variadic( cntr, 28, __VA_ARGS__ )
+#define cc_push_fmt_30( cntr, ... ) cc_str_push_fmt_variadic( cntr, 29, __VA_ARGS__ )
+#define cc_push_fmt_31( cntr, ... ) cc_str_push_fmt_variadic( cntr, 30, __VA_ARGS__ )
+#define cc_push_fmt_32( cntr, ... ) cc_str_push_fmt_variadic( cntr, 31, __VA_ARGS__ )
+#define cc_push_fmt_33( cntr, ... ) cc_str_push_fmt_variadic( cntr, 32, __VA_ARGS__ )
+
+#define cc_str_push_fmt_variadic( cntr, n, ... )                                             \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
   CC_STATIC_ASSERT(                                                                          \
@@ -7238,38 +7116,149 @@ typedef struct
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
 
+typedef struct
+{
+  alignas( cc_max_align_ty )
+  cc_allocing_fn_result_ty result;
+  void *converted_el;
+  size_t cntr_size;
+} cc_heteroinsert_helper_el_cntr_size_ty;
+
+#define CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_AND_CNTR_SIZE( cntr, converted_el, cntr_size ) \
+cntr = (CC_TYPEOF_XP( cntr ))&(cc_heteroinsert_helper_el_cntr_size_ty){                     \
+  { cntr, NULL },                                                                              \
+  &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), converted_el ),                                     \
+  cntr_size                                                                                    \
+}                                                                                              \
+
 #define cc_get_or_insert( ... ) CC_SELECT_ON_NUM_ARGS( cc_get_or_insert, __VA_ARGS__ )
 
-#define cc_get_or_insert_2( cntr, key )                                                      \
+// #define cc_get_or_insert_2( cntr, key )                                                      \
+// (                                                                                            \
+//   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+//   CC_STATIC_ASSERT(                                                                          \
+//     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_OSET                                                         \
+//   ),                                                                                         \
+//   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+//     *(cntr),                                                                                 \
+//     /* Function select */                                                                    \
+//     (                                                                                        \
+//       CC_CNTR_ID( *(cntr) ) == CC_SET   ? cc_set_insert  :                                   \
+//                             /* CC_OSET */ cc_oset_insert                                     \
+//     )                                                                                        \
+//     /* Function arguments */                                                                 \
+//     (                                                                                        \
+//       *(cntr),                                                                               \
+//       &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
+//       false,                                                                                 \
+//       CC_LAYOUT( *(cntr) ),                                                                  \
+//       CC_KEY_HASH( *(cntr) ),                                                                \
+//       CC_KEY_CMPR( *(cntr) ),                                                                \
+//       CC_KEY_LOAD( *(cntr) ),                                                                \
+//       CC_EL_DTOR( *(cntr) ),                                                                 \
+//       CC_REALLOC_FN,                                                                         \
+//       CC_FREE_FN                                                                             \
+//     )                                                                                        \
+//   ),                                                                                         \
+//   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+// )                                                                                            \
+
+#define cc_get_or_insert_2( cntr, el )                                                      \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
   CC_STATIC_ASSERT(                                                                          \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                      \
     CC_CNTR_ID( *(cntr) ) == CC_OSET                                                         \
   ),                                                                                         \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
-    *(cntr),                                                                                 \
-    /* Function select */                                                                    \
-    (                                                                                        \
-      CC_CNTR_ID( *(cntr) ) == CC_SET   ? cc_set_insert  :                                   \
-                            /* CC_OSET */ cc_oset_insert                                     \
-    )                                                                                        \
-    /* Function arguments */                                                                 \
-    (                                                                                        \
-      *(cntr),                                                                               \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
-      false,                                                                                 \
-      CC_LAYOUT( *(cntr) ),                                                                  \
-      CC_KEY_HASH( *(cntr) ),                                                                \
-      CC_KEY_CMPR( *(cntr) ),                                                                \
-      CC_KEY_LOAD( *(cntr) ),                                                                \
-      CC_EL_DTOR( *(cntr) ),                                                                 \
-      CC_REALLOC_FN,                                                                         \
-      CC_FREE_FN                                                                             \
-    )                                                                                        \
-  ),                                                                                         \
+  CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_AND_CNTR_SIZE(                 \
+    *(cntr),                 \
+    CC_EL_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ),                 \
+    ( CC_CNTR_ID( *(cntr) ) == CC_SET ? cc_set_size : cc_oset_size )( *(cntr) )                 \
+  ), \
+  \
+  !CC_CHECK_HETEROINSERT_EL_CONVERSION( \
+    *(cntr), \
+    ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->converted_el \
+  ) || \
+  ( CC_CNTR_ID( *(cntr) ) == CC_SET ? cc_set_size : cc_oset_size )( \
+    ( \
+      ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->result =                         \
+      /* Function select */                                                                    \
+      (                                                                                        \
+        CC_CNTR_ID( *(cntr) ) == CC_SET   ? cc_set_insert  :                                   \
+                              /* CC_OSET */ cc_oset_insert                                     \
+      )                                                                                        \
+      /* Function arguments */                                                                 \
+      (                                                                                        \
+        ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->result.new_cntr,                   \
+        ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->converted_el,                         \
+        false,                                                                                 \
+        CC_LAYOUT( *(cntr) ),                                                                  \
+        CC_KEY_HASH( *(cntr) ),                                                                \
+        CC_KEY_CMPR( *(cntr) ),                                                                \
+        CC_KEY_LOAD( *(cntr) ),                                                                \
+        CC_EL_DTOR( *(cntr) ),                                                                 \
+        CC_REALLOC_FN,                                                                         \
+        CC_FREE_FN                                                                             \
+      )                                                                                        \
+    ).new_cntr \
+  ) == ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->cntr_size ?                           \
+    CC_CLEANUP_HETEROINSERT_EL( *(cntr), ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->converted_el )            \
+  : (void)0,                                                                                                        \
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
+
+typedef struct
+{
+  alignas( cc_max_align_ty )
+  cc_allocing_fn_result_ty result;
+  void *converted_el;
+  void *converted_key;
+  size_t cntr_size;
+} cc_heteroinsert_helper_el_key_cntr_size_ty;
+
+#define CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_KEY_CNTR_SIZE( cntr, converted_el, converted_key, cntr_size ) \
+cntr = (CC_TYPEOF_XP( cntr ))&(cc_heteroinsert_helper_el_key_cntr_size_ty){                     \
+  { cntr, NULL },                                                                                      \
+  &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), converted_el ),                                             \
+  &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), converted_key ),                                             \
+  cntr_size                                                                                            \
+}                                                                                                      \
+
+// #define cc_get_or_insert_3( cntr, key, el )                                                  \
+// (                                                                                            \
+//   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+//   CC_STATIC_ASSERT(                                                                          \
+//     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                      \
+//     CC_CNTR_ID( *(cntr) ) == CC_OMAP                                                         \
+//   ),                                                                                         \
+//   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+//     *(cntr),                                                                                 \
+//     /* Function select */                                                                    \
+//     (                                                                                        \
+//       CC_CNTR_ID( *(cntr) ) == CC_MAP ? cc_map_insert  :                                     \
+//                           /* CC_OMAP */ cc_omap_insert                                       \
+//     )                                                                                        \
+//     /* Function arguments */                                                                 \
+//     (                                                                                        \
+//       *(cntr),                                                                               \
+//       &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
+//       &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
+//       false,                                                                                 \
+//       CC_EL_SIZE( *(cntr) ),                                                                 \
+//       CC_LAYOUT( *(cntr) ),                                                                  \
+//       CC_KEY_HASH( *(cntr) ),                                                                \
+//       CC_KEY_CMPR( *(cntr) ),                                                                \
+//       CC_KEY_LOAD( *(cntr) ),                                                                \
+//       CC_EL_DTOR( *(cntr) ),                                                                 \
+//       CC_KEY_DTOR( *(cntr) ),                                                                \
+//       CC_REALLOC_FN,                                                                         \
+//       CC_FREE_FN                                                                             \
+//     )                                                                                        \
+//   ),                                                                                         \
+//   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+// )                                                                                            \
 
 #define cc_get_or_insert_3( cntr, key, el )                                                  \
 (                                                                                            \
@@ -7278,30 +7267,44 @@ typedef struct
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                      \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP                                                         \
   ),                                                                                         \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+  CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_KEY_CNTR_SIZE(                             \
     *(cntr),                                                                                 \
-    /* Function select */                                                                    \
-    (                                                                                        \
-      CC_CNTR_ID( *(cntr) ) == CC_MAP ? cc_map_insert  :                                     \
-                          /* CC_OMAP */ cc_omap_insert                                       \
-    )                                                                                        \
-    /* Function arguments */                                                                 \
-    (                                                                                        \
-      *(cntr),                                                                               \
-      &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
-      false,                                                                                 \
-      CC_EL_SIZE( *(cntr) ),                                                                 \
-      CC_LAYOUT( *(cntr) ),                                                                  \
-      CC_KEY_HASH( *(cntr) ),                                                                \
-      CC_KEY_CMPR( *(cntr) ),                                                                \
-      CC_KEY_LOAD( *(cntr) ),                                                                \
-      CC_EL_DTOR( *(cntr) ),                                                                 \
-      CC_KEY_DTOR( *(cntr) ),                                                                \
-      CC_REALLOC_FN,                                                                         \
-      CC_FREE_FN                                                                             \
-    )                                                                                        \
+    CC_EL_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ),                                 \
+    CC_KEY_CONVERTED_FOR_HETEROINSERT( *(cntr), (key) ),                               \
+    ( CC_CNTR_ID( *(cntr) ) == CC_MAP ? cc_map_size : cc_omap_size )( *(cntr) ) \
   ),                                                                                         \
+  !CC_CHECK_HETEROINSERT_EL_CONVERSION( *(cntr), ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_el )   || \
+  !CC_CHECK_HETEROINSERT_KEY_CONVERSION( *(cntr), ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_key ) || \
+  ( CC_CNTR_ID( *(cntr) ) == CC_MAP ? cc_map_size : cc_omap_size )( \
+    ( \
+      ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->result = \
+      /* Function select */                                                                    \
+      (                                                                                        \
+        CC_CNTR_ID( *(cntr) ) == CC_MAP ? cc_map_insert  :                                     \
+                            /* CC_OMAP */ cc_omap_insert                                       \
+      )                                                                                        \
+      /* Function arguments */                                                                 \
+      (                                                                                        \
+      ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->result.new_cntr,                   \
+      ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_el,                                      \
+      ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_key,                                     \
+        false,                                                                                 \
+        CC_EL_SIZE( *(cntr) ),                                                                 \
+        CC_LAYOUT( *(cntr) ),                                                                  \
+        CC_KEY_HASH( *(cntr) ),                                                                \
+        CC_KEY_CMPR( *(cntr) ),                                                                \
+        CC_KEY_LOAD( *(cntr) ),                                                                \
+        CC_EL_DTOR( *(cntr) ),                                                                 \
+        CC_KEY_DTOR( *(cntr) ),                                                                \
+        CC_REALLOC_FN,                                                                         \
+        CC_FREE_FN                                                                             \
+      )                                                                                        \
+    ).new_cntr \
+  ) == ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->cntr_size ?                           \
+  ( \
+    CC_CLEANUP_HETEROINSERT_EL( *(cntr), ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_el ),    \
+    CC_CLEANUP_HETEROINSERT_KEY( *(cntr), ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_key )   \
+  ) : (void)0,                                                                               \
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
 
@@ -8249,7 +8252,7 @@ cc_layout(                                                                      
 _Generic( (CC_EL_TY( cntr )){ 0 },     \
   CC_FOR_EACH_DTOR( CC_EL_DTOR_SLOT, ) \
   default: _Generic( (CC_EL_TY( cntr )){ 0 },               \
-    CC_STR_RAW( char ): cc_destroy_str_char, \
+    CC_STR_RAW( cc_maybe_char ): cc_destroy_str_char, \
     CC_STR_RAW( unsigned char ): cc_destroy_str_unsigned_char, \
     CC_STR_RAW( signed char ): cc_destroy_str_signed_char, \
     CC_STR_RAW( char16_t ): cc_destroy_str_char16, \
@@ -8263,7 +8266,7 @@ _Generic( (CC_EL_TY( cntr )){ 0 },     \
 _Generic( (**cntr),                                      \
   CC_FOR_EACH_DTOR( CC_KEY_DTOR_SLOT, CC_EL_TY( cntr ) ) \
   default: _Generic( (**cntr),                           \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) ): cc_destroy_str_char, \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ): cc_destroy_str_char, \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ): cc_destroy_str_unsigned_char, \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ): cc_destroy_str_signed_char, \
     CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ): cc_destroy_str_char16, \
@@ -9124,7 +9127,7 @@ typedef CC_TYPEOF_TY( CC_1ST_ARG( CC_CMPR ) ) CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _t
 // This allows the compiler to optimize the comparison for best performance in both cases without burdening the user
 // with having to define two separate comparison functions for a single type.
 
-static inline CC_ALWAYS_INLINE int CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_three_way )( void *void_val_1, void *void_val_2 )
+static inline int CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_three_way )( void *void_val_1, void *void_val_2 )
 {
   CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) val_1 = *(CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) *)void_val_1;
   CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) val_2 = *(CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) *)void_val_2;
