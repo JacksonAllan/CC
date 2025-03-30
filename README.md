@@ -680,7 +680,9 @@ int main( void )
 
 To this end, **CC** defines default hash, comparison, and resource-freeing destructor functions for all **CC** string types.
 
-Additionally, when **CC** strings are used as the key and/or element type of another container, API macros that operate on that container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In that case, **CC** automatically handles the conversion of the C string to a **CC** string. This functionality is called "heterogeneous insertion and look-up". The following example demonstrates how **CC** strings might be used with a map:
+Additionally, when **CC** strings are used as the key and/or element type of another container, many API macros that operate on that container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In that case, **CC** automatically handles the conversion of the C string into a **CC** string. This functionality is called "heterogeneous" insertion and look-up.
+
+The following example demonstrates how **CC** strings might be used with a map:
 
 ```c
 #include <stdio.h>
