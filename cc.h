@@ -4986,18 +4986,14 @@ static inline void *cc_oset_next(
 /*                                                      String                                                        */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-// * Mostly reproduces the code of vec but to account for addition of a null element after the end of the buffer
-// * Insert and push functions are vastly different to account for string's generic insert mechanism.
-// * TODO: No destructors
-
 // cc_str is based largely on the code used to implement cc_vec. However, there are some major differences:
 // * cc_str's header contains a pointer to its data buffer. Usually, this pointer simply points to the end of the header
 //   inside the same memory allocation. However, in the case of a temporary string constructed by the library for the
 //   purpose of heterogeneous lookup in associative containers, the pointer points to a separate buffer supplied by the
 //   user. This approach avoids unnecessary allocations at the expense of a slightly larger header struct.
-// * The insert and push functions are vastly different to account for cc_str's generic insertion mechanism.
 // * cc_str never calls destructors on its elements. This choice allows cc_str itself to have a default destructor so
 //   that it can easily be used as the key or element type of other containers.
+// * cc_str includes formatted push and insertion functions for easy string building.
 
 // String header.
 typedef struct

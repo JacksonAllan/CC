@@ -483,6 +483,77 @@ int main( void )
 }
 ```
 
+### String
+
+An `str` a dynamic, null-terminated array representing a sequence of characters.
+
+```c
+#include <stdio.h>
+#include "cc.h"
+
+int main( void )
+{
+  str( char ) our_str;
+  init( &our_str );
+
+  // Appending formatted data.
+  const char model[] = "Hornet CB900F";
+  const char manufacturer[] = "Honda";
+  unsigned int year_introduced = 2002;
+  unsigned int year_discontinued = 2007;
+  double horsepower = 103.0;
+  double torque = 84.9;
+  if(
+    !push_fmt(
+      &our_str, "The ", model, " is a motorcycle that was manufactured by ", manufacturer,
+      " from ", year_introduced, " to ", year_discontinued, ".\nIt makes ", horsepower,
+      "hp and ", torque, "Nm of torque.\n"
+    )
+  )
+  {
+    // Out of memory, so abort.
+    cleanup( &our_str );
+    return 1;
+  }
+
+  // Inserting formatted data at an index.
+  const char alternative_model_name[] = "919";
+  if( !insert_fmt( &our_str, 17, ", also known as the ", alternative_model_name, "," ) )
+  {
+    // Out of memory, so abort.
+    cleanup( &our_str );
+    return 1;
+  }
+
+  printf( first( &our_str ) );
+  // Printed:
+  //   The Hornet CB900F, also known as the 919, is a motorcycle that was manufactured by
+  //   Honda from 2002 to 2007.
+  //   It makes 103.00hp and 84.90Nm of torque.
+
+  // Erasing elements.
+  erase_n( &our_str, 108, 41 );
+
+  printf( first( &our_str ) );
+  // Printed:
+  //   The Hornet CB900F, also known as the 919, is a motorcycle that was manufactured by
+  //   Honda from 2002 to 2007.
+
+  // Iteration #1.
+  for_each( &our_str, el )
+    printf( "%c", *el );
+  // Printed: Same as above.
+
+  // Iteration #2.
+  for( char *el = first( &our_str ); el != end( &our_str ); el = next( &our_str, el ) )
+    printf( "%c", *el );
+  // Printed: Same as above.
+
+  cleanup( &our_str );
+}
+
+```
+
 ### Prefixed API
 
 **CC** macro names may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only the prefixed API.
@@ -600,6 +671,78 @@ int main( void )
 }
 
 ```
+
+### String interoperability
+
+**CC** strings are designed for easy interoperability with other **CC** containers. To this end, **CC** defines default hash, comparison, and resource-freeing destructor functions for all **CC** string types. Moreover, when **CC** strings are used as the key and/or element type of another container, API macros that operate on that container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type (e.g. `str( char )` -> `const char *`). In that case, **CC** automatically handles the conversion of the C string to a **CC** string. This functionality is called "heterogeneous insertion and look-up". The following example demonstrates how **CC** strings can be used with a map:
+
+```c
+#include <stdio.h>
+#include "cc.h"
+
+// No need to define a hash, comparison, or destructor function for CC strings here as these
+// functions are defined by default.
+
+int main( void )
+{
+  map( str( char ), str( char ) ) our_map;
+  init( &our_map );
+
+  // Regular insertion of CC strings.
+  str( char ) our_str_key;
+  str( char ) our_str_el;
+  init( &our_str_key );
+  init( &our_str_el );
+  if(
+    !push_fmt( &our_str_key, "France" ) ||
+    !push_fmt( &our_str_el, "Paris" ) ||
+    !insert( &our_map, our_str_key, our_str_el )
+  )
+  {
+    // Out of memory, so abort.
+    // This requires cleaning up the keys, too, since they were not inserted and
+    // the map therefore did not take ownership of them.
+    cleanup( &our_str_key );
+    cleanup( &our_str_el );
+    cleanup( &our_map );
+    return 1;
+  }
+
+  // Heterogeneous insertion of C strings.
+  // CC handles the creation of the strings automatically.
+  if( !insert( &our_map, "Japan", "Tokyo" ) )
+  {
+    cleanup( &our_map );
+    return 1;
+  }
+
+  // Regular look-up using a CC string.
+  str( char ) our_str_lookup_key;
+  init( &our_str_lookup_key );
+  if( !push_fmt( &our_str_lookup_key, "Japan" ) )
+  {
+    cleanup( &our_str_lookup_key );
+    cleanup( &our_map );
+    return 1;
+  }
+  str( char ) *el = get( &our_map, our_str_lookup_key );
+  cleanup( &our_str_lookup_key );
+  printf( first( el ) );
+  // Printed: Tokyo
+
+  // Heterogeneous look-up using a C string.
+  // Note unlike regular look-up, heterogeneous look-up requires no dynamic memory allocations.
+  el = get( &our_map, "France" );
+  printf( first( el ) );
+  // Printed: Paris
+
+  cleanup( &our_map );
+}
+```
+
+The API macros that support heterogeneous string insertion are `push`, `insert`, and `get_or_insert`.
+
+The API macros that support heterogeneous string look-up are `get` and `erase`.
 
 ### Custom allocation and free functions
 
