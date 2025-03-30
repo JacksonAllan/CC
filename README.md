@@ -146,7 +146,7 @@ int main( void )
 
 Just [download](cc.h?raw=1) `cc.h` and place it in your project's directory or your shared header directory.
 
-## Examples
+## Simple examples
 
 ### Vector
 
@@ -554,6 +554,8 @@ int main( void )
 
 ```
 
+## Advanced examples
+
 ### Prefixed API
 
 **CC** macro names may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only the prefixed API.
@@ -674,7 +676,11 @@ int main( void )
 
 ### String interoperability
 
-**CC** strings are designed for easy interoperability with other **CC** containers. To this end, **CC** defines default hash, comparison, and resource-freeing destructor functions for all **CC** string types. Moreover, when **CC** strings are used as the key and/or element type of another container, API macros that operate on that container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type (e.g. `str( char )` -> `const char *`). In that case, **CC** automatically handles the conversion of the C string to a **CC** string. This functionality is called "heterogeneous insertion and look-up". The following example demonstrates how **CC** strings can be used with a map:
+**CC** strings are designed for easy interoperability with other **CC** containers.
+
+To this end, **CC** defines default hash, comparison, and resource-freeing destructor functions for all **CC** string types.
+
+Additionally, when **CC** strings are used as the key and/or element type of another container, API macros that operate on that container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In that case, **CC** automatically handles the conversion of the C string to a **CC** string. This functionality is called "heterogeneous insertion and look-up". The following example demonstrates how **CC** strings might be used with a map:
 
 ```c
 #include <stdio.h>
@@ -700,8 +706,8 @@ int main( void )
   )
   {
     // Out of memory, so abort.
-    // This requires cleaning up the keys, too, since they were not inserted and
-    // the map therefore did not take ownership of them.
+    // This requires cleaning up the keys, too, since they were not inserted and the map therefore
+    // did not take ownership of them.
     cleanup( &our_str_key );
     cleanup( &our_str_el );
     cleanup( &our_map );
@@ -709,7 +715,8 @@ int main( void )
   }
 
   // Heterogeneous insertion of C strings.
-  // CC handles the creation of the strings automatically.
+  // CC automatically handles the creation of the strings (and their cleanup, if the operation
+  // fails).
   if( !insert( &our_map, "Japan", "Tokyo" ) )
   {
     cleanup( &our_map );
@@ -731,7 +738,7 @@ int main( void )
   // Printed: Tokyo
 
   // Heterogeneous look-up using a C string.
-  // Note unlike regular look-up, heterogeneous look-up requires no dynamic memory allocations.
+  // Unlike regular look-up, heterogeneous look-up requires no dynamic memory allocation.
   el = get( &our_map, "France" );
   printf( first( el ) );
   // Printed: Paris
