@@ -3625,9 +3625,9 @@ static void test_oset_default_integer_types( void )
 // Vector tests.
 #ifdef TEST_STR
 
-static bool compare_strings8( const char *str_1, const char *str_2 )
+static bool compare_strings8( const void *str_1, const void *str_2 )
 {
-  return strcmp( str_1, str_2 ) == 0;
+  return strcmp( (const char *)str_1, (const char *)str_2 ) == 0;
 }
 
 static bool compare_strings16( const char16_t *str_1, const char16_t *str_2 )
@@ -3958,6 +3958,91 @@ static void test_str_shrink( void )
   cleanup( &our_str32 );
 }
 
+static void test_str_insert( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // End.
+  for( size_t i = 0; i < 30; ++i )
+  {
+    char *el8;
+    UNTIL_SUCCESS( el8 = insert( &our_str8, size( &our_str8 ), (char)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el8 == (char)( 'a' + i ) );
+
+    char16_t *el16;
+    UNTIL_SUCCESS( el16 = insert( &our_str16, size( &our_str16 ), (char16_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el16 == (char16_t)( 'a' + i ) );
+
+    char32_t *el32;
+    UNTIL_SUCCESS( el32 = insert( &our_str32, size( &our_str32 ), (char32_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el32 == (char32_t)( 'a' + i ) );
+  }
+
+  // Beginning.
+  for( size_t i = 0; i < 30; ++i )
+  {
+    char *el8;
+    UNTIL_SUCCESS( el8 = insert( &our_str8, 0, (char)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el8 == (char)( 'a' + i ) );
+
+    char16_t *el16;
+    UNTIL_SUCCESS( el16 = insert( &our_str16, 0, (char16_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el16 == (char16_t)( 'a' + i ) );
+
+    char32_t *el32;
+    UNTIL_SUCCESS( el32 = insert( &our_str32, 0, (char32_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el32 == (char32_t)( 'a' + i ) );
+  }
+
+  // Middle.
+  for( size_t i = 0; i < 30; ++i )
+  {
+    char *el8;
+    UNTIL_SUCCESS( el8 = insert( &our_str8, 30, (char)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el8 == (char)( 'a' + i ) );
+
+    char16_t *el16;
+    UNTIL_SUCCESS( el16 = insert( &our_str16, 30, (char16_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el16 == (char16_t)( 'a' + i ) );
+
+    char32_t *el32;
+    UNTIL_SUCCESS( el32 = insert( &our_str32, 30, (char32_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el32 == (char32_t)( 'a' + i ) );
+  }
+
+  // Check.
+
+  ALWAYS_ASSERT(
+    compare_strings8(
+      first( &our_str8 ),
+      "~}|{zyxwvutsrqponmlkjihgfedcba~}|{zyxwvutsrqponmlkjihgfedcbaabcdefghijklmnopqrstuvwxyz{|}~"
+    )
+  );
+
+  ALWAYS_ASSERT(
+    compare_strings16(
+      first( &our_str16 ),
+      u"~}|{zyxwvutsrqponmlkjihgfedcba~}|{zyxwvutsrqponmlkjihgfedcbaabcdefghijklmnopqrstuvwxyz{|}~"
+    )
+  );
+
+  ALWAYS_ASSERT(
+    compare_strings32(
+      first( &our_str32 ),
+      U"~}|{zyxwvutsrqponmlkjihgfedcba~}|{zyxwvutsrqponmlkjihgfedcbaabcdefghijklmnopqrstuvwxyz{|}~"
+    )
+  );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
 static void test_str_insert_fmt( void )
 {
   str( char ) our_str8;
@@ -4211,6 +4296,39 @@ static void test_str_insert_n( void )
   ALWAYS_ASSERT( *el32 == U'k' );
 
   // Check.
+
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_push( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  for( size_t i = 0; i < 30; ++i )
+  {
+    char *el8;
+    UNTIL_SUCCESS( el8 = push( &our_str8, (char)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el8 == (char)( 'a' + i ) );
+
+    char16_t *el16;
+    UNTIL_SUCCESS( el16 = push( &our_str16, (char16_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el16 == (char16_t)( 'a' + i ) );
+
+    char32_t *el32;
+    UNTIL_SUCCESS( el32 = push( &our_str32, (char32_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el32 == (char32_t)( 'a' + i ) );
+  }
 
   ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "abcdefghijklmnopqrstuvwxyz{|}~" ) );
   ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
@@ -4760,94 +4878,507 @@ static void test_str_init_clone( void )
   cleanup( &our_str32 );
 }
 
-#define TEST_STR_MAP_INEROPERABILITY( ty, string_literal_macro )                                                  \
-{                                                                                                                 \
-  map( str( ty ), int ) our_map;                                                                                  \
-  init( &our_map );                                                                                               \
-                                                                                                                  \
-  /* Insert. */                                                                                                   \
-                                                                                                                  \
-  str( ty ) our_str_1 = initialized( &our_str_1 );                                                                \
-  str( ty ) our_str_2 = initialized( &our_str_2 );                                                                \
-  str( ty ) our_str_3 = initialized( &our_str_3 );                                                                \
-  str( ty ) our_str_4 = initialized( &our_str_4 );                                                                \
-  str( ty ) our_str_5 = initialized( &our_str_5 );                                                                \
-  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Short string" ) ) );                                \
-  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Medium-length string" ) ) );                        \
-  UNTIL_SUCCESS( push_fmt( &our_str_3, string_literal_macro( "This here is a significantly longer string" ) ) );  \
-  UNTIL_SUCCESS( push_fmt( &our_str_4, string_literal_macro( "Cat" ) ) );                                         \
-  UNTIL_SUCCESS( push_fmt( &our_str_5, string_literal_macro( "Dog" ) ) );                                         \
-                                                                                                                  \
-  UNTIL_SUCCESS( insert( &our_map, our_str_1, 1 ) );                                                              \
-  UNTIL_SUCCESS( insert( &our_map, our_str_2, 2 ) );                                                              \
-  UNTIL_SUCCESS( insert( &our_map, our_str_3, 3 ) );                                                              \
-  UNTIL_SUCCESS( insert( &our_map, our_str_4, 4 ) );                                                              \
-  UNTIL_SUCCESS( insert( &our_map, our_str_5, 5 ) );                                                              \
-                                                                                                                  \
-  /* Look-up. */                                                                                                  \
-                                                                                                                  \
-  str( ty ) our_str_6;                                                                                            \
-  str( ty ) our_str_7;                                                                                            \
-  str( ty ) our_str_8;                                                                                            \
-  str( ty ) our_str_9;                                                                                            \
-  str( ty ) our_str_10;                                                                                           \
-  init( &our_str_6 );                                                                                             \
-  init( &our_str_7 );                                                                                             \
-  init( &our_str_8 );                                                                                             \
-  init( &our_str_9 );                                                                                             \
-  init( &our_str_10 );                                                                                            \
-  UNTIL_SUCCESS( push_fmt( &our_str_6, string_literal_macro( "Short string" ) ) );                                \
-  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Medium-length string" ) ) );                        \
-  UNTIL_SUCCESS( push_fmt( &our_str_8, string_literal_macro( "This here is a significantly longer string" ) ) );  \
-  UNTIL_SUCCESS( push_fmt( &our_str_9, string_literal_macro( "Cat" ) ) );                                         \
-  UNTIL_SUCCESS( push_fmt( &our_str_10, string_literal_macro( "Dog" ) ) );                                        \
-                                                                                                                  \
-  ALWAYS_ASSERT( *get( &our_map, our_str_6 ) == 1 );                                                              \
-  ALWAYS_ASSERT( *get( &our_map, our_str_7 ) == 2 );                                                              \
-  ALWAYS_ASSERT( *get( &our_map, our_str_8 ) == 3 );                                                              \
-  ALWAYS_ASSERT( *get( &our_map, our_str_9 ) == 4 );                                                              \
-  ALWAYS_ASSERT( *get( &our_map, our_str_10 ) == 5 );                                                             \
-                                                                                                                  \
-  /* Replace. */                                                                                                  \
-  UNTIL_SUCCESS( insert( &our_map, our_str_6, 11 ) );                                                             \
-  UNTIL_SUCCESS( insert( &our_map, our_str_8, 12 ) );                                                             \
-  UNTIL_SUCCESS( insert( &our_map, our_str_10, 13 ) );                                                            \
-                                                                                                                  \
-  /* Look-up again. */                                                                                            \
-                                                                                                                  \
-  str( ty ) our_str_11;                                                                                           \
-  str( ty ) our_str_12;                                                                                           \
-  str( ty ) our_str_13;                                                                                           \
-  init( &our_str_11 );                                                                                            \
-  init( &our_str_12 );                                                                                            \
-  init( &our_str_13 );                                                                                            \
-  UNTIL_SUCCESS( push_fmt( &our_str_11, string_literal_macro( "Short string" ) ) );                               \
-  UNTIL_SUCCESS( push_fmt( &our_str_12, string_literal_macro( "This here is a significantly longer string" ) ) ); \
-  UNTIL_SUCCESS( push_fmt( &our_str_13, string_literal_macro( "Dog" ) ) );                                        \
-  ALWAYS_ASSERT( *get( &our_map, our_str_11 ) == 11 );                                                            \
-  ALWAYS_ASSERT( *get( &our_map, our_str_12 ) == 12 );                                                            \
-  ALWAYS_ASSERT( *get( &our_map, our_str_13 ) == 13 );                                                            \
-                                                                                                                  \
-  /* Heterogeneous lookup. */                                                                                     \
-  ALWAYS_ASSERT( *get( &our_map, string_literal_macro( "Short string" ) ) == 11 );                                \
-  ALWAYS_ASSERT( *get( &our_map, string_literal_macro( "This here is a significantly longer string" ) ) == 12 );  \
-  ALWAYS_ASSERT( *get( &our_map, string_literal_macro( "Dog" ) ) == 13 );                                         \
-                                                                                                                  \
-  /* Heterogeneous erase. */                                                                                      \
-  ALWAYS_ASSERT( erase( &our_map, string_literal_macro( "Short string" ) ) );                                     \
-  ALWAYS_ASSERT( erase( &our_map, string_literal_macro( "This here is a significantly longer string" ) ) );       \
-  ALWAYS_ASSERT( erase( &our_map, string_literal_macro( "Dog" ) ) );                                              \
-  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "Short string" ) ) );                                      \
-  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "This here is a significantly longer string" ) ) );        \
-  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "Dog" ) ) );                                               \
-                                                                                                                  \
-  cleanup( &our_map );                                                                                            \
-  cleanup( &our_str_7 );                                                                                          \
-  cleanup( &our_str_9 );                                                                                          \
-  cleanup( &our_str_11 );                                                                                         \
-  cleanup( &our_str_12 );                                                                                         \
-  cleanup( &our_str_13 );                                                                                         \
-}                                                                                                                 \
+#define TEST_STR_VEC_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )     \
+{                                                                                        \
+  vec( str( ty ) ) our_vec;                                                              \
+  init( &our_vec );                                                                      \
+                                                                                         \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                       \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                       \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Cat" ) ) );                \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Dog" ) ) );                \
+                                                                                         \
+  UNTIL_SUCCESS( push( &our_vec, our_str_1 ) );                                          \
+  UNTIL_SUCCESS( push( &our_vec, our_str_2 ) );                                          \
+                                                                                         \
+  str( ty ) *el;                                                                         \
+  el = get( &our_vec, 0 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Cat" ) ) );     \
+  el = get( &our_vec, 1 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );     \
+                                                                                         \
+  erase( &our_vec, 0 );                                                                  \
+  clear( &our_vec );                                                                     \
+                                                                                         \
+  /* Heterogeneous push. */                                                              \
+  UNTIL_SUCCESS( push( &our_vec, string_literal_macro( "Fish" ) ) );                     \
+  UNTIL_SUCCESS( push( &our_vec, string_literal_macro( "Parrot" ) ) );                   \
+  UNTIL_SUCCESS( push( &our_vec, string_literal_macro( "Hamster" ) ) );                  \
+  UNTIL_SUCCESS( push( &our_vec, string_literal_macro( "Ferret" ) ) );                   \
+                                                                                         \
+  /* Heterogeneous insert. */                                                            \
+  UNTIL_SUCCESS( insert( &our_vec, 0, string_literal_macro( "Spider" ) ) );              \
+  UNTIL_SUCCESS( insert( &our_vec, 0, string_literal_macro( "Mouse" ) ) );               \
+  UNTIL_SUCCESS( insert( &our_vec, 0, string_literal_macro( "Snake" ) ) );               \
+  UNTIL_SUCCESS( insert( &our_vec, 0, string_literal_macro( "Lizard" ) ) );              \
+                                                                                         \
+  el = get( &our_vec, 0 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Lizard" ) ) );  \
+  el = get( &our_vec, 1 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Snake" ) ) );   \
+  el = get( &our_vec, 2 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Mouse" ) ) );   \
+  el = get( &our_vec, 3 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Spider" ) ) );  \
+  el = get( &our_vec, 4 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Fish" ) ) );    \
+  el = get( &our_vec, 5 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Parrot" ) ) );  \
+  el = get( &our_vec, 6 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) ); \
+  el = get( &our_vec, 7 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Ferret" ) ) );  \
+                                                                                         \
+  cleanup( &our_vec );                                                                   \
+}                                                                                        \
+
+#define TEST_STR_LIST_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )         \
+{                                                                                             \
+  list( str( ty ) ) our_list;                                                                 \
+  init( &our_list );                                                                          \
+                                                                                              \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                            \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                            \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Cat" ) ) );                     \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Dog" ) ) );                     \
+                                                                                              \
+  UNTIL_SUCCESS( push( &our_list, our_str_1 ) );                                              \
+  UNTIL_SUCCESS( push( &our_list, our_str_2 ) );                                              \
+                                                                                              \
+  str( ty ) *el;                                                                              \
+  el = first( &our_list );                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Cat" ) ) );          \
+  el = last( &our_list );                                                                     \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );          \
+                                                                                              \
+  erase( &our_list, first( &our_list ) );                                                     \
+  clear( &our_list );                                                                         \
+                                                                                              \
+  /* Heterogeneous push. */                                                                   \
+  UNTIL_SUCCESS( push( &our_list, string_literal_macro( "Fish" ) ) );                         \
+  UNTIL_SUCCESS( push( &our_list, string_literal_macro( "Parrot" ) ) );                       \
+  UNTIL_SUCCESS( push( &our_list, string_literal_macro( "Hamster" ) ) );                      \
+  UNTIL_SUCCESS( push( &our_list, string_literal_macro( "Ferret" ) ) );                       \
+                                                                                              \
+  /* Heterogeneous insert. */                                                                 \
+  UNTIL_SUCCESS( insert( &our_list, first( &our_list ), string_literal_macro( "Spider" ) ) ); \
+  UNTIL_SUCCESS( insert( &our_list, first( &our_list ), string_literal_macro( "Mouse" ) ) );  \
+  UNTIL_SUCCESS( insert( &our_list, first( &our_list ), string_literal_macro( "Snake" ) ) );  \
+  UNTIL_SUCCESS( insert( &our_list, first( &our_list ), string_literal_macro( "Lizard" ) ) ); \
+                                                                                              \
+  el = first( &our_list );                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Lizard" ) ) );       \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Snake" ) ) );        \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Mouse" ) ) );        \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Spider" ) ) );       \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Fish" ) ) );         \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Parrot" ) ) );       \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) );      \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Ferret" ) ) );       \
+                                                                                              \
+  cleanup( &our_list );                                                                       \
+}                                                                                             \
+
+#define TEST_STR_MAP_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                                  \
+{                                                                                                                     \
+  map( str( ty ), str( ty ) ) our_map;                                                                                \
+  init( &our_map );                                                                                                   \
+                                                                                                                      \
+  /* Insert. */                                                                                                       \
+                                                                                                                      \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                                                    \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                                                    \
+  str( ty ) our_str_3 = initialized( &our_str_3 );                                                                    \
+  str( ty ) our_str_4 = initialized( &our_str_4 );                                                                    \
+  str( ty ) our_str_5 = initialized( &our_str_5 );                                                                    \
+  str( ty ) our_str_6 = initialized( &our_str_6 );                                                                    \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Short string" ) ) );                                    \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Medium-length string" ) ) );                            \
+  UNTIL_SUCCESS( push_fmt( &our_str_3, string_literal_macro( "This here is a significantly longer string" ) ) );      \
+  UNTIL_SUCCESS( push_fmt( &our_str_4, string_literal_macro( "Cat" ) ) );                                             \
+  UNTIL_SUCCESS( push_fmt( &our_str_5, string_literal_macro( "Dog" ) ) );                                             \
+  UNTIL_SUCCESS( push_fmt( &our_str_6, string_literal_macro( "Rabbit" ) ) );                                          \
+                                                                                                                      \
+  UNTIL_SUCCESS( insert( &our_map, our_str_1, our_str_4 ) );                                                          \
+  UNTIL_SUCCESS( insert( &our_map, our_str_2, our_str_5 ) );                                                          \
+  UNTIL_SUCCESS( insert( &our_map, our_str_3, our_str_6 ) );                                                          \
+                                                                                                                      \
+  /* Look-up. */                                                                                                      \
+                                                                                                                      \
+  str( ty ) our_str_7 = initialized( &our_str_7 );                                                                    \
+  str( ty ) our_str_8 = initialized( &our_str_8 );                                                                    \
+  str( ty ) our_str_9 = initialized( &our_str_9 );                                                                    \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                                    \
+  UNTIL_SUCCESS( push_fmt( &our_str_8, string_literal_macro( "Medium-length string" ) ) );                            \
+  UNTIL_SUCCESS( push_fmt( &our_str_9, string_literal_macro( "This here is a significantly longer string" ) ) );      \
+                                                                                                                      \
+  str( ty ) *el;                                                                                                      \
+  el = get( &our_map, our_str_7 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Cat" ) ) );                                  \
+  el = get( &our_map, our_str_8 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );                                  \
+  el = get( &our_map, our_str_9 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Rabbit" ) ) );                               \
+                                                                                                                      \
+  cleanup( &our_str_7 );                                                                                              \
+  cleanup( &our_str_8 );                                                                                              \
+  cleanup( &our_str_9 );                                                                                              \
+                                                                                                                      \
+  /* Replace and check. */                                                                                            \
+  str( ty ) our_str_10 = initialized( &our_str_10 );                                                                  \
+  str( ty ) our_str_11 = initialized( &our_str_11 );                                                                  \
+  UNTIL_SUCCESS( push_fmt( &our_str_10, string_literal_macro( "Short string" ) ) );                                   \
+  UNTIL_SUCCESS( push_fmt( &our_str_11, string_literal_macro( "Hamster" ) ) );                                        \
+  UNTIL_SUCCESS( insert( &our_map, our_str_10, our_str_11 ) );                                                        \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                                    \
+  el = get( &our_map, our_str_7 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) );                              \
+  cleanup( &our_str_7 );                                                                                              \
+                                                                                                                      \
+  /* Heterogeneous get. */                                                                                            \
+  el = get( &our_map, string_literal_macro( "Short string" ) );                                                       \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) );                              \
+  el = get( &our_map, string_literal_macro( "Medium-length string" ) );                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );                                  \
+  el = get( &our_map, string_literal_macro( "This here is a significantly longer string" ) );                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Rabbit" ) ) );                               \
+                                                                                                                      \
+  /* Heterogeneous erase. */                                                                                          \
+  ALWAYS_ASSERT( erase( &our_map, string_literal_macro( "Short string" ) ) );                                         \
+  ALWAYS_ASSERT( erase( &our_map, string_literal_macro( "Medium-length string" ) ) );                                 \
+  ALWAYS_ASSERT( erase( &our_map, string_literal_macro( "This here is a significantly longer string" ) ) );           \
+  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "Short string" ) ) );                                          \
+  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "Medium-length string" ) ) );            \
+  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "This here is a significantly longer string" ) ) );       \
+                                                                                                                      \
+  /* Heterogenous insert. */                                                                                          \
+  UNTIL_SUCCESS( insert( &our_map, string_literal_macro( "Apple" ), string_literal_macro( "Potato" ) ) );             \
+  UNTIL_SUCCESS( insert( &our_map, string_literal_macro( "Orange" ), string_literal_macro( "Carrot" ) ) );            \
+  UNTIL_SUCCESS( insert( &our_map, string_literal_macro( "Pear" ), string_literal_macro( "Onion" ) ) );               \
+  el = get( &our_map, string_literal_macro( "Apple" ) );                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Potato" ) ) );                               \
+  el = get( &our_map, string_literal_macro( "Orange" ) );                                                             \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Carrot" ) ) );                               \
+  el = get( &our_map, string_literal_macro( "Pear" ) );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Onion" ) ) );                                \
+                                                                                                                      \
+  /* Heterogenous get or insert. */                                                                                   \
+  UNTIL_SUCCESS( get_or_insert( &our_map, string_literal_macro( "Grapefruit" ), string_literal_macro( "Tomato" ) ) ); \
+  UNTIL_SUCCESS( get_or_insert( &our_map, string_literal_macro( "Melon" ), string_literal_macro( "Garlic" ) ) );      \
+  UNTIL_SUCCESS( get_or_insert( &our_map, string_literal_macro( "Orange" ), string_literal_macro( "Capsicum" ) ) );   \
+  UNTIL_SUCCESS( get_or_insert( &our_map, string_literal_macro( "Pear" ), string_literal_macro( "Spinach" ) ) );      \
+  el = get( &our_map, string_literal_macro( "Grapefruit" ) );                                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Tomato" ) ) );                               \
+  el = get( &our_map, string_literal_macro( "Melon" ) );                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Garlic" ) ) );                               \
+  el = get( &our_map, string_literal_macro( "Orange" ) );                                                             \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Carrot" ) ) );                               \
+  el = get( &our_map, string_literal_macro( "Pear" ) );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Onion" ) ) );                                \
+                                                                                                                      \
+  cleanup( &our_map );                                                                                                \
+}                                                                                                                     \
+
+#define TEST_STR_SET_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                             \
+{                                                                                                                \
+  set( str( ty ) ) our_set;                                                                                      \
+  init( &our_set );                                                                                              \
+                                                                                                                 \
+  /* Insert. */                                                                                                  \
+                                                                                                                 \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                                               \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                                               \
+  str( ty ) our_str_3 = initialized( &our_str_3 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Medium-length string" ) ) );                       \
+  UNTIL_SUCCESS( push_fmt( &our_str_3, string_literal_macro( "This here is a significantly longer string" ) ) ); \
+                                                                                                                 \
+  UNTIL_SUCCESS( insert( &our_set, our_str_1 ) );                                                                \
+  UNTIL_SUCCESS( insert( &our_set, our_str_2 ) );                                                                \
+  UNTIL_SUCCESS( insert( &our_set, our_str_3 ) );                                                                \
+                                                                                                                 \
+  /* Look-up. */                                                                                                 \
+                                                                                                                 \
+  str( ty ) our_str_4 = initialized( &our_str_4 );                                                               \
+  str( ty ) our_str_5 = initialized( &our_str_5 );                                                               \
+  str( ty ) our_str_6 = initialized( &our_str_6 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_4, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_5, string_literal_macro( "Medium-length string" ) ) );                       \
+  UNTIL_SUCCESS( push_fmt( &our_str_6, string_literal_macro( "This here is a significantly longer string" ) ) ); \
+                                                                                                                 \
+  str( ty ) *el;                                                                                                 \
+  el = get( &our_set, our_str_4 );                                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Short string" ) ) );                    \
+  el = get( &our_set, our_str_5 );                                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Medium-length string" ) ) );            \
+  el = get( &our_set, our_str_6 );                                                                               \
+  ALWAYS_ASSERT(                                                                                                 \
+    compare_strings_fn( first( el ), string_literal_macro( "This here is a significantly longer string" ) )      \
+  );                                                                                                             \
+                                                                                                                 \
+  cleanup( &our_str_4 );                                                                                         \
+  cleanup( &our_str_5 );                                                                                         \
+  cleanup( &our_str_6 );                                                                                         \
+                                                                                                                 \
+  /* Replace. */                                                                                                 \
+  str( ty ) our_str_7 = initialized( &our_str_7 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( el = insert( &our_set, our_str_7 ) );                                                           \
+  ALWAYS_ASSERT(                                                                                                 \
+    *el == our_str_7 && compare_strings_fn( first( el ), string_literal_macro( "Short string" ) )                \
+  );                                                                                                             \
+                                                                                                                 \
+  /* Heterogeneous get. */                                                                                       \
+  el = get( &our_set, string_literal_macro( "Short string" ) );                                                  \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Short string" ) ) );                    \
+  el = get( &our_set, string_literal_macro( "Medium-length string" ) );                                          \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Medium-length string" ) ) );            \
+  el = get( &our_set, string_literal_macro( "This here is a significantly longer string" ) );                    \
+  ALWAYS_ASSERT(                                                                                                 \
+    compare_strings_fn( first( el ), string_literal_macro( "This here is a significantly longer string" ) )      \
+  );                                                                                                             \
+                                                                                                                 \
+  /* Heterogeneous erase. */                                                                                     \
+  ALWAYS_ASSERT( erase( &our_set, string_literal_macro( "Short string" ) ) );                                    \
+  ALWAYS_ASSERT( erase( &our_set, string_literal_macro( "Medium-length string" ) ) );                            \
+  ALWAYS_ASSERT( erase( &our_set, string_literal_macro( "This here is a significantly longer string" ) ) );      \
+  ALWAYS_ASSERT( !get( &our_set, string_literal_macro( "Short string" ) ) );                                     \
+  ALWAYS_ASSERT( !get( &our_set, string_literal_macro( "Medium-length string" ) ) );                             \
+  ALWAYS_ASSERT( !get( &our_set, string_literal_macro( "This here is a significantly longer string" ) ) );       \
+                                                                                                                 \
+  /* Heterogenous insert. */                                                                                     \
+  UNTIL_SUCCESS( insert( &our_set, string_literal_macro( "Apple" ) ) );                                          \
+  UNTIL_SUCCESS( insert( &our_set, string_literal_macro( "Orange" ) ) );                                         \
+  UNTIL_SUCCESS( insert( &our_set, string_literal_macro( "Pear" ) ) );                                           \
+  el = get( &our_set, string_literal_macro( "Apple" ) );                                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Apple" ) ) );                           \
+  el = get( &our_set, string_literal_macro( "Orange" ) );                                                        \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Orange" ) ) );                          \
+  el = get( &our_set, string_literal_macro( "Pear" ) );                                                          \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Pear" ) ) );                            \
+                                                                                                                 \
+  /* Heterogenous get or insert. */                                                                              \
+  UNTIL_SUCCESS( get_or_insert( &our_set, string_literal_macro( "Grapefruit" ) ) );                              \
+  UNTIL_SUCCESS( get_or_insert( &our_set, string_literal_macro( "Melon" ) ) );                                   \
+  str( ty ) *orange = get( &our_set, string_literal_macro( "Orange" ) );                                         \
+  str( ty ) *pear = get( &our_set, string_literal_macro( "Pear" ) );                                             \
+  UNTIL_SUCCESS( get_or_insert( &our_set, string_literal_macro( "Orange" ) ) );                                  \
+  UNTIL_SUCCESS( get_or_insert( &our_set, string_literal_macro( "Pear" ) ) );                                    \
+  el = get( &our_set, string_literal_macro( "Grapefruit" ) );                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Grapefruit" ) ) );                      \
+  el = get( &our_set, string_literal_macro( "Melon" ) );                                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Melon" ) ) );                           \
+  el = get( &our_set, string_literal_macro( "Orange" ) );                                                        \
+  ALWAYS_ASSERT( el == orange && compare_strings_fn( first( el ), string_literal_macro( "Orange" ) ) );          \
+  el = get( &our_set, string_literal_macro( "Pear" ) );                                                          \
+  ALWAYS_ASSERT( el == pear && compare_strings_fn( first( el ), string_literal_macro( "Pear" ) ) );              \
+                                                                                                                 \
+  cleanup( &our_set );                                                                                           \
+}                                                                                                                \
+
+#define TEST_STR_OMAP_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                                  \
+{                                                                                                                      \
+  map( str( ty ), str( ty ) ) our_omap;                                                                                \
+  init( &our_omap );                                                                                                   \
+                                                                                                                       \
+  /* Insert. */                                                                                                        \
+                                                                                                                       \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                                                     \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                                                     \
+  str( ty ) our_str_3 = initialized( &our_str_3 );                                                                     \
+  str( ty ) our_str_4 = initialized( &our_str_4 );                                                                     \
+  str( ty ) our_str_5 = initialized( &our_str_5 );                                                                     \
+  str( ty ) our_str_6 = initialized( &our_str_6 );                                                                     \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Short string" ) ) );                                     \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Medium-length string" ) ) );                             \
+  UNTIL_SUCCESS( push_fmt( &our_str_3, string_literal_macro( "This here is a significantly longer string" ) ) );       \
+  UNTIL_SUCCESS( push_fmt( &our_str_4, string_literal_macro( "Cat" ) ) );                                              \
+  UNTIL_SUCCESS( push_fmt( &our_str_5, string_literal_macro( "Dog" ) ) );                                              \
+  UNTIL_SUCCESS( push_fmt( &our_str_6, string_literal_macro( "Rabbit" ) ) );                                           \
+                                                                                                                       \
+  UNTIL_SUCCESS( insert( &our_omap, our_str_1, our_str_4 ) );                                                          \
+  UNTIL_SUCCESS( insert( &our_omap, our_str_2, our_str_5 ) );                                                          \
+  UNTIL_SUCCESS( insert( &our_omap, our_str_3, our_str_6 ) );                                                          \
+                                                                                                                       \
+  /* Look-up. */                                                                                                       \
+                                                                                                                       \
+  str( ty ) our_str_7 = initialized( &our_str_7 );                                                                     \
+  str( ty ) our_str_8 = initialized( &our_str_8 );                                                                     \
+  str( ty ) our_str_9 = initialized( &our_str_9 );                                                                     \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                                     \
+  UNTIL_SUCCESS( push_fmt( &our_str_8, string_literal_macro( "Medium-length string" ) ) );                             \
+  UNTIL_SUCCESS( push_fmt( &our_str_9, string_literal_macro( "This here is a significantly longer string" ) ) );       \
+                                                                                                                       \
+  str( ty ) *el;                                                                                                       \
+  el = get( &our_omap, our_str_7 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Cat" ) ) );                                   \
+  el = get( &our_omap, our_str_8 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );                                   \
+  el = get( &our_omap, our_str_9 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Rabbit" ) ) );                                \
+                                                                                                                       \
+  cleanup( &our_str_7 );                                                                                               \
+  cleanup( &our_str_8 );                                                                                               \
+  cleanup( &our_str_9 );                                                                                               \
+                                                                                                                       \
+  /* Replace and check. */                                                                                             \
+  str( ty ) our_str_10 = initialized( &our_str_10 );                                                                   \
+  str( ty ) our_str_11 = initialized( &our_str_11 );                                                                   \
+  UNTIL_SUCCESS( push_fmt( &our_str_10, string_literal_macro( "Short string" ) ) );                                    \
+  UNTIL_SUCCESS( push_fmt( &our_str_11, string_literal_macro( "Hamster" ) ) );                                         \
+  UNTIL_SUCCESS( insert( &our_omap, our_str_10, our_str_11 ) );                                                        \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                                     \
+  el = get( &our_omap, our_str_7 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) );                               \
+  cleanup( &our_str_7 );                                                                                               \
+                                                                                                                       \
+  /* Heterogeneous get. */                                                                                             \
+  el = get( &our_omap, string_literal_macro( "Short string" ) );                                                       \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) );                               \
+  el = get( &our_omap, string_literal_macro( "Medium-length string" ) );                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );                                   \
+  el = get( &our_omap, string_literal_macro( "This here is a significantly longer string" ) );                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Rabbit" ) ) );                                \
+                                                                                                                       \
+  /* Heterogeneous erase. */                                                                                           \
+  ALWAYS_ASSERT( erase( &our_omap, string_literal_macro( "Short string" ) ) );                                         \
+  ALWAYS_ASSERT( erase( &our_omap, string_literal_macro( "Medium-length string" ) ) );                                 \
+  ALWAYS_ASSERT( erase( &our_omap, string_literal_macro( "This here is a significantly longer string" ) ) );           \
+  ALWAYS_ASSERT( !get( &our_omap, string_literal_macro( "Short string" ) ) );                                          \
+  ALWAYS_ASSERT( !get( &our_omap, string_literal_macro( "Medium-length string" ) ) );                                  \
+  ALWAYS_ASSERT( !get( &our_omap, string_literal_macro( "This here is a significantly longer string" ) ) );            \
+                                                                                                                       \
+  /* Heterogenous insert. */                                                                                           \
+  UNTIL_SUCCESS( insert( &our_omap, string_literal_macro( "Apple" ), string_literal_macro( "Potato" ) ) );             \
+  UNTIL_SUCCESS( insert( &our_omap, string_literal_macro( "Orange" ), string_literal_macro( "Carrot" ) ) );            \
+  UNTIL_SUCCESS( insert( &our_omap, string_literal_macro( "Pear" ), string_literal_macro( "Onion" ) ) );               \
+  el = get( &our_omap, string_literal_macro( "Apple" ) );                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Potato" ) ) );                                \
+  el = get( &our_omap, string_literal_macro( "Orange" ) );                                                             \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Carrot" ) ) );                                \
+  el = get( &our_omap, string_literal_macro( "Pear" ) );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Onion" ) ) );                                 \
+                                                                                                                       \
+  /* Heterogenous get or insert. */                                                                                    \
+  UNTIL_SUCCESS( get_or_insert( &our_omap, string_literal_macro( "Grapefruit" ), string_literal_macro( "Tomato" ) ) ); \
+  UNTIL_SUCCESS( get_or_insert( &our_omap, string_literal_macro( "Melon" ), string_literal_macro( "Garlic" ) ) );      \
+  UNTIL_SUCCESS( get_or_insert( &our_omap, string_literal_macro( "Orange" ), string_literal_macro( "Capsicum" ) ) );   \
+  UNTIL_SUCCESS( get_or_insert( &our_omap, string_literal_macro( "Pear" ), string_literal_macro( "Spinach" ) ) );      \
+  el = get( &our_omap, string_literal_macro( "Grapefruit" ) );                                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Tomato" ) ) );                                \
+  el = get( &our_omap, string_literal_macro( "Melon" ) );                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Garlic" ) ) );                                \
+  el = get( &our_omap, string_literal_macro( "Orange" ) );                                                             \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Carrot" ) ) );                                \
+  el = get( &our_omap, string_literal_macro( "Pear" ) );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Onion" ) ) );                                 \
+                                                                                                                       \
+  cleanup( &our_omap );                                                                                                \
+}                                                                                                                      \
+
+#define TEST_STR_OSET_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                            \
+{                                                                                                                \
+  set( str( ty ) ) our_oset;                                                                                     \
+  init( &our_oset );                                                                                             \
+                                                                                                                 \
+  /* Insert. */                                                                                                  \
+                                                                                                                 \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                                               \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                                               \
+  str( ty ) our_str_3 = initialized( &our_str_3 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Medium-length string" ) ) );                       \
+  UNTIL_SUCCESS( push_fmt( &our_str_3, string_literal_macro( "This here is a significantly longer string" ) ) ); \
+                                                                                                                 \
+  UNTIL_SUCCESS( insert( &our_oset, our_str_1 ) );                                                               \
+  UNTIL_SUCCESS( insert( &our_oset, our_str_2 ) );                                                               \
+  UNTIL_SUCCESS( insert( &our_oset, our_str_3 ) );                                                               \
+                                                                                                                 \
+  /* Look-up. */                                                                                                 \
+                                                                                                                 \
+  str( ty ) our_str_4 = initialized( &our_str_4 );                                                               \
+  str( ty ) our_str_5 = initialized( &our_str_5 );                                                               \
+  str( ty ) our_str_6 = initialized( &our_str_6 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_4, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_5, string_literal_macro( "Medium-length string" ) ) );                       \
+  UNTIL_SUCCESS( push_fmt( &our_str_6, string_literal_macro( "This here is a significantly longer string" ) ) ); \
+                                                                                                                 \
+  str( ty ) *el;                                                                                                 \
+  el = get( &our_oset, our_str_4 );                                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Short string" ) ) );                    \
+  el = get( &our_oset, our_str_5 );                                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Medium-length string" ) ) );            \
+  el = get( &our_oset, our_str_6 );                                                                              \
+  ALWAYS_ASSERT(                                                                                                 \
+    compare_strings_fn( first( el ), string_literal_macro( "This here is a significantly longer string" ) )      \
+  );                                                                                                             \
+                                                                                                                 \
+  cleanup( &our_str_4 );                                                                                         \
+  cleanup( &our_str_5 );                                                                                         \
+  cleanup( &our_str_6 );                                                                                         \
+                                                                                                                 \
+  /* Replace. */                                                                                                 \
+  str( ty ) our_str_7 = initialized( &our_str_7 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( el = insert( &our_oset, our_str_7 ) );                                                          \
+  ALWAYS_ASSERT(                                                                                                 \
+    *el == our_str_7 && compare_strings_fn( first( el ), string_literal_macro( "Short string" ) )                \
+  );                                                                                                             \
+                                                                                                                 \
+  /* Heterogeneous get. */                                                                                       \
+  el = get( &our_oset, string_literal_macro( "Short string" ) );                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Short string" ) ) );                    \
+  el = get( &our_oset, string_literal_macro( "Medium-length string" ) );                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Medium-length string" ) ) );            \
+  el = get( &our_oset, string_literal_macro( "This here is a significantly longer string" ) );                   \
+  ALWAYS_ASSERT(                                                                                                 \
+    compare_strings_fn( first( el ), string_literal_macro( "This here is a significantly longer string" ) )      \
+  );                                                                                                             \
+                                                                                                                 \
+  /* Heterogeneous erase. */                                                                                     \
+  ALWAYS_ASSERT( erase( &our_oset, string_literal_macro( "Short string" ) ) );                                   \
+  ALWAYS_ASSERT( erase( &our_oset, string_literal_macro( "Medium-length string" ) ) );                           \
+  ALWAYS_ASSERT( erase( &our_oset, string_literal_macro( "This here is a significantly longer string" ) ) );     \
+  ALWAYS_ASSERT( !get( &our_oset, string_literal_macro( "Short string" ) ) );                                    \
+  ALWAYS_ASSERT( !get( &our_oset, string_literal_macro( "Medium-length string" ) ) );                            \
+  ALWAYS_ASSERT( !get( &our_oset, string_literal_macro( "This here is a significantly longer string" ) ) );      \
+                                                                                                                 \
+  /* Heterogenous insert. */                                                                                     \
+  UNTIL_SUCCESS( insert( &our_oset, string_literal_macro( "Apple" ) ) );                                         \
+  UNTIL_SUCCESS( insert( &our_oset, string_literal_macro( "Orange" ) ) );                                        \
+  UNTIL_SUCCESS( insert( &our_oset, string_literal_macro( "Pear" ) ) );                                          \
+  el = get( &our_oset, string_literal_macro( "Apple" ) );                                                        \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Apple" ) ) );                           \
+  el = get( &our_oset, string_literal_macro( "Orange" ) );                                                       \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Orange" ) ) );                          \
+  el = get( &our_oset, string_literal_macro( "Pear" ) );                                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Pear" ) ) );                            \
+                                                                                                                 \
+  /* Heterogenous get or insert. */                                                                              \
+  UNTIL_SUCCESS( get_or_insert( &our_oset, string_literal_macro( "Grapefruit" ) ) );                             \
+  UNTIL_SUCCESS( get_or_insert( &our_oset, string_literal_macro( "Melon" ) ) );                                  \
+  str( ty ) *orange = get( &our_oset, string_literal_macro( "Orange" ) );                                        \
+  str( ty ) *pear = get( &our_oset, string_literal_macro( "Pear" ) );                                            \
+  UNTIL_SUCCESS( get_or_insert( &our_oset, string_literal_macro( "Orange" ) ) );                                 \
+  UNTIL_SUCCESS( get_or_insert( &our_oset, string_literal_macro( "Pear" ) ) );                                   \
+  el = get( &our_oset, string_literal_macro( "Grapefruit" ) );                                                   \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Grapefruit" ) ) );                      \
+  el = get( &our_oset, string_literal_macro( "Melon" ) );                                                        \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Melon" ) ) );                           \
+  el = get( &our_oset, string_literal_macro( "Orange" ) );                                                       \
+  ALWAYS_ASSERT( el == orange && compare_strings_fn( first( el ), string_literal_macro( "Orange" ) ) );          \
+  el = get( &our_oset, string_literal_macro( "Pear" ) );                                                         \
+  ALWAYS_ASSERT( el == pear && compare_strings_fn( first( el ), string_literal_macro( "Pear" ) ) );              \
+                                                                                                                 \
+  cleanup( &our_oset );                                                                                          \
+}                                                                                                                \
 
 #define STRING_LITERAL_CHAR( literal ) literal
 #define STRING_LITERAL_UNSIGNED_CHAR( literal ) (unsigned char *)literal
@@ -4858,15 +5389,65 @@ static void test_str_init_clone( void )
 
 static void test_str_interoperability( void )
 {
-  TEST_STR_MAP_INEROPERABILITY( char, STRING_LITERAL_CHAR );
-  TEST_STR_MAP_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR );
-  TEST_STR_MAP_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR );
+  TEST_STR_VEC_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_VEC_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_VEC_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
 #if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
     ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
-  TEST_STR_MAP_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8 );
+  TEST_STR_VEC_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
 #endif
-  TEST_STR_MAP_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16 );
-  TEST_STR_MAP_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32 );
+  TEST_STR_VEC_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_VEC_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+
+  TEST_STR_LIST_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_LIST_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_LIST_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_LIST_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_LIST_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_LIST_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+
+  TEST_STR_MAP_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_MAP_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_MAP_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_MAP_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_MAP_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_MAP_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+
+  TEST_STR_SET_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_SET_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_SET_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_SET_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_SET_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_SET_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+
+  TEST_STR_OMAP_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_OMAP_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_OMAP_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_OMAP_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_OMAP_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_OMAP_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+
+  TEST_STR_OSET_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_OSET_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_OSET_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_OSET_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_OSET_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_OSET_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
 }
 
 #endif
@@ -4984,10 +5565,10 @@ int main( void )
     test_str_reserve();
     test_str_resize();
     test_str_shrink();
-    // TODO: insert
+    test_str_insert();
     test_str_insert_fmt();
     test_str_insert_n();
-    // TODO: push
+    test_str_push();
     test_str_push_fmt();
     test_str_push_n();
     test_str_erase();
