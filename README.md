@@ -5,7 +5,7 @@
 </picture>
 </div>
 
-<p align="center">
+<h6 align="center">
 
 [Overview](#Overview)
 ·
@@ -22,7 +22,7 @@
 [FAQ](#FAQ)
 ·
 [Support and contribute](#Support-and-contribute)
-</p>
+</h6>
 
 ## Overview
 Convenient Containers (**CC**) is an ergonomic, high-performance generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, **unordered sets**, **ordered maps**, **ordered sets**, and **null-terminated strings**.
