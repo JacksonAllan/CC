@@ -6,12 +6,12 @@
 </div>
 
 ## Overview
-Convenient Containers (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, **unordered sets**, **ordered maps**, and **ordered sets**.
+Convenient Containers (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, **unordered sets**, **ordered maps**, **ordered sets**, and **null-terminated strings**.
 
 Its features include:
 
 * Fully generic API.
-* Type safety.
+* Full type safety without boilerplate container-type definitions.
 * User-defined destructor, comparison, and hash functions associated with element and key types.
 * No assumption of successful memory allocation.
 * Single header.
@@ -21,13 +21,14 @@ It requires C23, or C11 and compiler support for `typeof`, or C++11.
 
 It is distributed under the MIT license.
 
+TODO: UPDATE WITH STRING EXAMPLE
 Try it online [here](https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAaPECAMzwBtMA7AQwFtMQByARg9KtQYEAysib0QXACx8BBAKoBnTAAUAHpwAMvAFYTStJg1AB9U8lJL6yAngGVG6AMKpaAVxYMQAJmkOAMngMmABy7gBGmMQgAGykAA6oCoS2DM5uHt7SCUk2AgFBoSwRUbGWmNYpQgRMxARp7p4%2BFphWuQxVNQT5IeGRMRbVtfUZTQqDXYE9RX3RAJQWqK7EyOwcAKReAMyByG5YANRrm45j%2BKgAdAhH2GsaAIIb2wy7rgdHjggEBHEKIAD0f2ITAA7udgIQEK4wq4lMtZIwCOc0Cw/gApJjIADWCgEd1oBgYf0cjj%2BLCYgT%2ByGQl2utwe90CBH2ZMCEH2ADdUHh0PtZnS1gB2ABCdP2%2BzixEZVDZGy8ADVykQoocvF5eUcRfcxezymzGbz9otiMYdcgNaL9oFCDKvNEjSbyurNpr6XcxQD9nd0PgjPsWpg2IIFPsiH6GOhzhb%2BMQ9YJLYdNgARfYaDXx977Lip50qkVeIV4dVasWW6X7MBgOIwhA2u1LB3meOzItukuCl0lksegDyriZqCozIDJAAnqR9jj9kwwiRERbO7tMIZXHFa/bTU6O539sRMAQlgxM%2Bbi2LBYn%2BcWPQBJBiwmy%2Bwx%2B%2BiBplMV%2BHwJYVSR4vR2NMwsjmTbMhXTY5MxA3MNgLFtOzwMsK0CO813rU1x0LAAqfYvHQg0%2BRPQ5hXnLs/n2Xt%2B0HNgWFHcdJ2nWcf1bBd6GXVcVTrY0Nz5Z1iLFXd92IQ8uGPJjCPPe4LQ9AAlPdJUwdlAmAKdwz9IEkl9f0XwURixT/S040ApMUzTQzHAnPAAC9MBQzjHW40D8NE%2BC2Qw4A9xshtcObDYAFZ9k2BNzyMjRYO3SImCUDy0KbETOxaJReKg/M8BEyTSKvAhwraFVNi4HT9mjYwl2QGt2PXcpxxaUKxQlKUbS8XyeVlccMKq%2By0v2ZRJUETB0BATMBrVNVJH2Ea/L8gV9kmgAOfZpovVtr0yoFsseLx8r0/VWtoQKCrwYgxiiuy0yqisgLDdAjuQTcn12oJVAIK7Kp25tHM7WrBDLWVGpVHD9m2zcOq6xlev6oRWEwKdg3onVGItRdWKuwGJOLD6CC%2B1U1h8xwGACMZ%2BtlZHW1oPBDv0plm3tEmxli/TrTK%2BtqYp1LL1Ir0fSUzSEWDUMHA2kh/zA4CTITMyszTaDoMLN6S2c8tK2rDyma86rCK3Tsez7Q1KOHYgxwnVApxnWp8uYpcGBXJXSeZniCL4vcDyPW3RLPBb3XS29InvJTHy5uMImjSHDFQAgEEiJ8AwRfmY3J/6qvOmgDsehnjSZm7TrAc6HCtsZ052877uTjYOOMZXbte4i5cQz3ahzghnpatrVfbRLNYoodqL12jDfok3EoRi22OLqnraJ7cdwdwSnfVsS3f2D1sDUxSI606PBYBhP9rJ4fGdH%2BzbrOozs5T0u97TGWxTljevD8gKgPOkKL5LeOj7U6yT7LtrabFeLMESl/kyFzrs9ImHUMpZRSDlPKUYSBFQxKVHeqdrYgKfmjDGDUb5NVVI3F6tMPTAx6n1AaXBsKkJGmNfYE0ppzTmnPJaECBA5XWjAmOW0AF7STnXPO8ss7hi4fvdhQCP7IPLqrNB9UfrNTjrg527tOrdUykQ8GbAoZG1QLDOeA9LbCNzu1FGrZxG/SxjjAAskwOIBNVRj3nqRRM5QDC7inMycx%2BxgQQljpiTAI5oYqQUAgWcK9ub5TJGxRktF/G1ANPaEJtMrRF1tNElxejXRyJvHeZefsCDaRYYLQywscymQghLfMUtVZVzAEhL2HkQnoVwtBAaFcCItztjYsiWsBwdxogbNRfcWlaKHgk%2BsITrGdn4o7YSsi2wCnEik1pi8IoZOfEEnJsc8nGQKaLIpGzJZGQCk/cKkUT41Jis7DqMkCByQUhpJZQY16rN2pBQp4scyS2SqFZpok/EBI3kZNy8SS7HOlt/UsbIv4tMMd9TBIBJHYMtDg6xrtWbyJBkQrg3hsIgACpIEA40YhTRALNaaIAACcdD0rLTfJAx4JCICZODAIWgI5ZjRzgSVap5iUHEQhZjTBv14XJLkQQxR/UAp%2BVmmqaI%2BxSX6NSRS1aWw1S0puVk5SPJPHeOZSw1lCDBnGmOeqzlBFuUYJ8n1GFf0MIGukdY/BCjQYYqxTi/Fs00Vqh8niol0rZn0JWlSrYmw7lfMiT85Midt66uMMMgRO1D7JmPogyNSSTr5yMkIhNxym6oIUegxq0LeVSMtV44wel00cvLvyvBpEhX2uUUHaGM4NEyv2P09lcRQGo2zRI7G7Q9yWLVAKic7lY6U3rEoAgsSGD0wTWO9ti0PbpOuZHW5Kz9RrMeZs55oFXkwSfuUyptcT5jpVk/D54827a06V3bpvc5x9JYoPDyM6B2jMnkJYFiLvWkXmepTmyrsm/gFvch%2BIsMybvTCU3ZqsDnv2nXuLyLM537HOZcxZS6sl3NXQ8kD4EwPbqBcWU9ss4whv2H8x9cGTkzzlmC0SNVO1GPzbCgGA6P2CrtaishlDqHzSbT6yljDqUsuKjqkuR7y5cvo5C01fLrUDttSi/qw1qEkLFWS/Y4DfUCYVRh4j7Cw3/PtE%2B5NPCj58MPXubhBdMAPXI/XURWa6oMekwWr%2Bkz5OELBhDVRMNMBw2LC28zNsXQWmNcYhg3ZiBYF3DyEJfabW2PsTUIOh4SBRd6s4ttbjQ4eK8T4nkQamR0vyqgEJ/5wkBJHcaEr5iJ1TojdVttySwE129oE5dAHWEGSw9snDkE8NlIQhUlrHkGu1PA6BEhjSXZERaeejpVEul0WNre2jzb73aITQ1kZJYxlTwmTPD9HVv2odXiurrwGeti3XTs5MeziLQZG4C2dcjkN4Hkid5ZHXcnddAk8vrJS3ky0I2KAr1rzpkZPqNyjlcyw0fHqFqF5qxvMdpqx1p1bUXoq8Ji0aTr3WSoFASuaJK1Maf44eal%2BwlVofpQwRlmqOvase2WuHJYEfOaY65rc7nhWkNFfsSVs0vVgLlX6zYiq6Wqv2OqhQDPWyFWE8zuI44rWs7o45qTZrGMWqtSjtzVb2P9VdQ63HuKCdE89aT0XWnNgBpWaDkj%2BmlfcNjRdZ30a7rWYM/WKHmaJMa55aavNHOddFpLfVjNL0K36%2BRR5/YtbvMNt81bhhKWdTECceqnchg3LjmYGwRlBViAldIRAHYbgkg6mbKGSatLVAvEr5gOXukBbEQd3pre3uqvHP7S1IERhMBFRUpvThkPjmTWfQfTORl%2B9uSH%2BgYFgivdK8Na2Bzn0JGI%2B1y1dVxbAObcj7yaP3ODcKZN9is3mj1sDJLltprHaA8NW7RFtL%2BXe2/WsYkId%2BpKvGC/%2BOyZOJEbIzU5JFNJL2D7dreXQDTDC7X7Ddf7PMHdGHNkauZCSHMTaWZuGbVbObHWTufWJbBifua/YAizSfe2ASN9SZU8aZNTY7RdU7L7IDYKbDK7EDCDW7KDN%2BMguzIFUAxDV7d7Rgz7aAzrACH7MCdgl5AHZAgjHAuCXTFNZMCHTbTA7bajXBcFSTQPLBC1LnC0NHHne1EhJTKhHjT9dTa3CnLYaBRnRXDAijNXcUHQk1PQ4/IGQ3QaUaLjGaFPTTGw8XHTJkR3TvXgl3afONMzNQ8g4zKzGzRwuzP3I1VwpHWTStWPXnBPCKNRRtSwsnbKdRcOX2ZVbPAfPPCGQvKgYvFgUvcvGEPAKvEMQ2WvazBvRopvNeSuJQ3aJ3RI8cXvf6WfQfBwXosI/o6hSfDOc6YY%2BfRfZQ/YNNerMTVndfdGTfEPDwpFDHRTHwnyK/c2DbZY2I05Og%2B4DgeYWgTgHyXgTwbgXgVATgMyHEJYFYKBXgAgTQC4%2BYMOJgKLSgeYTEGIaac4HyAUKQLwaaMEiEqEgUfQTgSQW4r40gR4jgXgX4DQUgT4jgLQeYOAWAJAazcoPsEgcgSgGoYABQZQQwFoIQfxYEO4ngUgZEOIOgcnakoIWgOk1ABk5ElkugPoZAYALgbBfk%2BgYgYICGTgXgMUyIcibk3knE3gIk5AO4YgSk6U0gFUqoH0TU/gQQEQMQdgKQGQQQRQFQdQJU0gXQLgfQHPEAUwYwcwEmMIX4SAeYVAOINoX4NElE9PSULAN0iAeYYgVwQQPANgAAFVQBcCDPmBeOWGNIGB9A5NpPpMZI%2BN3FWCZOBCBAsXuMuOuKRKtNROwFUGJKVH2FUGmmiAAFpogRpgAqRMx1pFVHBxxcBCASAoFZgPivjZgfilx/jgzSAgTcpzhJBIToTJzYSIS4SriOBETSA7itAUTNSMSsT%2BzCyOAvBizVzUS%2BylSBzSB08kg7BJAgA%3D%3D).
 
 ## Rationale
 
 Traditionally, C container libraries require users to define types for every container/content type combination and to specify the container type and (often) the content types (whether by casting, type-specific function names, or some other mechanism) at every API call. This causes verbosity and syntax noise.
 
-In contrast, **CC** requires no type definitions and provides an API agnostic to container and content types. The result is simpler, more readable code. The following table compares **CC** usage to other container library paradigms.
+In contrast, **CC** requires no boilerplate type definitions and provides an type-safe API agnostic to container and content types. The result is simpler, more readable code. The following table compares **CC** usage to other container library patterns.
 
 <table>
 <tr>
@@ -58,7 +59,7 @@ int main( void )
 
 </td>
 <td valign="top">
-Template-instantiation paradigm:
+Template-instantiation pattern:
 
 ```c
 #include <stdio.h>
@@ -88,7 +89,7 @@ int main( void )
 </tr>
 <tr>
 <td valign="top">
-Typed-pointer/hidden-metadata paradigm:
+Typed-pointer/hidden-metadata pattern:
 
 ```c
 #include <stdio.h>
@@ -116,7 +117,7 @@ int main( void )
 
 </td>
 <td valign="top">
-<code>void</code>-pointers paradigm:
+<code>void</code>-pointers pattern:
 
 ```c
 #include <stdio.h>
@@ -256,7 +257,7 @@ int main( void )
 
 ### Map
 
-A `map` is an unordered associative container mapping elements to keys, implemented as a hybird open-addressing, chained hash table that is also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
+A `map` is an unordered associative container mapping elements to keys, implemented as a hybrid open-addressing, chained hash table that is also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
 
 ```c
 #include <stdio.h>
@@ -312,7 +313,7 @@ int main( void )
 
 ### Set
 
-A `set` is an unordered associative container for elements without a separate key, implemented as a hybird open-addressing, chained hash table also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
+A `set` is an unordered associative container for elements without a separate key, implemented as a hybrid open-addressing, chained hash table also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
 
 ```c
 #include <stdio.h>
@@ -584,7 +585,7 @@ int main( void )
 
 ### Destructors
 
-**CC** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element (or key) of the associated type is removed from a container.
+**CC** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element (or key) of the associated type is removed from a container. Typically, a destructor frees the dynamic memory owned by key or element.
 
 ```c
 #include <stdio.h>
@@ -642,7 +643,7 @@ int main( void )
 
 ### Custom hash and comparison functions
 
-**CC** includes default hash and comparison functions for fundamental integer types and null-terminated strings (`char *` and `const char *`). Hence, these types can be used as map and ordered map keys, and set and ordered set elements, straight away.
+**CC** includes default hash and comparison functions for fundamental integer types, null-terminated C strings (`char *` and `const char *`), and **CC** strings. Hence, these types can be used as map and ordered map keys, and set and ordered set elements, straight away.
 
 To use other types or overwrite the default functions for the aforementioned types, define custom hash and/or comparison functions with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )`, respectively.
 
@@ -680,9 +681,9 @@ int main( void )
 
 To this end, **CC** defines default hash, comparison, and resource-freeing destructor functions for all **CC** string types.
 
-Additionally, when **CC** strings are used as the key and/or element type of another container, many API macros that operate on that container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In that case, **CC** automatically handles the conversion of the C string into a **CC** string. This functionality is called "heterogeneous" insertion and look-up.
+Additionally, when **CC** strings are used as the key and/or element type of another container, most API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, **CC** automatically handles the conversion of the C string into a **CC** string. This functionality is called "heterogeneous" insertion and look-up. The API macros that support heterogeneous string insertion are `push`, `insert`, and `get_or_insert`, while those that support heterogeneous string look-up are `get` and `erase`.
 
-The following example demonstrates how **CC** strings might be used with a map:
+The following example demonstrates how **CC** strings can be used with a map:
 
 ```c
 #include <stdio.h>
@@ -721,6 +722,7 @@ int main( void )
   // fails).
   if( !insert( &our_map, "Japan", "Tokyo" ) )
   {
+    // Out of memory, so abort.
     cleanup( &our_map );
     return 1;
   }
@@ -730,6 +732,7 @@ int main( void )
   init( &our_str_lookup_key );
   if( !push_fmt( &our_str_lookup_key, "Japan" ) )
   {
+    // Out of memory, so abort.
     cleanup( &our_str_lookup_key );
     cleanup( &our_map );
     return 1;
@@ -748,10 +751,6 @@ int main( void )
   cleanup( &our_map );
 }
 ```
-
-The API macros that support heterogeneous string insertion are `push`, `insert`, and `get_or_insert`.
-
-The API macros that support heterogeneous string look-up are `get` and `erase`.
 
 ### Custom allocation and free functions
 
@@ -851,4 +850,4 @@ MSVC
 
 ### What's next?
 
-Future versions should include null-terminated dynamic strings and more performance benchmarks.
+TODO: LINK TO RELEVANT ISSUE.
