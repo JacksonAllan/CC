@@ -5,6 +5,24 @@
 </picture>
 </div>
 
+<p align="center">
+[Overview](#Overview)
+·
+[Rationale](#Rationale)
+·
+[Installation](#Installation)
+·
+[Simple examples](#Simple-examples)
+·
+[Advanced examples](#Advanced-examples)
+·
+[API Reference](api_reference.md)
+·
+[FAQ](#FAQ)
+·
+[Support and contribute](#Support-and-contribute)
+</p>
+
 ## Overview
 Convenient Containers (**CC**) is an ergonomic, high-performance generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, **unordered sets**, **ordered maps**, **ordered sets**, and **null-terminated strings**.
 
@@ -851,3 +869,11 @@ MSVC
 ### What's next?
 
 TODO: LINK TO RELEVANT ISSUE.
+
+## Support and contribute
+
+There are several ways that you can support **CC**:
+
+* Star the repository.
+* [Report](https://github.com/JacksonAllan/CC/issues) any issues or bugs you find when using **CC**.
+* Sponsor or donate TODO: ADD LINK WHEN READY to **CC**'s continued development.
