@@ -874,6 +874,6 @@ TODO: LINK TO RELEVANT ISSUE.
 
 There are several ways that you can support **CC**:
 
-* Star the repository.
-* [Report](https://github.com/JacksonAllan/CC/issues) any issues or bugs you find when using **CC**.
-* Sponsor or donate TODO: ADD LINK WHEN READY to **CC**'s continued development.
+* Star this repository ⭐.
+* [Report](https://github.com/JacksonAllan/CC/issues) any issues or bugs you find when using the library.
+* Sponsor or donate TODO: ADD LINK WHEN READY to the library's continued development.
