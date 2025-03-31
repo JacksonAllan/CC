@@ -6,12 +6,12 @@
 </div>
 
 ## Overview
-Convenient Containers (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, **unordered sets**, **ordered maps**, **ordered sets**, and **null-terminated strings**.
+Convenient Containers (**CC**) is an ergonomic, high-performance generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, **unordered sets**, **ordered maps**, **ordered sets**, and **null-terminated strings**.
 
 Its features include:
 
 * Fully generic API.
-* Full type safety without boilerplate container-type definitions.
+* Type safety without boilerplate container-type definitions.
 * User-defined destructor, comparison, and hash functions associated with element and key types.
 * No assumption of successful memory allocation.
 * Single header.
@@ -585,7 +585,7 @@ int main( void )
 
 ### Destructors
 
-**CC** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element (or key) of the associated type is removed from a container. Typically, a destructor frees the dynamic memory owned by key or element.
+**CC** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element (or key) of the associated type is removed from a container (except a **CC** string). Typically, a destructor frees the dynamic memory owned by key or element.
 
 ```c
 #include <stdio.h>
@@ -679,7 +679,7 @@ int main( void )
 
 **CC** strings are designed for easy interoperability with other **CC** containers.
 
-To this end, **CC** defines default hash, comparison, and resource-freeing destructor functions for all **CC** string types.
+To this end, **CC** defines default hash, comparison, and memory-freeing destructor functions for all **CC** string types.
 
 Additionally, when **CC** strings are used as the key and/or element type of another container, most API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, **CC** automatically handles the conversion of the C string into a **CC** string. This functionality is called "heterogeneous" insertion and look-up. The API macros that support heterogeneous string insertion are `push`, `insert`, and `get_or_insert`, while those that support heterogeneous string look-up are `get` and `erase`.
 

@@ -1,23 +1,22 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.3.1 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.4.0 -------------------------------------------
 
-This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, unordered sets,
-ordered maps, ordered sets, and null-terminated strings).
+This library provides ergonomic, high-performance generic containers (vectors, linked lists, unordered maps, unordered
+sets, ordered maps, ordered sets, and null-terminated strings).
 
 Features:
 
-* Fully generic API (no need to specify element or key type except when first declaring a container)
-* No need to pre-declare container types per element or key/element pair
-* Type safety
-* User-defined destructor, comparison, and hash functions associated with element and key types
-* Handles memory allocation failure
-* Single header
-* Compiles in C and C++
+* Fully generic API.
+* Type safety without boilerplate container-type definitions.
+* User-defined destructor, comparison, and hash functions associated with element and key types.
+* No assumption of successful memory allocation.
+* Single header.
+* Compiles in C and C++.
 
 It requires C23, or C11 and compiler support for __typeof__, or C++11.
 
 It has been tested with GCC, Clang, MinGW, and MSVC.
 
-Usage example:
+Simple usage example (for more advanced examples, see https://github.com/JacksonAllan/CC):
 
   +---------------------------------------------------------+----------------------------------------------------------+
   | Vector:                                                 | List:                                                    |
@@ -203,7 +202,82 @@ Usage example:
   +---------------------------------------------------------+----------------------------------------------------------+
   | String:                                                 |
   |---------------------------------------------------------|
-  | TODO                                                    |
+  | #include <stdio.h>                                      |
+  | #include "cc.h"                                         |
+  |                                                         |
+  | int main( void )                                        |
+  | {                                                       |
+  |   str( char ) our_str;                                  |
+  |   init( &our_str );                                     |
+  |                                                         |
+  |   // Appending formatted data.                          |
+  |   const char model[] = "Hornet CB900F";                 |
+  |   const char manufacturer[] = "Honda";                  |
+  |   unsigned int year_introduced = 2002;                  |
+  |   unsigned int year_discontinued = 2007;                |
+  |   double horsepower = 103.0;                            |
+  |   double torque = 84.9;                                 |
+  |   if(                                                   |
+  |     !push_fmt(                                          |
+  |       &our_str, "The ", model,                          |
+  |       " is a motorcycle that was manufactured by ",     |
+  |       manufacturer, " from ", year_introduced, " to ",  |
+  |       year_discontinued, ".\nIt makes ", horsepower,    |
+  |       "hp and ", torque, "Nm of torque.\n"              |
+  |     )                                                   |
+  |   )                                                     |
+  |   {                                                     |
+  |     // Out of memory, so abort.                         |
+  |     cleanup( &our_str );                                |
+  |     return 1;                                           |
+  |   }                                                     |
+  |                                                         |
+  |   // Inserting formatted data at an index.              |
+  |   const char alternative_model_name[] = "919";          |
+  |   if(                                                   |
+  |     !insert_fmt(                                        |
+  |       &our_str, 17, ", also known as the ",             |
+  |       alternative_model_name, ","                       |
+  |     )                                                   |
+  |   )                                                     |
+  |   {                                                     |
+  |     // Out of memory, so abort.                         |
+  |     cleanup( &our_str );                                |
+  |     return 1;                                           |
+  |   }                                                     |
+  |                                                         |
+  |   printf( first( &our_str ) );                          |
+  |   // Printed:                                           |
+  |   //   The Hornet CB900F, also known as the 919, is a   |
+  |   //   motorcycle that was manufactured by Honda from   |
+  |   //   2002 to 2007.                                    |
+  |   //   It makes 103.00hp and 84.90Nm of torque.         |
+  |                                                         |
+  |   // Erasing elements.                                  |
+  |   erase_n( &our_str, 108, 41 );                         |
+  |                                                         |
+  |   printf( first( &our_str ) );                          |
+  |   // Printed:                                           |
+  |   //   The Hornet CB900F, also known as the 919, is a   |
+  |   //   motorcycle that was manufactured by Honda from   |
+  |   //   2002 to 2007.                                    |
+  |                                                         |
+  |   // Iteration #1.                                      |
+  |   for_each( &our_str, el )                              |
+  |     printf( "%c", *el );                                |
+  |   // Printed: Same as above.                            |
+  |                                                         |
+  |   // Iteration #2.                                      |
+  |   for(                                                  |
+  |     char *el = first( &our_str );                       |
+  |     el != end( &our_str );                              |
+  |     el = next( &our_str, el )                           |
+  |   )                                                     |
+  |     printf( "%c", *el );                                |
+  |   // Printed: Same as above.                            |
+  |                                                         |
+  |   cleanup( &our_str );                                  |
+  | }                                                       |
   +---------------------------------------------------------+
 
 Including the library:
@@ -250,6 +324,15 @@ API:
 
       Initializes cntr for use.
       This call cannot fail (it does not allocate memory).
+
+    <any container type> initialized( <same container type> *cntr )
+
+      Returns an initialized instance of the same type as cntr.
+      This call cannot fail (it does not allocate memory).
+      The call is a constant expression and can therefore be used to initialize global containers at the site of their
+      declaration, e.g.:
+
+        vec( int ) our_vec = initialized( &our_vec );
 
     bool init_clone( <any container type> *cntr, <same container type> *src )
 
@@ -721,11 +804,12 @@ API:
     str( el_ty ) cntr
 
       Declares an uninitialized string named cntr.
-      el_ty must be char, unsigned char, char16_t, or char32_t.
+      el_ty must be char, unsigned char, signed char, char8_t, char16_t, or char32_t.
 
     size_t cap( str( el_ty ) *cntr )
 
-      Returns the current capacity, i.e. ...........
+      Returns the current capacity, i.e. the number of elements that the string can accommodate (not including the null
+      terminator) without reallocating its internal buffer.
 
     bool reserve( str( el_ty ) *cntr, size_t n )
 
@@ -748,20 +832,23 @@ API:
 
       Returns a pointer-iterator to the element at index i.
 
-    el_ty *push( str( el_ty ) *cntr, ... )
+    el_ty *push( str( el_ty ) *cntr, el_ty el )
+
+      Inserts el at the end of the string.
+      Returns a pointer-iterator to the new element, or NULL in the case of memory allocation failure.
+
+    el_ty *push_fmt( str( el_ty ) *cntr, ... )
 
       Inserts up to 32 formatted values, provided as variadic arguments, at the end of the string.
       Returns a pointer-iterator to the first new element, or NULL in the case of memory allocation failure.
       Each variadic argument must be one of the following:
 
         * A null-terminated array of elements of the same type as el_ty (i.e. a C string).
-        * A str( el_ty ).
+        * A pointer to a CC string with the same element type.
         * A bool.
         * A fundamental integer type (char, unsigned char, signed char, unsigned short, short, unsigned int, int,
           unsigned long, long, unsigned long long, or long long) or alias for such a type.
         * A fundamental floating-point type (float or double).
-        * The return value of set_float_precision( n ), where n specifies how many digits to include after the decimal
-          place when formatting all subsequent float and double arguments.
         * The return value of one of the following functions:
 
           * integer_dec( int min_digits )
@@ -809,15 +896,27 @@ API:
         * char -> long long or unsigned long long, depending on whether char is signed.
         * float -> double.
 
-    el_ty *push_n( str( el_ty ) *cntr, el_ty *els, size_t n ) TODO!!!!!!
+      By default, integer arguments are formatted as decimal integers with a minimum of one digit and floating point
+      arguments as formatted as decimal floating point numbers with two decimal places.
+
+      For formatting, C and CC strings of elements of the types char16_t and char32_t are assumed to encoded as UTF-16
+      and UTF-32, respectively.
+
+    el_ty *push_n( str( el_ty ) *cntr, el_ty *els, size_t n )
 
       Inserts n elements from array els at the end of the string.
       Returns a pointer-iterator to the first new element, or NULL in the case of memory allocation failure.
 
-    el_ty *insert( str( el_ty ) *cntr, size_t i, ... )
+    el_ty *insert( str( el_ty ) *cntr, size_t i, el_ty el )
+
+      Inserts el at index i.
+      Returns a pointer-iterator to the new element, or NULL in the case of memory allocation failure.
+
+    el_ty *insert_fmt( str( el_ty ) *cntr, size_t i, ... )
 
       Inserts up to 32 formatted values, provided as variadic arguments, at index i.
-      Each variadic argument must be one of the possibilities listed in the above documentation for push.
+      Each variadic argument must be one of the possibilities listed in the above documentation for push, and the same
+      type-promotions and encoding assumptions apply.
       Returns a pointer-iterator to the first new element, or NULL in the case of memory allocation failure.
 
     el_ty *insert_n( str( el_ty ) *cntr, size_t i, el_ty *els, size_t n )
@@ -850,8 +949,8 @@ API:
 
     This part of the API allows the user to define custom destructor, comparison, and hash functions and max load
     factors for a type.
-    Once these functions are defined, any container using that type for its elements or keys will call them
-    automatically.
+    Once these functions are defined, any container (except strings) using that type for its elements or keys will call
+    them automatically.
     Once the max load factor is defined, any map using the type for its keys and any set using the type for its elements
     will use the defined load factor to determine when rehashing is necessary.
 
@@ -900,12 +999,41 @@ API:
       top of your files.
     * In-built comparison and hash functions are already defined for the following types: char, unsigned char, signed
       char, unsigned short, short, unsigned int, int, unsigned long, long, unsigned long long, long long, size_t, and
-      null-terminated strings (char * and const char *). Defining a comparison or hash function for one of these types
-      will overwrite the in-built function.
+      null-terminated strings (char * and const char *), and CC strings. Defining a comparison or hash function for one
+      of these types will overwrite the in-built function.
+    * In-built, memory-freeing destructor functions are already defined for CC strings. Defining a destructor for a CC
+      string type will overwrite the in-built destructor.
+
+  Heterogeneous string insertion and look-up:
+
+    When CC strings are used as the key and/or element type of another container, most API macros that operate on the
+    container may alternatively take, as their key and/or element argument, a regular C string of the corresponding
+    character type. In this case, CC automatically handles the conversion of the C string into a CC string.
+    The API macros that support heterogeneous insertion are:
+      * push
+      * insert
+      * get_or_insert
+    The API macros that support heterogeneous look-up are:
+      * get
+      * erase
+
+    Trivial example:
+
+      map( str( char ), str( char ) ) our_map = initialized( &our_map );
+      if( insert( &our_map, "France", "Paris" ) ) // Heterogeneous insertion.
+      {
+        str( char ) *el = get( &our_map, "France" ); Heterogeneous look-up.
+        printf( first( el ) );
+        // Printed: Paris
+      }
 
 Version history:
 
-  23/08/2024 1.4.0: 
+  --/--/2025 1.4.0: Added CC strings.
+                    Added cc_initialized for in-situ initialization of global containers.
+                    Added support for const char * keys.
+                    Added support for -Wextra and -Wconversion compiler flags.
+  11/02/2025 1.3.2: Fixed a critical bug causing maps to call the wrong destructors during cleanup.
   23/08/2024 1.3.1: Fixed missing static inline qualifier on an internal omap function.
   29/07/2024 1.3.0: Added ordered map and ordered set.
                     Fixed cc_erase_itr to return a correctly typed pointer-iterator instead of void *. 
