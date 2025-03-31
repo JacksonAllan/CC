@@ -8851,18 +8851,6 @@ static inline size_t cc_hash_cstring( void *void_val )
 // * We truncate the result to a size_t rather than returning a 128-bit hash.
 // * We do not address endianness, so the result will differ depending on whether the platform is little or big endian.
 
-#ifdef __GNUC__
-#define CC_ASSUME_ALIGNED( ptr, alignment ) __builtin_assume_aligned( ptr, alignment )
-#elif defined( _MSC_VER )
-static inline void *CC_ASSUME_ALIGNED( void *ptr, size_t alignment )
-{
-  __assume( (uintptr_t)ptr % alignment == 0 );
-  return ptr;
-}
-#else
-#define CC_ASSUME_ALIGNED( ptr, alignment ) (void *)ptr
-#endif
-
 #if defined(__GNUC__) && __GNUC__ >= 7
 #define CC_FALLTHROUGH __attribute__((fallthrough))
 #elif defined( _MSC_VER ) && !defined( __clang__ )
@@ -8884,8 +8872,8 @@ static inline size_t cc_MurmurHash3_x64_128_truncated( void *bytes, size_t byte_
   {
     uint64_t k1;
     uint64_t k2;
-    memcpy( &k1, __builtin_assume_aligned( data, 8 ), 8 );
-    memcpy( &k2, __builtin_assume_aligned( data + 8, 8 ), 8 );
+    memcpy( &k1, data, 8 );
+    memcpy( &k2, data + 8, 8 );
 
     k1 *= c1;
     k1  = ( k1 << 31 ) | ( k1 >> 33 );

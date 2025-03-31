@@ -1,28 +1,27 @@
 <div align="center">
 <picture>
-<source media="(prefers-color-scheme: dark)" srcset="logo_dark.svg">
-<img src="logo_light.svg" alt="Convenient Containers">
+<source media="(prefers-color-scheme: dark)" srcset="images/logo_dark.svg">
+<img src="images/logo_light.svg" alt="Convenient Containers">
 </picture>
 </div>
-
-<h6 align="center">
-
-[Overview](#Overview)
-·
-[Rationale](#Rationale)
-·
-[Installation](#Installation)
-·
-[Simple examples](#Simple-examples)
-·
-[Advanced examples](#Advanced-examples)
-·
-[API Reference](api_reference.md)
-·
-[FAQ](#FAQ)
-·
-[Support and contribute](#Support-and-contribute)
-</h6>
+<br>
+<div align="center">
+<a href="#Overview"><picture><source media="(prefers-color-scheme: dark)" srcset="images/overview_dark.svg"><img src="images/overview_light.svg" alt="Overview"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#Rationale"><picture><source media="(prefers-color-scheme: dark)" srcset="images/rationale_dark.svg"><img src="images/rationale_light.svg" alt="Rationale"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#Installation"><picture><source media="(prefers-color-scheme: dark)" srcset="images/installation_dark.svg"><img src="images/installation_light.svg" alt="Installation"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#Simple-Examples"><picture><source media="(prefers-color-scheme: dark)" srcset="images/simple_examples_dark.svg"><img src="images/simple_examples_light.svg" alt="Simple Examples"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#Advanced-Examples"><picture><source media="(prefers-color-scheme: dark)" srcset="images/advanced_examples_dark.svg"><img src="images/advanced_examples_light.svg" alt="Advanced Examples"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#API-Reference"><picture><source media="(prefers-color-scheme: dark)" srcset="images/api_reference_dark.svg"><img src="images/api_reference_light.svg" alt="API Reference"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#FAQ"><picture><source media="(prefers-color-scheme: dark)" srcset="images/faq_dark.svg"><img src="images/faq_light.svg" alt="FAQ"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#Support-and-Contribute"><picture><source media="(prefers-color-scheme: dark)" srcset="images/support_and_contribute_dark.svg"><img src="images/support_and_contribute_light.svg" alt="Support and Contribute"/></picture></a>
+</div>
 
 ## Overview
 Convenient Containers (**CC**) is an ergonomic, high-performance generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, **unordered sets**, **ordered maps**, **ordered sets**, and **null-terminated strings**.
@@ -166,7 +165,7 @@ int main( void )
 
 Just [download](cc.h?raw=1) `cc.h` and place it in your project's directory or your shared header directory.
 
-## Simple examples
+## Simple Examples
 
 ### Vector
 
@@ -505,7 +504,7 @@ int main( void )
 
 ### String
 
-An `str` a dynamic, null-terminated array representing a sequence of characters.
+An `str` is a dynamic, null-terminated array representing a sequence of characters.
 
 ```c
 #include <stdio.h>
@@ -574,7 +573,7 @@ int main( void )
 
 ```
 
-## Advanced examples
+## Advanced Examples
 
 ### Prefixed API
 
@@ -604,7 +603,7 @@ int main( void )
 
 ### Destructors
 
-**CC** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element (or key) of the associated type is removed from a container (except a **CC** string). Typically, a destructor frees the dynamic memory owned by key or element.
+**CC** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element (or key) of the associated type is removed from a container (except a **CC** string). Typically, a destructor frees the dynamic memory owned by the key or element.
 
 ```c
 #include <stdio.h>
@@ -700,7 +699,7 @@ int main( void )
 
 To this end, **CC** defines default hash, comparison, and memory-freeing destructor functions for all **CC** string types.
 
-Additionally, when **CC** strings are used as the key and/or element type of another container, most API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, **CC** automatically handles the conversion of the C string into a **CC** string. This functionality is called "heterogeneous" insertion and look-up. The API macros that support heterogeneous string insertion are `push`, `insert`, and `get_or_insert`, while those that support heterogeneous string look-up are `get` and `erase`.
+Additionally, when **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, **CC** automatically handles the conversion of the C string into a **CC** string. This functionality is called "heterogeneous" insertion and look-up. The API macros that support heterogeneous insertion are `push`, `insert`, and `get_or_insert`, while those that support heterogeneous look-up are `get` and `erase`.
 
 The following example demonstrates how **CC** strings can be used with a map:
 
@@ -871,7 +870,7 @@ MSVC
 
 TODO: LINK TO RELEVANT ISSUE.
 
-## Support and contribute
+## Support and Contribute
 
 There are several ways that you can support **CC**:
 
