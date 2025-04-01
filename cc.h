@@ -804,7 +804,7 @@ API:
     str( el_ty ) cntr
 
       Declares an uninitialized string named cntr.
-      el_ty must be char, unsigned char, signed char, char8_t, char16_t, or char32_t.
+      el_ty must be char, unsigned char, signed char, char8_t, char16_t, char32_t, or an alias for one of these types.
 
     size_t cap( str( el_ty ) *cntr )
 

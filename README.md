@@ -876,4 +876,4 @@ There are several ways that you can support **CC**:
 
 * Star this repository ⭐.
 * [Report](https://github.com/JacksonAllan/CC/issues) any issues or bugs you find when using the library.
-* Sponsor or donate TODO: ADD LINK WHEN READY to the library's continued development.
+* [Sponsor or donate](TODO) to the library's continued development.

@@ -876,6 +876,199 @@ This macro declares an `el_ty *` pointer-iterator named `i_name`.
 It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )` and should be followed by the body of the loop.
 </dd></dl>
 
+## String
+
+An `str` is a dynamic, null-terminated array representing a sequence of characters.
+
+Default hash, comparison, and memory-freeing destructor functions for all **CC** string types.
+
+When **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. For more details, see [TODO]().
+
+String pointer-iterators (including `end`) are invalidated by any API calls that cause memory reallocation.
+
+The following function-like macros operate on strings:
+
+```c
+str( el_ty ) cntr
+```
+
+<dl><dd>
+
+Declares an uninitialized string named `cntr`.  
+`el_ty` must be `char`, `unsigned char`, `signed char`, `char8_t`, `char16_t`, `char32_t`, or an alias for one of these types.
+</dd></dl>
+
+```c
+size_t cap( str( el_ty ) *cntr )
+```
+
+<dl><dd>
+
+Returns the current capacity, i.e. the number of elements that the string can accommodate (not including the null terminator) without reallocating its internal buffer.
+</dd></dl>
+
+```c
+bool reserve( str( el_ty ) *cntr, size_t n )
+```
+
+<dl><dd>
+
+Ensures that the the capacity is large enough to accommodate `n` elements.  
+Returns `true`, or `false` if unsuccessful due to memory allocation failure.
+</dd></dl>
+
+```c
+bool resize( str( el_ty ) *cntr, size_t n, el_ty fill_character )
+```
+
+<dl><dd>
+
+Sets the number of elements to `n`.
+If `n` is above the current size, the new elements are initialized to `fill_character`.  
+If `n` is below the current size, no destructor is called for any erased element, even if a destructor for the element type has been defined.  
+Returns `true`, or `false` if unsuccessful due to memory allocation failure.
+</dd></dl>
+
+```c
+bool shrink( str( el_ty ) *cntr )
+```
+
+<dl><dd>
+
+Shrinks the capacity to the current size.  
+Returns `true`, or `false` if unsuccessful due to memory allocation failure.
+</dd></dl>
+
+```c
+el_ty *get( str( el_ty ) *cntr, size_t i )
+```
+
+<dl><dd>
+
+Returns a pointer-iterator to the element at index `i`.
+</dd></dl>
+
+```c
+el_ty *push( str( el_ty ) *cntr, el_ty el )
+```
+
+<dl><dd>
+
+Inserts `el` at the end of the string.  
+Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.
+</dd></dl>
+
+```c
+el_ty *push_fmt( str( el_ty ) *cntr, ... )
+```
+
+<dl><dd>
+
+Inserts up to 32 formatted values, provided as variadic arguments, at the end of the string.  
+Returns a pointer-iterator to the first new element, or `NULL` in the case of memory allocation failure.  
+Each variadic argument must be one of the following:
+
+* A null-terminated array of elements of the same type as `el_ty` (i.e. a C string).
+* A pointer to a CC string with the same element type.
+* A bool.
+* A fundamental integer type (`char`, `unsigned char`, `signed char`, `unsigned short`, `short`, `unsigned int`, `int`, `unsigned long`, `long`, `unsigned long long`, or `long long`) or alias for such a type.
+* A fundamental floating-point type (`float` or `double`).
+* The return value of one of the following functions:
+
+  * `integer_dec( int min_digits )`  
+
+    Causes subsequent integer arguments to be formatted as decimal integers.  
+    `min_digits` specifies the minimum number of digits, and if the formatted integer is shorter than this number, it is padded with leading zeros.
+
+  * `integer_hex( int min_digits )`
+
+    Causes subsequent integer arguments to be formatted as unsigned hexadecimal integers.  
+    `min_digits` specifies the minimum number of digits, and if the formatted integer is shorter than this number, it is padded with leading zeros.
+
+  * `integer_oct( int min_digits )`
+
+    Causes subsequent integer arguments to be formatted as unsigned octal integers.  
+    `min_digits` specifies the minimum number of digits, and if the formatted integer is shorter than this number, it is padded with leading zeros.
+
+  * `float_dec( int precision )`
+
+    Causes subsequent floating point arguments to be formatted as decimal floating point numbers.  
+    `precision` specifies number of decimal places to include.
+
+  * `float_hex( int precision )`
+
+    Causes subsequent floating point arguments to be formatted as hexadecimal floating point numbers.  
+    `precision` specifies number of decimal places to include.
+
+  * `float_sci( int precision )`
+
+    Causes subsequent floating point arguments to be formatted using scientific notation.  
+    `precision` specifies number of decimal places to include.
+
+  * `float_shortest( int significant_digits )`
+
+    Causes subsequent floating point arguments to be formatted as decimal floating point numbers or using scientific notation, depending on which representation is shorter.  
+    `significant_digits` specifies maximum number of significant digits to include.
+
+  Arguments are type-promoted as follows:
+    * `bool`, `unsigned char`, `unsigned short`, `unsigned int`, `unsigned long` -> `unsigned long long`.
+    * `signed char`, `short`, `int`, `long`, -> `long long`.
+    * `char` -> `long long` or `unsigned long long`, depending on whether `char` is signed.
+    * `float` -> `double`.
+
+  By default, integer arguments are formatted as decimal integers with a minimum of one digit and floating point arguments as formatted as decimal floating point numbers with two decimal places.  
+
+  For formatting, C and CC strings of elements of the types `char16_t` and `char32_t` are assumed to encoded as UTF-16 and UTF-32, respectively.
+</dd></dl>
+
+    el_ty *push_n( str( el_ty ) *cntr, el_ty *els, size_t n )
+
+      Inserts n elements from array els at the end of the string.
+      Returns a pointer-iterator to the first new element, or NULL in the case of memory allocation failure.
+
+    el_ty *insert( str( el_ty ) *cntr, size_t i, el_ty el )
+
+      Inserts el at index i.
+      Returns a pointer-iterator to the new element, or NULL in the case of memory allocation failure.
+
+    el_ty *insert_fmt( str( el_ty ) *cntr, size_t i, ... )
+
+      Inserts up to 32 formatted values, provided as variadic arguments, at index i.
+      Each variadic argument must be one of the possibilities listed in the above documentation for push, and the same
+      type-promotions and encoding assumptions apply.
+      Returns a pointer-iterator to the first new element, or NULL in the case of memory allocation failure.
+
+    el_ty *insert_n( str( el_ty ) *cntr, size_t i, el_ty *els, size_t n )
+
+      Inserts n elements from array els at index i.
+      Returns a pointer-iterator to the first new element, or NULL in the case of memory allocation failure.
+
+    el_ty *erase( str( el_ty ) *cntr, size_t i )
+
+      Erases the element at index i, calling the element type's destructor if it exists.
+      Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there
+      is no subsequent element.
+
+    el_ty *erase_n( str( el_ty ) *cntr, size_t i, size_t n )
+
+      Erases n elements beginning at index i, calling the element type's destructor, if it exists, for each
+      erased element.
+      Returns a pointer-iterator to the element after the erased elements, or an end pointer-iterator if there is no
+      subsequent element.
+
+    el_ty *last( str( el_ty ) *cntr )
+
+      Returns a pointer-iterator to the last element.
+      This call is synonymous with get( cntr, size( cntr ) - 1 ) and assumes that at the string is not empty.
+
+    Notes:
+    * String pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
+
+
+
+
+
+
 ## Destructor, comparison, and hash functions and custom max load factors
 
 This part of the API allows the user to define custom destructor, comparison, and hash functions and max load factors for a type.
