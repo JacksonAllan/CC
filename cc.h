@@ -442,7 +442,7 @@ API:
     el_ty *last( vec( el_ty ) *cntr )
 
       Returns a pointer-iterator to the last element.
-      This call is synonymous with get( cntr, size( cntr ) - 1 ) and assumes that at the vector is not empty.
+      This call is synonymous with get( cntr, size( cntr ) - 1 ) and assumes that the vector is not empty.
 
     Notes:
     * Vector pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
@@ -899,8 +899,8 @@ API:
       By default, integer arguments are formatted as decimal integers with a minimum of one digit and floating point
       arguments as formatted as decimal floating point numbers with two decimal places.
 
-      For formatting, C and CC strings of elements of the types char16_t and char32_t are assumed to encoded as UTF-16
-      and UTF-32, respectively.
+      For formatting, C and CC strings of elements of the types char16_t and char32_t are assumed to be encoded as
+      UTF-16 and UTF-32, respectively.
 
     el_ty *push_n( str( el_ty ) *cntr, el_ty *els, size_t n )
 
@@ -932,15 +932,15 @@ API:
 
     el_ty *erase_n( str( el_ty ) *cntr, size_t i, size_t n )
 
-      Erases n elements beginning at index i, calling the element type's destructor, if it exists, for each
-      erased element.
+      Erases n elements beginning at index i.
+      No destructor is called for erased elements, even if a destructor for the element type has been defined.
       Returns a pointer-iterator to the element after the erased elements, or an end pointer-iterator if there is no
       subsequent element.
 
     el_ty *last( str( el_ty ) *cntr )
 
       Returns a pointer-iterator to the last element.
-      This call is synonymous with get( cntr, size( cntr ) - 1 ) and assumes that at the string is not empty.
+      This call is synonymous with get( cntr, size( cntr ) - 1 ) and assumes that the string is not empty.
 
     Notes:
     * String pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
@@ -1022,7 +1022,7 @@ API:
       map( str( char ), str( char ) ) our_map = initialized( &our_map );
       if( insert( &our_map, "France", "Paris" ) ) // Heterogeneous insertion.
       {
-        str( char ) *el = get( &our_map, "France" ); Heterogeneous look-up.
+        str( char ) *el = get( &our_map, "France" ); // Heterogeneous look-up.
         printf( first( el ) );
         // Printed: Paris
       }
