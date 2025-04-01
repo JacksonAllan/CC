@@ -1016,9 +1016,8 @@ Each variadic argument must be one of the following:
     * `char` -> `long long` or `unsigned long long`, depending on whether `char` is signed.
     * `float` -> `double`.
 
-  By default, integer arguments are formatted as decimal integers with a minimum of one digit and floating point arguments as formatted as decimal floating point numbers with two decimal places.  
-
-  For formatting, C and CC strings of elements of the types `char16_t` and `char32_t` are assumed to encoded as UTF-16 and UTF-32, respectively.
+By default, integer arguments are formatted as decimal integers with a minimum of one digit and floating point arguments as formatted as decimal floating point numbers with two decimal places.  
+For formatting, C and CC strings of elements of the types `char16_t` and `char32_t` are assumed to encoded as UTF-16 and UTF-32, respectively.
 </dd></dl>
 
     el_ty *push_n( str( el_ty ) *cntr, el_ty *els, size_t n )
