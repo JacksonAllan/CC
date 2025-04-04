@@ -980,10 +980,10 @@ Returns a pointer-iterator to the first new element, or `NULL` in the case of me
 Each variadic argument must be one of the following:
 
 * A null-terminated array of elements of the same type as `el_ty` (i.e. a C string).
-* A pointer to a CC string with the same element type.
-* A bool.
-* A fundamental integer type (`char`, `unsigned char`, `signed char`, `unsigned short`, `short`, `unsigned int`, `int`, `unsigned long`, `long`, `unsigned long long`, or `long long`) or alias for such a type.
+* A CC string with the same element type.
+* A fundamental integer type (`bool`, `char`, `unsigned char`, `signed char`, `unsigned short`, `short`, `unsigned int`, `int`, `unsigned long`, `long`, `unsigned long long`, or `long long`) or alias for such a type.
 * A fundamental floating-point type (`float` or `double`).
+* A `void` pointer (to be formatted as a memory address).
 * The return value of one of the following functions:
 
   * `integer_dec( int min_digits )`  

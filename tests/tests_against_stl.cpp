@@ -1104,7 +1104,7 @@ int main()
 
           cc_str( char ) m_as_cc_str = cc_initialized( &m_as_cc_str );
           UNTIL_SUCCESS( cc_push_fmt( &m_as_cc_str, m ) );
-          UNTIL_SUCCESS( cc_push_fmt( &our_str, a, b, c, d, e, f, g, h, i, j, k, l, m, &m_as_cc_str, n, o ) );
+          UNTIL_SUCCESS( cc_push_fmt( &our_str, a, b, c, d, e, f, g, h, i, j, k, l, m, m_as_cc_str, n, o ) );
           cc_cleanup( &m_as_cc_str );
         }
         break;
@@ -1152,7 +1152,7 @@ int main()
 
           cc_str( char ) m_as_cc_str = cc_initialized( &m_as_cc_str );
           UNTIL_SUCCESS( cc_push_fmt( &m_as_cc_str, m ) );
-          UNTIL_SUCCESS( cc_insert_fmt( &our_str, index, a, b, c, d, e, f, g, h, i, j, k, l, m, &m_as_cc_str, n, o ) );
+          UNTIL_SUCCESS( cc_insert_fmt( &our_str, index, a, b, c, d, e, f, g, h, i, j, k, l, m, m_as_cc_str, n, o ) );
           cc_cleanup( &m_as_cc_str );
         }
         break;

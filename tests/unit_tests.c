@@ -106,7 +106,7 @@ static void check_dtors_arr( void )
 typedef struct { int val; } custom_ty;
 #define CC_DTOR custom_ty, { dtor_called[ val.val ] = true; }
 #define CC_CMPR custom_ty, { return val_1.val < val_2.val ? -1 : val_1.val > val_2.val; }
-#define CC_HASH custom_ty, { return (size_t)val.val * 2654435761ull; }
+#define CC_HASH custom_ty, { return (size_t)( (unsigned long long)val.val * 2654435761ull ); }
 #define CC_LOAD custom_ty, 0.7
 #include "../cc.h"
 
@@ -4178,9 +4178,9 @@ static void test_str_insert_fmt( void )
   init( &our_other_str32 );
   UNTIL_SUCCESS( push_fmt( &our_other_str32, U"Test insert CC string: föóföóföó." ) );
 
-  UNTIL_SUCCESS( insert_fmt( &our_str8, 30, &our_other_str8 ) );
-  UNTIL_SUCCESS( insert_fmt( &our_str16, 30, &our_other_str16 ) );
-  UNTIL_SUCCESS( insert_fmt( &our_str32, 30, &our_other_str32 ) );
+  UNTIL_SUCCESS( insert_fmt( &our_str8, 30, our_other_str8 ) );
+  UNTIL_SUCCESS( insert_fmt( &our_str16, 30, our_other_str16 ) );
+  UNTIL_SUCCESS( insert_fmt( &our_str32, 30, our_other_str32 ) );
 
   // Maximum number of arguments.
 
@@ -4878,6 +4878,13 @@ static void test_str_init_clone( void )
   cleanup( &our_str32 );
 }
 
+#define STRING_LITERAL_CHAR( literal ) literal
+#define STRING_LITERAL_UNSIGNED_CHAR( literal ) (unsigned char *)literal
+#define STRING_LITERAL_SIGNED_CHAR( literal ) (signed char *)literal
+#define STRING_LITERAL_CHAR8( literal ) u8##literal
+#define STRING_LITERAL_CHAR16( literal ) u##literal
+#define STRING_LITERAL_CHAR32( literal ) U##literal
+
 #define TEST_STR_VEC_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )     \
 {                                                                                        \
   vec( str( ty ) ) our_vec;                                                              \
@@ -4932,6 +4939,19 @@ static void test_str_init_clone( void )
   cleanup( &our_vec );                                                                   \
 }                                                                                        \
 
+static void test_str_interoperability_vec( void )
+{
+  TEST_STR_VEC_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_VEC_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_VEC_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_VEC_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_VEC_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_VEC_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+}
+
 #define TEST_STR_LIST_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )         \
 {                                                                                             \
   list( str( ty ) ) our_list;                                                                 \
@@ -4985,6 +5005,19 @@ static void test_str_init_clone( void )
                                                                                               \
   cleanup( &our_list );                                                                       \
 }                                                                                             \
+
+static void test_str_interoperability_list( void )
+{
+  TEST_STR_LIST_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_LIST_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_LIST_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_LIST_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_LIST_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_LIST_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+}
 
 #define TEST_STR_MAP_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                                  \
 {                                                                                                                     \
@@ -5055,8 +5088,8 @@ static void test_str_init_clone( void )
   ALWAYS_ASSERT( erase( &our_map, string_literal_macro( "Medium-length string" ) ) );                                 \
   ALWAYS_ASSERT( erase( &our_map, string_literal_macro( "This here is a significantly longer string" ) ) );           \
   ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "Short string" ) ) );                                          \
-  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "Medium-length string" ) ) );            \
-  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "This here is a significantly longer string" ) ) );       \
+  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "Medium-length string" ) ) );                                  \
+  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "This here is a significantly longer string" ) ) );            \
                                                                                                                       \
   /* Heterogenous insert. */                                                                                          \
   UNTIL_SUCCESS( insert( &our_map, string_literal_macro( "Apple" ), string_literal_macro( "Potato" ) ) );             \
@@ -5085,6 +5118,19 @@ static void test_str_init_clone( void )
                                                                                                                       \
   cleanup( &our_map );                                                                                                \
 }                                                                                                                     \
+
+static void test_str_interoperability_map( void )
+{
+  TEST_STR_MAP_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_MAP_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_MAP_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_MAP_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_MAP_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_MAP_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+}
 
 #define TEST_STR_SET_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                             \
 {                                                                                                                \
@@ -5182,6 +5228,19 @@ static void test_str_init_clone( void )
                                                                                                                  \
   cleanup( &our_set );                                                                                           \
 }                                                                                                                \
+
+static void test_str_interoperability_set( void )
+{
+  TEST_STR_SET_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_SET_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_SET_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_SET_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_SET_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_SET_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+}
 
 #define TEST_STR_OMAP_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                                  \
 {                                                                                                                      \
@@ -5283,6 +5342,19 @@ static void test_str_init_clone( void )
   cleanup( &our_omap );                                                                                                \
 }                                                                                                                      \
 
+static void test_str_interoperability_omap( void )
+{
+  TEST_STR_OMAP_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_OMAP_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_OMAP_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_OMAP_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_OMAP_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_OMAP_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+}
+
 #define TEST_STR_OSET_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                            \
 {                                                                                                                \
   set( str( ty ) ) our_oset;                                                                                     \
@@ -5380,65 +5452,8 @@ static void test_str_init_clone( void )
   cleanup( &our_oset );                                                                                          \
 }                                                                                                                \
 
-#define STRING_LITERAL_CHAR( literal ) literal
-#define STRING_LITERAL_UNSIGNED_CHAR( literal ) (unsigned char *)literal
-#define STRING_LITERAL_SIGNED_CHAR( literal ) (signed char *)literal
-#define STRING_LITERAL_CHAR8( literal ) u8##literal
-#define STRING_LITERAL_CHAR16( literal ) u##literal
-#define STRING_LITERAL_CHAR32( literal ) U##literal
-
-static void test_str_interoperability( void )
+static void test_str_interoperability_oset( void )
 {
-  TEST_STR_VEC_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
-  TEST_STR_VEC_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
-  TEST_STR_VEC_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
-#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
-    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
-  TEST_STR_VEC_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
-#endif
-  TEST_STR_VEC_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
-  TEST_STR_VEC_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
-
-  TEST_STR_LIST_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
-  TEST_STR_LIST_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
-  TEST_STR_LIST_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
-#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
-    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
-  TEST_STR_LIST_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
-#endif
-  TEST_STR_LIST_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
-  TEST_STR_LIST_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
-
-  TEST_STR_MAP_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
-  TEST_STR_MAP_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
-  TEST_STR_MAP_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
-#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
-    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
-  TEST_STR_MAP_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
-#endif
-  TEST_STR_MAP_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
-  TEST_STR_MAP_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
-
-  TEST_STR_SET_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
-  TEST_STR_SET_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
-  TEST_STR_SET_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
-#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
-    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
-  TEST_STR_SET_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
-#endif
-  TEST_STR_SET_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
-  TEST_STR_SET_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
-
-  TEST_STR_OMAP_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
-  TEST_STR_OMAP_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
-  TEST_STR_OMAP_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
-#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
-    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
-  TEST_STR_OMAP_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
-#endif
-  TEST_STR_OMAP_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
-  TEST_STR_OMAP_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
-
   TEST_STR_OSET_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
   TEST_STR_OSET_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
   TEST_STR_OSET_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
@@ -5456,7 +5471,8 @@ int main( void )
 {
   srand( (unsigned int)time( NULL ) );
 
-  // Repeat 1000 times since realloc failures are random.
+  // Repeat the tests 1000 times since realloc failures are random.
+  printf( "Running unit tests...\n" );
   for( int i = 0; i < 1000; ++i )
   {
     #ifdef TEST_VEC
@@ -5577,7 +5593,12 @@ int main( void )
     test_str_cleanup();
     test_str_iteration();
     test_str_init_clone();
-    test_str_interoperability();
+    test_str_interoperability_vec();
+    test_str_interoperability_list();
+    test_str_interoperability_map();
+    test_str_interoperability_set();
+    test_str_interoperability_omap();
+    test_str_interoperability_oset();
     #endif
   }
 
