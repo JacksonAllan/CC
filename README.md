@@ -698,7 +698,7 @@ int main( void )
 
 To this end, **CC** defines default hash, comparison, and memory-freeing destructor functions for all **CC** string types.
 
-Additionally, when **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, **CC** automatically handles the conversion of the C string into a **CC** string. This functionality is called "heterogeneous" insertion and look-up. The API macros that support heterogeneous insertion are `push`, `insert`, and `get_or_insert`, while those that support heterogeneous look-up are `get` and `erase`.
+Additionally, when **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, **CC** automatically handles the conversion of the C string into a **CC** string. This functionality is called "heterogeneous" insertion and lookup. The API macros that support heterogeneous insertion are `push`, `insert`, and `get_or_insert`, while those that support heterogeneous lookup are `get` and `erase`.
 
 The following example demonstrates how **CC** strings can be used with a map:
 
@@ -744,7 +744,7 @@ int main( void )
     return 1;
   }
 
-  // Regular look-up using a CC string.
+  // Regular lookup using a CC string.
   str( char ) our_str_lookup_key;
   init( &our_str_lookup_key );
   if( !push_fmt( &our_str_lookup_key, "Japan" ) )
@@ -759,8 +759,8 @@ int main( void )
   printf( first( el ) );
   // Printed: Tokyo
 
-  // Heterogeneous look-up using a C string.
-  // Unlike regular look-up, heterogeneous look-up requires no dynamic memory allocation.
+  // Heterogeneous lookup using a C string.
+  // Unlike regular lookup, heterogeneous lookup requires no dynamic memory allocation.
   el = get( &our_map, "France" );
   printf( first( el ) );
   // Printed: Paris

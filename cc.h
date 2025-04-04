@@ -1004,7 +1004,7 @@ API:
     * In-built, memory-freeing destructor functions are already defined for CC strings. Defining a destructor for a CC
       string type will overwrite the in-built destructor.
 
-  Heterogeneous string insertion and look-up:
+  Heterogeneous string insertion and lookup:
 
     When CC strings are used as the key and/or element type of another container, most API macros that operate on the
     container may alternatively take, as their key and/or element argument, a regular C string of the corresponding
@@ -1013,7 +1013,7 @@ API:
       * push
       * insert
       * get_or_insert
-    The API macros that support heterogeneous look-up are:
+    The API macros that support heterogeneous lookup are:
       * get
       * erase
 
@@ -1022,7 +1022,7 @@ API:
       map( str( char ), str( char ) ) our_map = initialized( &our_map );
       if( insert( &our_map, "France", "Paris" ) ) // Heterogeneous insertion.
       {
-        str( char ) *el = get( &our_map, "France" ); // Heterogeneous look-up.
+        str( char ) *el = get( &our_map, "France" ); // Heterogeneous lookup.
         printf( first( el ) );
         // Printed: Paris
       }

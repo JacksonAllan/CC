@@ -893,7 +893,7 @@ An `str` is a dynamic, null-terminated array representing a sequence of characte
 
 Default hash, comparison, and memory-freeing destructor functions for all **CC** string types.
 
-When **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. For more details, see *Heterogeneous string insertion and look-up](#Heterogeneous-string-insertion-and-look-up* below.
+When **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. For more details, see *Heterogeneous string insertion and lookup](#Heterogeneous-string-insertion-and-lookup)* below.
 
 String pointer-iterators (including `end`) are invalidated by any API calls that cause memory reallocation.
 
@@ -1174,13 +1174,13 @@ Notes:
 * Including `cc.h` in these cases does not include the full header, so you still need to include it separately at the top of your files.
 * In-built comparison and hash functions are already defined for the following types: `char`, `unsigned char`, `signed char`, `unsigned short`, `short`, `unsigned int`, `int`, `unsigned long`, `long`, `unsigned long long`, `long long`, `size_t`, and null-terminated strings (`char *` and `const char *`). Defining a comparison or hash function for one of these types will overwrite the in-built function.
 
-## Heterogeneous string insertion and look-up
+## Heterogeneous string insertion and lookup
 
 When CC strings are used as the key and/or element type of another container, most API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, CC automatically handles the conversion of the C string into a CC string.
 
 The API macros that support heterogeneous insertion are `push`, `insert` and `get_or_insert`.
 
-The API macros that support heterogeneous look-up are `get` and `erase`.
+The API macros that support heterogeneous lookup are `get` and `erase`.
 
 Trivial example:
 
@@ -1188,7 +1188,7 @@ Trivial example:
 map( str( char ), str( char ) ) our_map = initialized( &our_map );
 if( insert( &our_map, "France", "Paris" ) ) // Heterogeneous insertion.
 {
-	str( char ) *el = get( &our_map, "France" ); // Heterogeneous look-up.
+	str( char ) *el = get( &our_map, "France" ); // Heterogeneous lookup.
 	printf( first( el ) );
 	// Printed: Paris
 }
