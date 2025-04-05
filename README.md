@@ -35,7 +35,7 @@ Its features include:
 * Single header.
 * Compiles in C and C++.
 
-It requires C23, or C11 and compiler support for `typeof`, or C++11.
+It requires C23, or C11 and support for `typeof` (available in every major compiler), or C++11.
 
 It is distributed under the MIT license.
 
