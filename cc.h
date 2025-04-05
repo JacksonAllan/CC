@@ -1,4 +1,4 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.4.0 -------------------------------------------
+/*----------------------------------- CC: CONVENIENT CONTAINERS v1.4.0 Prerelease --------------------------------------
 
 This library provides ergonomic, high-performance generic containers (vectors, linked lists, unordered maps, unordered
 sets, ordered maps, ordered sets, and null-terminated strings).
@@ -1029,7 +1029,8 @@ API:
 
 Version history:
 
-  --/--/2025 1.4.0: Added CC strings.
+  05/04/2025 1.4.0 Prerelease:
+                    Added CC strings.
                     Added cc_initialized for in-situ initialization of global containers.
                     Added support for const char * keys.
                     Added support for -Wextra and -Wconversion compiler flags.
