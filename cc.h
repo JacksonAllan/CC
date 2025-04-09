@@ -1,4 +1,4 @@
-/*----------------------------------- CC: CONVENIENT CONTAINERS v1.4.0 Prerelease --------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.4.0 -------------------------------------------
 
 This library provides ergonomic, high-performance generic containers (vectors, linked lists, unordered maps, unordered
 sets, ordered maps, ordered sets, and null-terminated strings).
@@ -12,7 +12,7 @@ Features:
 * Single header.
 * Compiles in C and C++.
 
-It requires C23, or C11 and compiler support for __typeof__, or C++11.
+It requires C23, or C11 and support for typeof (available in every major compiler), or C++11.
 
 It has been tested with GCC, Clang, MinGW, and MSVC.
 
@@ -307,7 +307,7 @@ API:
   * API macros may evaluate their first argument - the pointer to the container - multiple times, so never use
     expressions with side effects (e.g. &our_containers[ ++i ] ) for that argument. In GCC and Clang, attempting to do
     so will cause a compiler warning. All other arguments are only evaluated once.
-  * If CC_NO_SHORT_NAMES was declared, all API macros are prefixed with "cc_".
+  * If CC_NO_SHORT_NAMES was declared, all API macros and functions are prefixed with "cc_".
   * Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original.
     Hence, only create a duplicate via assignment (including through function parameters and return values) if you have
     finished with the original.
@@ -345,12 +345,13 @@ API:
 
     void clear( <any container type> *cntr )
 
-      Erases all elements, calling the element and key types' destructors if they exist.
+      Erases all elements, calling the element and key types' destructors if they exist (unless the container is a
+      string).
 
     void cleanup( <any container type> *cntr )
 
-      Erases all elements (calling the element and key types' destructors if they exist), frees any other memory
-      associated with the container, and initializes the container for reuse.
+      Erases all elements (calling the element and key types' destructors if they exist, unless the container is a
+      string), frees any other memory associated with the container, and initializes the container for reuse.
 
     el_ty *first( <any container type> *cntr )
 
@@ -387,7 +388,7 @@ API:
 
     bool reserve( vec( el_ty ) *cntr, size_t n )
 
-      Ensures that the the capacity is large enough to accommodate n elements.
+      Ensures that the capacity is large enough to accommodate n elements.
       Returns true, or false if unsuccessful due to memory allocation failure.
 
     bool resize( vec( el_ty ) *cntr, size_t n )
@@ -429,8 +430,8 @@ API:
     el_ty *erase( vec( el_ty ) *cntr, size_t i )
 
       Erases the element at index i, calling the element type's destructor if it exists.
-      Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there
-      is no subsequent element.
+      Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there is no
+      subsequent element.
 
     el_ty *erase_n( vec( el_ty ) *cntr, size_t i, size_t n )
 
@@ -871,24 +872,24 @@ API:
 
           * float_dec( int precision )
 
-            Causes subsequent floating point arguments to be formatted as decimal floating point numbers.
-            precision specifies number of decimal places to include.
+            Causes subsequent floating-point arguments to be formatted as decimal floating-point numbers.
+            precision specifies the number of decimal places to include.
 
           * float_hex( int precision )
 
-            Causes subsequent floating point arguments to be formatted as hexadecimal floating point numbers.
-            precision specifies number of decimal places to include.
+            Causes subsequent floating-point arguments to be formatted as hexadecimal floating-point numbers.
+            precision specifies the number of decimal places to include.
 
           * float_sci( int precision )
 
-            Causes subsequent floating point arguments to be formatted using scientific notation.
-            precision specifies number of decimal places to include.
+            Causes subsequent floating-point arguments to be formatted using scientific notation.
+            precision specifies the number of decimal places to include.
 
           * float_shortest( int significant_digits )
 
-            Causes subsequent floating point arguments to be formatted as decimal floating point numbers or using
+            Causes subsequent floating-point arguments to be formatted as decimal floating-point numbers or using
             scientific notation, depending on which representation is shorter.
-            significant_digits specifies maximum number of significant digits to include.
+            significant_digits specifies the maximum number of significant digits to include.
 
       Arguments are type-promoted as follows:
         * bool, unsigned char, unsigned short, unsigned int, unsigned long -> unsigned long long.
@@ -896,11 +897,11 @@ API:
         * char -> long long or unsigned long long, depending on whether char is signed.
         * float -> double.
 
-      By default, integer arguments are formatted as decimal integers with a minimum of one digit and floating point
-      arguments as formatted as decimal floating point numbers with two decimal places.
+      By default, integer arguments are formatted as decimal integers with a minimum of one digit, and floating-point
+      arguments are formatted as decimal floating-point numbers with two decimal places.
 
-      For formatting, C and CC strings of elements of the types char16_t and char32_t are assumed to be encoded as
-      UTF-16 and UTF-32, respectively.
+      For formatting, C and CC strings of char16_t and char32_t elements are assumed to be encoded as UTF-16 and UTF-32,
+      respectively.
 
     el_ty *push_n( str( el_ty ) *cntr, el_ty *els, size_t n )
 
@@ -926,9 +927,10 @@ API:
 
     el_ty *erase( str( el_ty ) *cntr, size_t i )
 
-      Erases the element at index i, calling the element type's destructor if it exists.
-      Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there
-      is no subsequent element.
+      Erases the element at index i.
+      No destructor is called for erased element, even if a destructor for the element type has been defined.
+      Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there is no
+      subsequent element.
 
     el_ty *erase_n( str( el_ty ) *cntr, size_t i, size_t n )
 
@@ -998,9 +1000,9 @@ API:
     * Including cc.h in these cases does not include the full header, so you still need to include it separately at the
       top of your files.
     * In-built comparison and hash functions are already defined for the following types: char, unsigned char, signed
-      char, unsigned short, short, unsigned int, int, unsigned long, long, unsigned long long, long long, size_t, and
-      null-terminated strings (char * and const char *), and CC strings. Defining a comparison or hash function for one
-      of these types will overwrite the in-built function.
+      char, unsigned short, short, unsigned int, int, unsigned long, long, unsigned long long, long long, size_t,
+      null-terminated C strings (char * and const char *), and CC strings. Defining a comparison or hash function for
+      one of these types will overwrite the in-built function.
     * In-built, memory-freeing destructor functions are already defined for CC strings. Defining a destructor for a CC
       string type will overwrite the in-built destructor.
 
@@ -1029,10 +1031,9 @@ API:
 
 Version history:
 
-  05/04/2025 1.4.0 Prerelease:
-                    Added CC strings.
+  --/04/2025 1.4.0: Added CC strings.
                     Added cc_initialized for in-situ initialization of global containers.
-                    Added support for const char * keys.
+                    Added support for const char * map and omap keys and set and oset elements.
                     Added support for -Wextra and -Wconversion compiler flags.
   11/02/2025 1.3.2: Fixed a critical bug causing maps to call the wrong destructors during cleanup.
   23/08/2024 1.3.1: Fixed missing static inline qualifier on an internal omap function.
@@ -1463,8 +1464,8 @@ typedef void ( *cc_dtor_fnptr_ty )( void *, cc_free_fnptr_ty );
                                  )                                                \
 
 // Creates a string type without checking that the element type is one of the compatible character types.
-// This macro is used to reduce compilation time and avoid errors when string types generated from incompatible element
-// types in dead paths.
+// This macro is used to reduce compilation time and avoid errors when string types are generated from incompatible
+// element types in dead _Generic paths.
 #define CC_STR_RAW( el_ty ) CC_TYPEOF_TY( el_ty (*(*)[ CC_STR ])( size_t * ) )
 
 // Retrieves a container's id (e.g. CC_VEC) from its handle.
@@ -1772,14 +1773,14 @@ cc_memcpy_and_return_ptr(                                                       
 )                                                                                             \
 
 // In the case of insertion operations (such as cc_insert, cc_push, and cc_get_or_insert), the process described above
-// is complicated by the fact to support heterogeneous insertion of C strings into containers that expect CC strings, we
-// also need to convert the C string and check and potentially free result.
-// This could apply to the key, element, or both the key and element.
+// is complicated by the fact that to support heterogeneous insertion of C strings into containers that expect CC
+// strings, we also need to convert the C string and check and potentially free the result.
+// This could apply to the user-supplied key, element, or key and element.
 // Consequently, we need somewhere to store pointers to the converted key and or element.
 // To this end, rather than temporarily pointing the container handle at a cc_allocing_fn_result_ty struct, we point it
-// at one of several "helper" struct that contains a cc_allocing_fn_result_ty struct and several other members.
+// at one of several "helper" structs that contain a cc_allocing_fn_result_ty struct and several other members.
 // At the same time, we populate the helper struct's members with the converted key and/or element, a copy of the
-// original handle (as the cc_allocing_fn_result_ty "new_cntr" member), and current size of the container, when
+// original handle (as the cc_allocing_fn_result_ty "new_cntr" member), and the current size of the container, when
 // necessary.
 // This way, we can check for conversion failure, pass the container handle and converted key and/or element into the
 // relevant container function and store the result, and free the converted key and/or element if necessary.
@@ -1787,8 +1788,8 @@ cc_memcpy_and_return_ptr(                                                       
 // called to restore the correct container handle.
 
 // Below, the various helper structs and macros to point the container at them are defined.
-// For the other macros that assist in heterogeneous insertion (and lookup), see the section "Heterogeneous string
-// insertion and lookup conversion"
+// For the other macros that assist in heterogeneous insertion and lookup, see the section "Heterogeneous string
+// insertion and lookup conversion".
 
 #ifdef __cplusplus
 #define CC_COMPOUND_LITERAL( ty, ... ) cc_unmove<ty>( __VA_ARGS__ )
@@ -5114,7 +5115,8 @@ static inline void *cc_oset_next(
 /*                                                      String                                                        */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-// cc_str is based largely on the code used to implement cc_vec. However, there are some major differences:
+// cc_str is based largely on the implementation of cc_vec. However, besides null-termination, there are some other
+// major differences:
 // * cc_str's header contains a pointer to its data buffer. Usually, this pointer simply points to the end of the header
 //   inside the same memory allocation. However, in the case of a temporary string constructed by the library for the
 //   purpose of heterogeneous lookup in associative containers, the pointer points to a separate buffer supplied by the
@@ -5227,12 +5229,12 @@ static inline cc_allocing_fn_result_ty cc_str_reserve(
   if( CC_UNLIKELY( !new_cntr ) )
     return cc_make_allocing_fn_result( cntr, NULL );
 
-  new_cntr->data = new_cntr + 1; // Set the internal pointer to point just past the header.
+  new_cntr->data = new_cntr + 1; // Set the internal pointer to point to the end of the header.
 
   if( is_placeholder )
   {
     new_cntr->size = 0;
-    memset( new_cntr->data, 0, el_size ); // Ensure NULL termination.
+    memset( new_cntr->data, 0, el_size ); // Ensure null termination.
   }
 
   new_cntr->cap = n;
@@ -5328,24 +5330,24 @@ static inline cc_allocing_fn_result_ty cc_str_push(
   return cc_str_push_n( cntr, el, 1, el_size, realloc_ );
 }
 
-// Generic formatted insertion into strings requires that each argument provided to cc_str_insert_wrapped_args be
-// wrapped in a tagged union (cc_wrapped_str_insert_arg_ty).
+// Generic formatted insertion into strings requires that each argument provided to cc_str_insert_wrapped_fmt_args be
+// wrapped in a tagged union (cc_wrapped_str_fmt_arg_ty).
 // Format mode-modifying functions also return the same tagged-union type so that they can be passed in alongside other
 // insertion arguments.
 
-#define CC_STR_INSERT_ARG_UNSIGNED_INTEGER       0
-#define CC_STR_INSERT_ARG_INTEGER                1
-#define CC_STR_INSERT_ARG_FLOATING               2
-#define CC_STR_INSERT_ARG_C_STRING               3
-#define CC_STR_INSERT_ARG_STR                    4
-#define CC_STR_INSERT_ARG_VOID_POINTER           5
-#define CC_STR_INSERT_ARG_MODE_INTEGER_DEC       6
-#define CC_STR_INSERT_ARG_MODE_INTEGER_HEX       7
-#define CC_STR_INSERT_ARG_MODE_INTEGER_OCT       8
-#define CC_STR_INSERT_ARG_MODE_FLOATING_DEC      9
-#define CC_STR_INSERT_ARG_MODE_FLOATING_HEX      10
-#define CC_STR_INSERT_ARG_MODE_FLOATING_SCI      11
-#define CC_STR_INSERT_ARG_MODE_FLOATING_SHORTEST 12
+#define CC_STR_FMT_ARG_UNSIGNED_INTEGER       0
+#define CC_STR_FMT_ARG_INTEGER                1
+#define CC_STR_FMT_ARG_FLOATING               2
+#define CC_STR_FMT_ARG_C_STRING               3
+#define CC_STR_FMT_ARG_STR                    4
+#define CC_STR_FMT_ARG_VOID_POINTER           5
+#define CC_STR_FMT_ARG_MODE_INTEGER_DEC       6
+#define CC_STR_FMT_ARG_MODE_INTEGER_HEX       7
+#define CC_STR_FMT_ARG_MODE_INTEGER_OCT       8
+#define CC_STR_FMT_ARG_MODE_FLOATING_DEC      9
+#define CC_STR_FMT_ARG_MODE_FLOATING_HEX      10
+#define CC_STR_FMT_ARG_MODE_FLOATING_SCI      11
+#define CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST 12
 
 typedef struct
 {
@@ -5360,11 +5362,12 @@ typedef struct
     double floating;
     const void *pointer;
   };
-} cc_wrapped_str_insert_arg_ty;
+} cc_wrapped_str_fmt_arg_ty;
 
-// CC_WRAP_STR_INSERT_ARG macro to wrap an argument to be inserted into a string in a tagged union also indicating the
-// argument type and whether or not it is the final argument.
-// This macro also handles the type promotions described in the string API documentation for cc_insert and cc_push.
+// CC_WRAP_STR_FMT_ARG macro to wrap an argument to be formatted and inserted into a string in a tagged union also
+// indicating the argument type and whether or not it is the final argument.
+// This macro also handles the type promotions described in the string API documentation for cc_push_fmt and
+// cc_insert_fmt.
 // In C++, the wrapping is achieved via template functions.
 // In C, we use a _Generic expression to dispatch the argument to the correct wrapping function.
 
@@ -5375,10 +5378,10 @@ template<
   typename arg_ty,
   typename std::enable_if<std::is_integral<arg_ty>::value && std::is_unsigned<arg_ty>::value, bool>::type = true
 >
-cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg( arg_ty arg, bool is_final )
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_UNSIGNED_INTEGER;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_UNSIGNED_INTEGER;
   wrapped_arg.is_final = is_final;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.unsigned_integer = arg;
@@ -5390,10 +5393,10 @@ template<
   typename arg_ty,
   typename std::enable_if<std::is_integral<arg_ty>::value && std::is_signed<arg_ty>::value, bool>::type = true
 >
-cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg( arg_ty arg, bool is_final )
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_INTEGER;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_INTEGER;
   wrapped_arg.is_final = is_final;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.integer = arg;
@@ -5405,10 +5408,10 @@ template<
   typename arg_ty,
   typename std::enable_if<std::is_floating_point<arg_ty>::value, bool>::type = true
 >
-cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg( arg_ty arg, bool is_final )
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_FLOATING;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_FLOATING;
   wrapped_arg.is_final = is_final;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.floating = arg;
@@ -5435,10 +5438,10 @@ template<
     ( std::is_same<el_ty, char32_t>::value && std::is_same<arg_ty, const char32_t *>::value )
   , bool>::type = true
 >
-cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg( arg_ty arg, bool is_final )
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_C_STRING;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_C_STRING;
   wrapped_arg.is_final = is_final;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.pointer = arg;
@@ -5456,10 +5459,10 @@ template<
     bool
   >::type = true
 >
-cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg( arg_ty arg, bool is_final )
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_STR;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_STR;
   wrapped_arg.is_final = is_final;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.pointer = *arg;
@@ -5474,10 +5477,10 @@ template<
     bool
   >::type = true
 >
-cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg( arg_ty arg, bool is_final )
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_VOID_POINTER;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_VOID_POINTER;
   wrapped_arg.is_final = is_final;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.pointer = arg;
@@ -5487,280 +5490,274 @@ cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg( arg_ty arg, bool is_final )
 template<
   typename el_ty,
   typename arg_ty,
-  typename std::enable_if<std::is_same<arg_ty, cc_wrapped_str_insert_arg_ty>::value, bool>::type = true
+  typename std::enable_if<std::is_same<arg_ty, cc_wrapped_str_fmt_arg_ty>::value, bool>::type = true
 >
-cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg( arg_ty arg, bool is_final )
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
 {
   arg.is_final = is_final;
   return arg;
 }
 
-#define CC_WRAP_STR_INSERT_ARG( el_ty, arg, is_final ) cc_wrap_str_insert_arg<el_ty>( arg, is_final )
+#define CC_WRAP_STR_FMT_ARG( el_ty, arg, is_final ) cc_wrap_str_fmt_arg<el_ty>( arg, is_final )
 
 #else
 
-static inline cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_char( char arg, bool is_final )
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_char( char arg, bool is_final )
 {
   if( CHAR_MIN < 0 )
-    return (cc_wrapped_str_insert_arg_ty){ CC_STR_INSERT_ARG_INTEGER, is_final, .integer = (signed long long )arg };
+    return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_INTEGER, is_final, .integer = (signed long long )arg };
 
-  return (cc_wrapped_str_insert_arg_ty){
-    CC_STR_INSERT_ARG_UNSIGNED_INTEGER,
-    is_final,
-    0,
-    .unsigned_integer = (unsigned long long)arg
+  return (cc_wrapped_str_fmt_arg_ty){
+    CC_STR_FMT_ARG_UNSIGNED_INTEGER, is_final, 0, .unsigned_integer = (unsigned long long)arg
   };
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_unsigned_integer(
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_unsigned_integer(
   unsigned long long arg,
   bool is_final
 )
 {
-  return (cc_wrapped_str_insert_arg_ty){ CC_STR_INSERT_ARG_UNSIGNED_INTEGER, is_final, 0, .unsigned_integer = arg };
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_UNSIGNED_INTEGER, is_final, 0, .unsigned_integer = arg };
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_integer( long long arg, bool is_final )
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_integer( long long arg, bool is_final )
 {
-  return (cc_wrapped_str_insert_arg_ty){ CC_STR_INSERT_ARG_INTEGER, is_final, 0, .integer = arg };
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_INTEGER, is_final, 0, .integer = arg };
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_floating( double arg, bool is_final )
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_floating( double arg, bool is_final )
 {
-  return (cc_wrapped_str_insert_arg_ty){ CC_STR_INSERT_ARG_FLOATING, is_final, 0, .floating = arg };
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_FLOATING, is_final, 0, .floating = arg };
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_cstring( const void *arg, bool is_final )
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_cstring( const void *arg, bool is_final )
 {
-  return (cc_wrapped_str_insert_arg_ty){ CC_STR_INSERT_ARG_C_STRING, is_final, 0, .pointer = arg };
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_C_STRING, is_final, 0, .pointer = arg };
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_str( const void *arg, bool is_final )
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_str( const void *arg, bool is_final )
 {
-  return (cc_wrapped_str_insert_arg_ty){ CC_STR_INSERT_ARG_STR, is_final, 0, .pointer = arg };
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_STR, is_final, 0, .pointer = arg };
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_void_pointer( const void *arg, bool is_final )
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_void_pointer( const void *arg, bool is_final )
 {
-  return (cc_wrapped_str_insert_arg_ty){ CC_STR_INSERT_ARG_VOID_POINTER, is_final, 0, .pointer = arg };
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_VOID_POINTER, is_final, 0, .pointer = arg };
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_wrap_str_insert_arg_passthrough(
-  cc_wrapped_str_insert_arg_ty arg,
-  bool is_final
-)
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_passthrough( cc_wrapped_str_fmt_arg_ty arg, bool is_final )
 {
   arg.is_final = is_final;
   return arg;
 }
 
-#define CC_WRAP_STR_INSERT_ARG( el_ty, arg, is_final ) _Generic( (arg),  \
-  bool:                         cc_wrap_str_insert_arg_unsigned_integer, \
-  cc_maybe_char:                cc_wrap_str_insert_arg_char,             \
-  unsigned char:                cc_wrap_str_insert_arg_unsigned_integer, \
-  signed char:                  cc_wrap_str_insert_arg_integer,          \
-  unsigned short:               cc_wrap_str_insert_arg_unsigned_integer, \
-  short:                        cc_wrap_str_insert_arg_integer,          \
-  unsigned int:                 cc_wrap_str_insert_arg_unsigned_integer, \
-  int:                          cc_wrap_str_insert_arg_integer,          \
-  unsigned long:                cc_wrap_str_insert_arg_unsigned_integer, \
-  long:                         cc_wrap_str_insert_arg_integer,          \
-  unsigned long long:           cc_wrap_str_insert_arg_unsigned_integer, \
-  long long:                    cc_wrap_str_insert_arg_integer,          \
-  cc_maybe_size_t:              cc_wrap_str_insert_arg_unsigned_integer, \
-  float:                        cc_wrap_str_insert_arg_floating,         \
-  double:                       cc_wrap_str_insert_arg_floating,         \
-  el_ty *:                      cc_wrap_str_insert_arg_cstring,          \
-  const el_ty *:                cc_wrap_str_insert_arg_cstring,          \
-  cc_wrapped_str_insert_arg_ty: cc_wrap_str_insert_arg_passthrough,      \
-  void *:                       cc_wrap_str_insert_arg_void_pointer,     \
-  const void *:                 cc_wrap_str_insert_arg_void_pointer,     \
-  CC_STR_RAW( el_ty ):          cc_wrap_str_insert_arg_str,              \
-  const CC_STR_RAW( el_ty ):    cc_wrap_str_insert_arg_str               \
-)( arg, is_final )                                                       \
+#define CC_WRAP_STR_FMT_ARG( el_ty, arg, is_final ) _Generic( (arg), \
+  bool:                      cc_wrap_str_fmt_arg_unsigned_integer,   \
+  cc_maybe_char:             cc_wrap_str_fmt_arg_char,               \
+  unsigned char:             cc_wrap_str_fmt_arg_unsigned_integer,   \
+  signed char:               cc_wrap_str_fmt_arg_integer,            \
+  unsigned short:            cc_wrap_str_fmt_arg_unsigned_integer,   \
+  short:                     cc_wrap_str_fmt_arg_integer,            \
+  unsigned int:              cc_wrap_str_fmt_arg_unsigned_integer,   \
+  int:                       cc_wrap_str_fmt_arg_integer,            \
+  unsigned long:             cc_wrap_str_fmt_arg_unsigned_integer,   \
+  long:                      cc_wrap_str_fmt_arg_integer,            \
+  unsigned long long:        cc_wrap_str_fmt_arg_unsigned_integer,   \
+  long long:                 cc_wrap_str_fmt_arg_integer,            \
+  cc_maybe_size_t:           cc_wrap_str_fmt_arg_unsigned_integer,   \
+  float:                     cc_wrap_str_fmt_arg_floating,           \
+  double:                    cc_wrap_str_fmt_arg_floating,           \
+  el_ty *:                   cc_wrap_str_fmt_arg_cstring,            \
+  const el_ty *:             cc_wrap_str_fmt_arg_cstring,            \
+  cc_wrapped_str_fmt_arg_ty: cc_wrap_str_fmt_arg_passthrough,        \
+  void *:                    cc_wrap_str_fmt_arg_void_pointer,       \
+  const void *:              cc_wrap_str_fmt_arg_void_pointer,       \
+  CC_STR_RAW( el_ty ):       cc_wrap_str_fmt_arg_str,                \
+  const CC_STR_RAW( el_ty ): cc_wrap_str_fmt_arg_str                 \
+)( arg, is_final )                                                   \
 
 #endif
 
-// CC_WRAPPED_STR_INSERT_ARGS_ARRAY macro for transforming a __VA_ARGS__ of raw string insertion arguments into an array
-// of wrapped arguments.
+// CC_WRAPPED_STR_FMT_ARGS_ARRAY macro for transforming a __VA_ARGS__ of raw string formatted insertion arguments into
+// an array of wrapped arguments.
 
-#define CC_WRAPPED_STR_INSERT_ARGS_1( el_ty, arg ) CC_WRAP_STR_INSERT_ARG( el_ty, arg, true )
+#define CC_WRAPPED_STR_FMT_ARGS_1( el_ty, arg ) CC_WRAP_STR_FMT_ARG( el_ty, arg, true )
 
-#define CC_WRAPPED_STR_INSERT_ARGS_2( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_1( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_2( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_1( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_3( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_2( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_3( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_2( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_4( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_3( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_4( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_3( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_5( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_4( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_5( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_4( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_6( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_5( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_6( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_5( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_7( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_6( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_7( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_6( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_8( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_7( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_8( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_7( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_9( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_8( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_9( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_8( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_10( el_ty, arg, ... )                                                          \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_9( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_10( el_ty, arg, ... )                                                       \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_9( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_11( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_10( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_11( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_10( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_12( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_11( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_12( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_11( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_13( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_12( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_13( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_12( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_14( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_13( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_14( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_13( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_15( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_14( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_15( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_14( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_16( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_15( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_16( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_15( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_17( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_16( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_17( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_16( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_18( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_17( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_18( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_17( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_19( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_18( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_19( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_18( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_20( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_19( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_20( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_19( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_21( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_20( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_21( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_20( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_22( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_21( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_22( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_21( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_23( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_22( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_23( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_22( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_24( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_23( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_24( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_23( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_25( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_24( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_25( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_24( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_26( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_25( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_26( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_25( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_27( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_26( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_27( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_26( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_28( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_27( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_28( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_27( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_29( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_28( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_29( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_28( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_30( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_29( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_30( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_29( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_31( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_30( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_31( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_30( el_ty, __VA_ARGS__ ) ) \
 
-#define CC_WRAPPED_STR_INSERT_ARGS_32( el_ty, arg, ... )                                                           \
-CC_WRAP_STR_INSERT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_INSERT_ARGS_31( el_ty, __VA_ARGS__ ) ) \
+#define CC_WRAPPED_STR_FMT_ARGS_32( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_31( el_ty, __VA_ARGS__ ) ) \
 
 #ifdef __cplusplus
 
-#define CC_WRAPPED_STR_INSERT_ARGS_ARRAY( el_ty, ... )                                    \
-decltype( std::declval<cc_wrapped_str_insert_arg_ty[ CC_N_ARGS( __VA_ARGS__ ) ]>() ){     \
-  CC_CAT_2( CC_WRAPPED_STR_INSERT_ARGS_, CC_N_ARGS( __VA_ARGS__ ) )( el_ty, __VA_ARGS__ ) \
-}                                                                                         \
+#define CC_WRAPPED_STR_FMT_ARGS_ARRAY( el_ty, ... )                                    \
+decltype( std::declval<cc_wrapped_str_fmt_arg_ty[ CC_N_ARGS( __VA_ARGS__ ) ]>() ){     \
+  CC_CAT_2( CC_WRAPPED_STR_FMT_ARGS_, CC_N_ARGS( __VA_ARGS__ ) )( el_ty, __VA_ARGS__ ) \
+}                                                                                      \
 
 #else
 
-#define CC_WRAPPED_STR_INSERT_ARGS_ARRAY( el_ty, ... )                                                      \
-(cc_wrapped_str_insert_arg_ty[]){                                                                           \
-  CC_MSVC_PP_FIX( CC_CAT_2( CC_WRAPPED_STR_INSERT_ARGS_, CC_N_ARGS( __VA_ARGS__ ) )( el_ty, __VA_ARGS__ ) ) \
-}                                                                                                           \
+#define CC_WRAPPED_STR_FMT_ARGS_ARRAY( el_ty, ... )                                                      \
+(cc_wrapped_str_fmt_arg_ty[]){                                                                           \
+  CC_MSVC_PP_FIX( CC_CAT_2( CC_WRAPPED_STR_FMT_ARGS_, CC_N_ARGS( __VA_ARGS__ ) )( el_ty, __VA_ARGS__ ) ) \
+}                                                                                                        \
 
 #endif
 
-// Functions for setting the formatting mode of integer and floating point arguments.
+// Functions for setting the formatting mode of integer and floating-point arguments.
 
-static inline cc_wrapped_str_insert_arg_ty cc_integer_dec( int min_digits )
+static inline cc_wrapped_str_fmt_arg_ty cc_integer_dec( int min_digits )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_MODE_INTEGER_DEC;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_INTEGER_DEC;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.integer = min_digits;
   return wrapped_arg;
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_integer_hex( int min_digits )
+static inline cc_wrapped_str_fmt_arg_ty cc_integer_hex( int min_digits )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_MODE_INTEGER_HEX;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_INTEGER_HEX;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.integer = min_digits;
   return wrapped_arg;
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_integer_oct( int min_digits )
+static inline cc_wrapped_str_fmt_arg_ty cc_integer_oct( int min_digits )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_MODE_INTEGER_OCT;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_INTEGER_OCT;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.integer = min_digits;
   return wrapped_arg;
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_float_dec( int precision )
+static inline cc_wrapped_str_fmt_arg_ty cc_float_dec( int precision )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_MODE_FLOATING_DEC;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_FLOATING_DEC;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.integer = precision;
   return wrapped_arg;
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_float_hex( int precision )
+static inline cc_wrapped_str_fmt_arg_ty cc_float_hex( int precision )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_MODE_FLOATING_HEX;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_FLOATING_HEX;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.integer = precision;
   return wrapped_arg;
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_float_sci( int precision )
+static inline cc_wrapped_str_fmt_arg_ty cc_float_sci( int precision )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_MODE_FLOATING_SCI;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_FLOATING_SCI;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.integer = precision;
   return wrapped_arg;
 }
 
-static inline cc_wrapped_str_insert_arg_ty cc_float_shortest( int significant_digits )
+static inline cc_wrapped_str_fmt_arg_ty cc_float_shortest( int significant_digits )
 {
-  cc_wrapped_str_insert_arg_ty wrapped_arg;
-  wrapped_arg.type = CC_STR_INSERT_ARG_MODE_FLOATING_SHORTEST;
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST;
   wrapped_arg.formatted_length = 0;
   wrapped_arg.integer = significant_digits;
   return wrapped_arg;
 }
 
-// Functions for determining the length char16_t and char32_t C strings.
+// Functions for determining the length of char16_t and char32_t C strings.
 
 static inline size_t cc_strlen_char16( const char16_t *string )
 {
@@ -5782,7 +5779,7 @@ static inline size_t cc_strlen_char32( const char32_t *string )
 // ASCII into the string's own buffer.
 // Hence, a post-print fix-up step is needed to distribute the characters properly.
 
-static inline void cc_sprintf_fixup_char32( char *first_char, size_t char_count )
+static inline void cc_snprintf_fixup_char32( char *first_char, size_t char_count )
 {
   char *src_char = first_char + ( char_count - 1 );
   char32_t *dest_char32 = (char32_t *)( first_char + sizeof( char32_t ) * ( char_count - 1 ) );
@@ -5795,7 +5792,7 @@ static inline void cc_sprintf_fixup_char32( char *first_char, size_t char_count 
   }
 }
 
-static inline void cc_sprintf_fixup_char16( char *first_char, size_t char_count )
+static inline void cc_snprintf_fixup_char16( char *first_char, size_t char_count )
 {
   char *src_char = first_char + ( char_count - 1 );
   char16_t *dest_char32 = (char16_t *)( first_char + sizeof( char16_t ) * ( char_count - 1 ) );
@@ -5810,41 +5807,40 @@ static inline void cc_sprintf_fixup_char16( char *first_char, size_t char_count 
 
 // Inserts formatted arguments into a string.
 // This requires:
-// * Iterating over the array of insertion arguments and counting the number of characters that each one comprises when
-//   formatted.
+// * Iterating over the array of arguments and counting the number of characters that each one comprises when formatted.
 // * Growing the string's buffer to accommodate all the insertions, if necessary.
-// * Reiterating over the arguments again and perform the insertions.
+// * Reiterating over the arguments again and performing the insertions.
 // Returns a cc_allocing_fn_result_ty containing the new handle and a pointer-iterator to the first newly inserted
 // element.
-// If the underlying storage needed to be expanded and an allocation failure occurred the latter pointer will be NULL.
-static inline cc_allocing_fn_result_ty cc_str_insert_wrapped_args(
+// If the underlying storage needed to be expanded and an allocation failure occurred, the latter pointer will be NULL.
+static inline cc_allocing_fn_result_ty cc_str_insert_wrapped_fmt_args(
   void *cntr,
-  cc_wrapped_str_insert_arg_ty *wrapped_args,
+  cc_wrapped_str_fmt_arg_ty *wrapped_args,
   size_t index,
   size_t el_size,
   cc_realloc_fnptr_ty realloc_
 )
 {
-  unsigned int integer_mode = CC_STR_INSERT_ARG_MODE_INTEGER_DEC;
-  unsigned int floating_mode = CC_STR_INSERT_ARG_MODE_FLOATING_DEC;
+  unsigned int integer_mode = CC_STR_FMT_ARG_MODE_INTEGER_DEC;
+  unsigned int floating_mode = CC_STR_FMT_ARG_MODE_FLOATING_DEC;
   int integer_min_digits = 1;
   int floating_precision_or_significant_digits = 2;
 
   // First count the number of characters needed to complete all the insertions, along with the total.
   size_t total = 0;
-  cc_wrapped_str_insert_arg_ty *wrapped_arg = wrapped_args;
+  cc_wrapped_str_fmt_arg_ty *wrapped_arg = wrapped_args;
   while( true )
   {
     switch( wrapped_arg->type )
     {
-      case CC_STR_INSERT_ARG_UNSIGNED_INTEGER:
+      case CC_STR_FMT_ARG_UNSIGNED_INTEGER:
       {
         int result = snprintf(
           NULL,
           0,
-          integer_mode == CC_STR_INSERT_ARG_MODE_INTEGER_DEC  ? "%.*llu" :
-          integer_mode == CC_STR_INSERT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
-                       /* CC_STR_INSERT_ARG_MODE_INTEGER_OCT */ "%.*llo" ,
+          integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_DEC  ? "%.*llu" :
+          integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
+                       /* CC_STR_FMT_ARG_MODE_INTEGER_OCT */ "%.*llo" ,
           integer_min_digits,
           wrapped_arg->unsigned_integer
         );
@@ -5852,17 +5848,17 @@ static inline cc_allocing_fn_result_ty cc_str_insert_wrapped_args(
         wrapped_arg->formatted_length = result > 0 ? (size_t)result : SIZE_MAX;
       }
       break;
-      case CC_STR_INSERT_ARG_INTEGER:
+      case CC_STR_FMT_ARG_INTEGER:
       {
         int result;
-        if( integer_mode == CC_STR_INSERT_ARG_MODE_INTEGER_DEC )
+        if( integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_DEC )
           result = snprintf( NULL, 0, "%.*lld", integer_min_digits, wrapped_arg->integer );
         else
           result = snprintf(
             NULL,
             0,
-            integer_mode == CC_STR_INSERT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
-                         /* CC_STR_INSERT_ARG_MODE_INTEGER_OCT */ "%.*llo",
+            integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
+                         /* CC_STR_FMT_ARG_MODE_INTEGER_OCT */ "%.*llo",
             integer_min_digits,
             (unsigned long long)wrapped_arg->integer
           );
@@ -5870,15 +5866,15 @@ static inline cc_allocing_fn_result_ty cc_str_insert_wrapped_args(
         wrapped_arg->formatted_length = result > 0 ? (size_t)result : SIZE_MAX;
       }
       break;
-      case CC_STR_INSERT_ARG_FLOATING:
+      case CC_STR_FMT_ARG_FLOATING:
       {
         int result = snprintf(
           NULL,
           0,
-          floating_mode == CC_STR_INSERT_ARG_MODE_FLOATING_DEC       ? "%.*f" :
-          floating_mode == CC_STR_INSERT_ARG_MODE_FLOATING_HEX       ? "%.*a" :
-          floating_mode == CC_STR_INSERT_ARG_MODE_FLOATING_SCI       ? "%.*e" :
-                        /* CC_STR_INSERT_ARG_MODE_FLOATING_SHORTEST */ "%.*g",
+          floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_DEC       ? "%.*f" :
+          floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_HEX       ? "%.*a" :
+          floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_SCI       ? "%.*e" :
+                        /* CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST */ "%.*g",
           floating_precision_or_significant_digits,
           wrapped_arg->floating
         );
@@ -5886,7 +5882,7 @@ static inline cc_allocing_fn_result_ty cc_str_insert_wrapped_args(
         wrapped_arg->formatted_length = result > 0 ? (size_t)result : SIZE_MAX;
       }
       break;
-      case CC_STR_INSERT_ARG_C_STRING:
+      case CC_STR_FMT_ARG_C_STRING:
       {
         wrapped_arg->formatted_length = (
           el_size == sizeof( char )     ? (size_t)strlen( (const char *)wrapped_arg->pointer ) :
@@ -5895,29 +5891,29 @@ static inline cc_allocing_fn_result_ty cc_str_insert_wrapped_args(
         );
       }
       break;
-      case CC_STR_INSERT_ARG_VOID_POINTER:
+      case CC_STR_FMT_ARG_VOID_POINTER:
       {
         int result = snprintf( NULL, 0, "%p", wrapped_arg->pointer );
         wrapped_arg->formatted_length = result > 0 ? (size_t)result : SIZE_MAX;
       }
       break;
-      case CC_STR_INSERT_ARG_STR:
+      case CC_STR_FMT_ARG_STR:
       {
         wrapped_arg->formatted_length = cc_str_hdr( (void *)wrapped_arg->pointer )->size;
       }
       break;
-      case CC_STR_INSERT_ARG_MODE_INTEGER_DEC:
-      case CC_STR_INSERT_ARG_MODE_INTEGER_HEX:
-      case CC_STR_INSERT_ARG_MODE_INTEGER_OCT:
+      case CC_STR_FMT_ARG_MODE_INTEGER_DEC:
+      case CC_STR_FMT_ARG_MODE_INTEGER_HEX:
+      case CC_STR_FMT_ARG_MODE_INTEGER_OCT:
       {
         integer_mode = wrapped_arg->type;
         integer_min_digits = (int)wrapped_arg->integer;
       }
       break;
-      case CC_STR_INSERT_ARG_MODE_FLOATING_DEC:
-      case CC_STR_INSERT_ARG_MODE_FLOATING_HEX:
-      case CC_STR_INSERT_ARG_MODE_FLOATING_SCI:
-      case CC_STR_INSERT_ARG_MODE_FLOATING_SHORTEST:
+      case CC_STR_FMT_ARG_MODE_FLOATING_DEC:
+      case CC_STR_FMT_ARG_MODE_FLOATING_HEX:
+      case CC_STR_FMT_ARG_MODE_FLOATING_SCI:
+      case CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST:
       {
         floating_mode = wrapped_arg->type;
         floating_precision_or_significant_digits = (int)wrapped_arg->integer;
@@ -5970,8 +5966,8 @@ static inline cc_allocing_fn_result_ty cc_str_insert_wrapped_args(
 
   // Perform the insertions.
   wrapped_arg = wrapped_args;
-  integer_mode = CC_STR_INSERT_ARG_MODE_INTEGER_DEC;
-  floating_mode = CC_STR_INSERT_ARG_MODE_FLOATING_DEC;
+  integer_mode = CC_STR_FMT_ARG_MODE_INTEGER_DEC;
+  floating_mode = CC_STR_FMT_ARG_MODE_FLOATING_DEC;
   integer_min_digits = 1;
   floating_precision_or_significant_digits = 2;
   char *cursor = new_els;
@@ -5980,87 +5976,87 @@ static inline cc_allocing_fn_result_ty cc_str_insert_wrapped_args(
     if( wrapped_arg->formatted_length != SIZE_MAX ) // Check for encoding error.
       switch( wrapped_arg->type )
       {
-        case CC_STR_INSERT_ARG_UNSIGNED_INTEGER:
-        case CC_STR_INSERT_ARG_INTEGER:
-        case CC_STR_INSERT_ARG_FLOATING:
-        case CC_STR_INSERT_ARG_VOID_POINTER:
+        case CC_STR_FMT_ARG_UNSIGNED_INTEGER:
+        case CC_STR_FMT_ARG_INTEGER:
+        case CC_STR_FMT_ARG_FLOATING:
+        case CC_STR_FMT_ARG_VOID_POINTER:
         {
           // Save the char that snprintf will overwrite with a null terminator.
           char overwritten_char = *( cursor + wrapped_arg->formatted_length );
 
           // Use snprintf, rather than sprintf, to silence MSVC's intrusive warnings about the latter.
-          if( wrapped_arg->type == CC_STR_INSERT_ARG_UNSIGNED_INTEGER )
+          if( wrapped_arg->type == CC_STR_FMT_ARG_UNSIGNED_INTEGER )
             snprintf(
               cursor,
               wrapped_arg->formatted_length + 1,
-              integer_mode == CC_STR_INSERT_ARG_MODE_INTEGER_DEC  ? "%.*llu" :
-              integer_mode == CC_STR_INSERT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
-                           /* CC_STR_INSERT_ARG_MODE_INTEGER_OCT */ "%.*llo" ,
+              integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_DEC  ? "%.*llu" :
+              integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
+                           /* CC_STR_FMT_ARG_MODE_INTEGER_OCT */ "%.*llo" ,
               integer_min_digits,
               wrapped_arg->unsigned_integer
             );
-          else if( wrapped_arg->type == CC_STR_INSERT_ARG_INTEGER )
+          else if( wrapped_arg->type == CC_STR_FMT_ARG_INTEGER )
           {
-            if( integer_mode == CC_STR_INSERT_ARG_MODE_INTEGER_DEC )
+            if( integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_DEC )
               snprintf( cursor, wrapped_arg->formatted_length + 1, "%.*lld", integer_min_digits, wrapped_arg->integer );
             else
               snprintf(
                 cursor,
                 wrapped_arg->formatted_length + 1,
-                integer_mode == CC_STR_INSERT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
-                             /* CC_STR_INSERT_ARG_MODE_INTEGER_OCT */ "%.*llo",
+                integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
+                             /* CC_STR_FMT_ARG_MODE_INTEGER_OCT */ "%.*llo",
                 integer_min_digits,
                 (unsigned long long)wrapped_arg->integer
               );
           }
-          else if( wrapped_arg->type == CC_STR_INSERT_ARG_FLOATING )
+          else if( wrapped_arg->type == CC_STR_FMT_ARG_FLOATING )
             snprintf(
               cursor,
               wrapped_arg->formatted_length + 1,
-              floating_mode == CC_STR_INSERT_ARG_MODE_FLOATING_DEC       ? "%.*f" :
-              floating_mode == CC_STR_INSERT_ARG_MODE_FLOATING_HEX       ? "%.*a" :
-              floating_mode == CC_STR_INSERT_ARG_MODE_FLOATING_SCI       ? "%.*e" :
-                            /* CC_STR_INSERT_ARG_MODE_FLOATING_SHORTEST */ "%.*g",
+              floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_DEC       ? "%.*f" :
+              floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_HEX       ? "%.*a" :
+              floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_SCI       ? "%.*e" :
+                            /* CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST */ "%.*g",
               floating_precision_or_significant_digits,
               wrapped_arg->floating
             );
-          else // CC_STR_INSERT_ARG_VOID_POINTER.
+          else // CC_STR_FMT_ARG_VOID_POINTER.
             snprintf( cursor, wrapped_arg->formatted_length + 1, "%p", wrapped_arg->pointer );
 
           *( cursor + wrapped_arg->formatted_length ) = overwritten_char; // Restore the overwritten char.
 
           if( el_size == sizeof( char16_t ) )
-            cc_sprintf_fixup_char16( cursor, wrapped_arg->formatted_length );
+            cc_snprintf_fixup_char16( cursor, wrapped_arg->formatted_length );
           else if( el_size == sizeof( char32_t ) )
-            cc_sprintf_fixup_char32( cursor, wrapped_arg->formatted_length );
+            cc_snprintf_fixup_char32( cursor, wrapped_arg->formatted_length );
 
           cursor += wrapped_arg->formatted_length * el_size;
         }
         break;
-        case CC_STR_INSERT_ARG_C_STRING:
+        case CC_STR_FMT_ARG_C_STRING:
         {
           memcpy( cursor, wrapped_arg->pointer, wrapped_arg->formatted_length * el_size );
           cursor += wrapped_arg->formatted_length * el_size;
         }
         break;
-        case CC_STR_INSERT_ARG_STR:
+        case CC_STR_FMT_ARG_STR:
         {
           memcpy( cursor, cc_str_hdr( (void *)wrapped_arg->pointer ) + 1, wrapped_arg->formatted_length * el_size );
           cursor += wrapped_arg->formatted_length * el_size;
         }
         break;
-        case CC_STR_INSERT_ARG_MODE_INTEGER_DEC:
-        case CC_STR_INSERT_ARG_MODE_INTEGER_HEX:
-        case CC_STR_INSERT_ARG_MODE_INTEGER_OCT:
+        case CC_STR_FMT_ARG_MODE_INTEGER_DEC:
+        case CC_STR_FMT_ARG_MODE_INTEGER_HEX:
+        case CC_STR_FMT_ARG_MODE_INTEGER_OCT:
         {
           integer_mode = wrapped_arg->type;
           integer_min_digits = (int)wrapped_arg->integer;
         }
         break;
-        case CC_STR_INSERT_ARG_MODE_FLOATING_DEC:
-        case CC_STR_INSERT_ARG_MODE_FLOATING_HEX:
-        case CC_STR_INSERT_ARG_MODE_FLOATING_SCI:
-        case CC_STR_INSERT_ARG_MODE_FLOATING_SHORTEST:
+        case CC_STR_FMT_ARG_MODE_FLOATING_DEC:
+        case CC_STR_FMT_ARG_MODE_FLOATING_HEX:
+        case CC_STR_FMT_ARG_MODE_FLOATING_SCI:
+        case CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST:
         {
           floating_mode = wrapped_arg->type;
           floating_precision_or_significant_digits = (int)wrapped_arg->integer;
@@ -6078,23 +6074,23 @@ static inline cc_allocing_fn_result_ty cc_str_insert_wrapped_args(
 
 static inline cc_allocing_fn_result_ty cc_str_push_fmt(
   void *cntr,
-  cc_wrapped_str_insert_arg_ty *insert_args,
+  cc_wrapped_str_fmt_arg_ty *insert_args,
   size_t el_size,
   cc_realloc_fnptr_ty realloc_
 )
 {
-  return cc_str_insert_wrapped_args( cntr, insert_args, cc_str_size( cntr ), el_size, realloc_ );
+  return cc_str_insert_wrapped_fmt_args( cntr, insert_args, cc_str_size( cntr ), el_size, realloc_ );
 }
 
 static inline cc_allocing_fn_result_ty cc_str_insert_fmt(
   void *cntr,
-  cc_wrapped_str_insert_arg_ty *insert_args,
+  cc_wrapped_str_fmt_arg_ty *insert_args,
   size_t index,
   size_t el_size,
   cc_realloc_fnptr_ty realloc_
 )
 {
-  return cc_str_insert_wrapped_args( cntr, insert_args, index, el_size, realloc_ );
+  return cc_str_insert_wrapped_fmt_args( cntr, insert_args, index, el_size, realloc_ );
 }
 
 // Erases n elements at the specified index.
@@ -6674,7 +6670,7 @@ static inline CC_STR_RAW( char32_t ) cc_cstring_to_temp_str_char32( const char32
     *(cntr),                                                                                 \
     cc_str_insert_fmt(                                                                       \
       *(cntr),                                                                               \
-      CC_WRAPPED_STR_INSERT_ARGS_ARRAY( CC_EL_TY( *(cntr) ), __VA_ARGS__ ),                  \
+      CC_WRAPPED_STR_FMT_ARGS_ARRAY( CC_EL_TY( *(cntr) ), __VA_ARGS__ ),                     \
       index,                                                                                 \
       CC_EL_SIZE( *(cntr) ),                                                                 \
       CC_REALLOC_FN                                                                          \
@@ -6753,7 +6749,7 @@ static inline CC_STR_RAW( char32_t ) cc_cstring_to_temp_str_char32( const char32
     *(cntr),                                                                                 \
     cc_str_push_fmt(                                                                         \
       *(cntr),                                                                               \
-      CC_WRAPPED_STR_INSERT_ARGS_ARRAY( CC_EL_TY( *(cntr) ), __VA_ARGS__ ),                  \
+      CC_WRAPPED_STR_FMT_ARGS_ARRAY( CC_EL_TY( *(cntr) ), __VA_ARGS__ ),                     \
       CC_EL_SIZE( *(cntr) ),                                                                 \
       CC_REALLOC_FN                                                                          \
     )                                                                                        \
@@ -7508,25 +7504,25 @@ static inline CC_STR_RAW( char32_t ) cc_cstring_to_temp_str_char32( const char32
 /*                                Heterogeneous string insertion and lookup conversion                                */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-// This section defines the macros invoked by API macros to support the passing of C strings into API macros that
-// perform insertions, lookups, and related operations on containers whose key and/or element type is a cc_str.
-// To this end, API macros that perform lookups must convert the C string be converted into a temporary string that uses
+// This section defines the macros used to support the passing of C strings into API macros that perform insertions,
+// lookups, and related operations on containers with cc_str key and/or element types.
+// API macros that perform lookups must convert the supplied C string into a temporary string that uses
 // the C string as its buffer.
 // API macros that perform insertions, on the other hand, must do the following:
 //
 // * Convert the C string into a real, allocated cc_str.
-// * Check that the conversion did not fail as a result of memory exhaustion.
-// * Free the allocated cc_str if the conversion failed or that the container operation itself did not actually insert
-//   it because of memory exhaustion or some other condition.
+// * Check that the conversion did not fail due to memory exhaustion.
+// * Free the allocated cc_str if the conversion failed or the container operation did not actually insert it because of
+//   memory exhaustion or some other condition.
 //
-// The auxiliary macros defined here achieve these things by identifying a heterogeneous insertion or lookup conduction
-// based on the container's key or element type and the key or element to be inserted or looked up and then performing
-// the necessary action. To do so, the C++ macros rely on template functions, whereas the C macros use _Generic
+// The auxiliary macros defined here achieve these things by identifying a heterogeneous insertion or lookup condition
+// based on the container's key or element type and the type of the key or element to be inserted or looked up and then
+// performing the necessary action. Here, the C++ macros rely on template functions, whereas the C macros use _Generic
 // expressions.
 
 // CC_EL_CONVERTED_FOR_HETEROINSERT and CC_KEY_CONVERTED_FOR_HETEROINSERT for converting a C-string key or element for
 // heterogeneous insertion.
-// If no heterogeneous insertion is being performed, these macros return the key or element unmodified.
+// If no heterogeneous insertion condition exists, these macros return the key or element unmodified.
 
 #ifdef __cplusplus
 
@@ -7654,10 +7650,10 @@ arg_key_or_el_ty cc_key_or_el_converted_for_heteroinsert(
 
 #else
 
-// For detecting a condition that calls for an element conversion, we must perform a generic selection on two types: the
-// container's element type, and the type of the key to be inserted.
+// In C, to detect a condition that calls for an element conversion, we must perform a generic selection on two types:
+// the container's element type, and the type of the element supplied for insertion.
 // To do so, we construct a function pointer whose return type is the container's element type and whose argument type
-// is the type of the supplied element, and then test that.
+// is the type of the supplied element, and then test that against all possible conversion conditions.
 
 #define CC_EL_CONVERTED_FOR_HETEROINSERT( cntr, el )                                                    \
 _Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },                                          \
@@ -7685,8 +7681,8 @@ _Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },                  
 )                                                                                                       \
 
 // The same goes for key conversion, except the constructed function pointer's return type is the container's base
-// function pointer type.
-// This is more efficient, in terms of compile speed, than using CC_KEY_TY to deduce the container's key type directly.
+// function pointer type rather than its key type specifically.
+// This is more efficient, in terms of compile speed, than using CC_KEY_TY to deduce the container's key type here.
 
 #define CC_KEY_CONVERTED_FOR_HETEROINSERT( cntr, key )                                                    \
 _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },                                     \
@@ -7716,10 +7712,9 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
 #endif
 
 // CC_CHECK_HETEROINSERT_EL_CONVERSION and CC_CHECK_HETEROINSERT_KEY_CONVERSION macros for checking that the above
-// conversion succeeded.
-// This requires checking that the converted key or element (provided as a void pointer to the key or element) is not
-// NULL.
-// If no conversion was necessary, then these macros simply return true.
+// conversions succeeded.
+// This requires checking that the provided void pointer to the converted key or element is not NULL.
+// If no conversion was necessary, these macros simply return true.
 
 #ifdef __cplusplus
 
@@ -7875,7 +7870,7 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
 
 // CC_CLEANUP_HETEROINSERT_EL and CC_CLEANUP_HETEROINSERT_KEY macros for freeing a converted key or element in the case
 // of allocation failure or no need for insertion (a condition that can occur in cc_get_or_insert).
-// If no conversion was necessary, then these macros are effectively no-ops.
+// If no conversion was necessary, these macros are effectively no-ops.
 
 #ifdef __cplusplus
 
@@ -8029,8 +8024,9 @@ _Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },           
 
 #endif
 
-// CC_KEY_CONVERTED_FOR_HETEROLOOKUP macro for wrapping a C-string key in a temporary cc_str for heterogeneous lookup.
-// If no heterogeneous lookup is being performed, these macros return the key or element unmodified.
+// CC_KEY_CONVERTED_FOR_HETEROLOOKUP macro for wrapping a supplied C-string key (or element, in the case of set and
+// oset) inside a temporary cc_str for heterogeneous lookup.
+// If no heterogeneous lookup is being performed, these macros return the key unmodified.
 
 #ifdef __cplusplus
 
@@ -8740,9 +8736,125 @@ CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( unsigned long long, unsigned_long_long )
 CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( long long, long_long )
 CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( size_t, size_t )
 
+// For hashing both CC strings and regular C strings, we use the public-domain Wyhash
+// (https://github.com/wangyi-fudan/wyhash) with the following modifications:
+// * We use a fixed seed and secret (the defaults suggested in the Wyhash repository).
+// * We do not handle endianness, so the result will differ depending on the platform.
+// * We omit the code optimized for 32-bit platforms.
+
+static inline void cc_wymum( uint64_t *a, uint64_t *b )
+{
+#if defined( __SIZEOF_INT128__ )
+  __uint128_t r = *a;
+  r *= *b; 
+  *a = (uint64_t)r;
+  *b = (uint64_t)( r >> 64 );
+#elif defined( _MSC_VER ) && defined( _M_X64 )
+  *a = _umul128( *a, *b, b );
+#else
+  uint64_t ha = *a >> 32;
+  uint64_t hb = *b >> 32;
+  uint64_t la = (uint32_t)*a;
+  uint64_t lb = (uint32_t)*b;
+  uint64_t rh = ha * hb;
+  uint64_t rm0 = ha * lb;
+  uint64_t rm1 = hb * la;
+  uint64_t rl = la * lb;
+  uint64_t t = rl + ( rm0 << 32 );
+  uint64_t c = t < rl;
+  uint64_t lo = t + ( rm1 << 32 );
+  c += lo < t;
+  uint64_t hi = rh + ( rm0 >> 32 ) + ( rm1 >> 32 ) + c;
+  *a = lo;
+  *b = hi;
+#endif
+}
+
+static inline uint64_t cc_wymix( uint64_t a, uint64_t b )
+{
+  cc_wymum( &a, &b );
+  return a ^ b;
+}
+
+static inline uint64_t cc_wyr8( const unsigned char *p )
+{
+  uint64_t v;
+  memcpy( &v, p, 8 );
+  return v;
+}
+
+static inline uint64_t cc_wyr4( const unsigned char *p )
+{
+  uint32_t v;
+  memcpy( &v, p, 4 );
+  return v;
+}
+
+static inline uint64_t cc_wyr3( const unsigned char *p, size_t k )
+{
+  return ( ( (uint64_t)p[ 0 ] ) << 16 ) | ( ( (uint64_t)p[ k >> 1 ] ) << 8 ) | p[ k - 1 ];
+}
+
+static inline size_t cc_wyhash( const void *key, size_t len )
+{
+  const unsigned char *p = (const unsigned char *)key;
+  uint64_t seed = 0xCA813BF4C7ABF0A9ULL;
+  uint64_t a;
+  uint64_t b;
+  if( CC_LIKELY( len <= 16 ) )
+  {
+    if( CC_LIKELY( len >= 4 ) )
+    {
+      a = ( cc_wyr4( p ) << 32 ) | cc_wyr4( p + ( ( len >> 3 ) << 2 ) );
+      b = ( cc_wyr4( p + len - 4 ) << 32 ) | cc_wyr4( p + len - 4 - ( ( len >> 3 ) << 2 ) );
+    }
+    else if( CC_LIKELY( len > 0 ) )
+    {
+      a = cc_wyr3( p, len );
+      b = 0;
+    }
+    else
+    {
+      a = 0;
+      b = 0;
+    }
+  }
+  else
+  {
+    size_t i = len; 
+    if( CC_UNLIKELY( i >= 48 ) )
+    {
+      uint64_t see1 = seed;
+      uint64_t see2 = seed;
+      do{
+        seed = cc_wymix( cc_wyr8( p ) ^ 0x8BB84B93962EACC9ULL, cc_wyr8( p + 8 ) ^ seed );
+        see1 = cc_wymix( cc_wyr8( p + 16 ) ^ 0x4B33A62ED433D4A3ULL, cc_wyr8( p + 24 ) ^ see1 );
+        see2 = cc_wymix( cc_wyr8( p + 32 ) ^ 0x4D5A2DA51DE1AA47ULL, cc_wyr8( p + 40 ) ^ see2 );
+        p += 48;
+        i -= 48;
+      }
+      while( CC_LIKELY( i >= 48 ) );
+      seed ^= see1 ^ see2;
+    }
+
+    while( CC_UNLIKELY( i > 16 ) )
+    {
+      seed = cc_wymix( cc_wyr8( p ) ^ 0x8BB84B93962EACC9ULL, cc_wyr8( p + 8 ) ^ seed );
+      i -= 16;
+      p += 16;
+    }
+
+    a = cc_wyr8( p + i - 16 );
+    b = cc_wyr8( p + i - 8 );
+  }
+
+  a ^= 0x8BB84B93962EACC9ULL;
+  b ^= seed;
+  cc_wymum( &a, &b );
+  return (size_t)cc_wymix( a ^ 0x2D358DCCAA6C78A5ULL ^ len, b ^ 0x8BB84B93962EACC9ULL );
+}
+
 // Null-terminated C strings.
-// We use FNV-1a because newer, faster alternatives that process word-sized chunks require prior knowledge of the
-// string's length.
 
 static inline int cc_cmpr_cstring_three_way( void *void_val_1, void *void_val_2 )
 {
@@ -8759,147 +8871,13 @@ static inline cc_cmpr_fnptr_ty cc_cmpr_cstring_select( size_t cntr_id )
   return cntr_id == CC_MAP || cntr_id == CC_SET ? cc_cmpr_cstring_equal : cc_cmpr_cstring_three_way;
 }
 
-#if SIZE_MAX == 0xFFFFFFFF // 32-bit size_t.
-
 static inline size_t cc_hash_cstring( void *void_val )
 {
-  char *val = *(char **)void_val;
-  size_t hash = 0x01000193;
-  while( *val )
-    hash = ( (unsigned char)*val++ ^ hash ) * 0x811C9DC5;
-
-  return hash;
+  const char *val = *(const char **)void_val;
+  return cc_wyhash( val, strlen( val ) );
 }
-
-#elif SIZE_MAX == 0xFFFFFFFFFFFFFFFF // 64-bit size_t.
-
-static inline size_t cc_hash_cstring( void *void_val )
-{
-  char *val = *(char **)void_val;
-  size_t hash = 0xCBF29CE484222325;
-  while( *val )
-    hash = ( (unsigned char)*val++ ^ hash ) * 0x100000001B3;
-
-  return hash;
-}
-
-#else // Strange size_t.
-
-static inline size_t cc_hash_cstring( void *void_val )
-{
-  char *val = *(char **)void_val;
-  size_t hash = 0;
-  while( *val )
-      hash = hash * 131 + (unsigned char)*val++;
-
-  return hash;
-}
-
-#endif
 
 // CC strings.
-// We use the MurmurHash3 (public domain) variant optimized for x64, with the following modifications:
-// * We used fixed seed.
-// * We rectify various strict aliasing violations and alignment issues.
-// * We truncate the result to a size_t rather than returning a 128-bit hash.
-// * We do not address endianness, so the result will differ depending on whether the platform is little or big endian.
-
-#if defined(__GNUC__) && __GNUC__ >= 7
-#define CC_FALLTHROUGH __attribute__((fallthrough))
-#elif defined( _MSC_VER ) && !defined( __clang__ ) && (defined __cplusplus) && __cplusplus >= 201703L
-#define CC_FALLTHROUGH [[fallthrough]]
-#else
-#define CC_FALLTHROUGH (void)0
-#endif
-
-static inline size_t cc_MurmurHash3_x64_128_truncated( void *bytes, size_t byte_count )
-{
-  unsigned char *data = (unsigned char *)bytes;
-  size_t block_count = byte_count / 16;
-  uint64_t h1 = 104729; // Fixed seed.
-  uint64_t h2 = 104729; // Fixed seed.
-  uint64_t c1 = 0x87C37B91114253D5ull;
-  uint64_t c2 = 0x4CF5AD432745937Full;
-
-  while( block_count > 0 )
-  {
-    uint64_t k1;
-    uint64_t k2;
-    memcpy( &k1, data, 8 );
-    memcpy( &k2, data + 8, 8 );
-
-    k1 *= c1;
-    k1  = ( k1 << 31 ) | ( k1 >> 33 );
-    k1 *= c2;
-    h1 ^= k1;
-
-    h1  = ( h1 << 27 ) | ( h1 >> 37 );
-    h1 += h2;
-    h1  = h1 * 5 + 0x52DCE729;
-
-    k2 *= c2;
-    k2  = ( k2 << 33 ) | ( k2 >> 31 );
-    k2 *= c1;
-    h2 ^= k2;
-
-    h2  = ( h2 << 31 ) | ( h2 >> 33 );
-    h2 += h1;
-    h2  = h2 * 5 + 0x38495AB5;
-
-    --block_count;
-    data += 16;
-  }
-
-  uint64_t k1 = 0;
-  uint64_t k2 = 0;
-
-  switch( byte_count & 15 )
-  {
-    case 15: k2 ^= (uint64_t)data[ 14 ] << 48; CC_FALLTHROUGH;
-    case 14: k2 ^= (uint64_t)data[ 13 ] << 40; CC_FALLTHROUGH;
-    case 13: k2 ^= (uint64_t)data[ 12 ] << 32; CC_FALLTHROUGH;
-    case 12: k2 ^= (uint64_t)data[ 11 ] << 24; CC_FALLTHROUGH;
-    case 11: k2 ^= (uint64_t)data[ 10 ] << 16; CC_FALLTHROUGH;
-    case 10: k2 ^= (uint64_t)data[ 9 ]  << 8; CC_FALLTHROUGH;
-    case 9:  k2 ^= (uint64_t)data[ 8 ]  << 0;
-             k2 *= c2;
-             k2  = ( k2 << 33 ) | ( k2 >> 31 );
-             k2 *= c1;
-             h2 ^= k2;
-             CC_FALLTHROUGH;
-    case 8:  k1 ^= (uint64_t)data[ 7 ] << 56; CC_FALLTHROUGH;
-    case 7:  k1 ^= (uint64_t)data[ 6 ] << 48; CC_FALLTHROUGH;
-    case 6:  k1 ^= (uint64_t)data[ 5 ] << 40; CC_FALLTHROUGH;
-    case 5:  k1 ^= (uint64_t)data[ 4 ] << 32; CC_FALLTHROUGH;
-    case 4:  k1 ^= (uint64_t)data[ 3 ] << 24; CC_FALLTHROUGH;
-    case 3:  k1 ^= (uint64_t)data[ 2 ] << 16; CC_FALLTHROUGH;
-    case 2:  k1 ^= (uint64_t)data[ 1 ] << 8; CC_FALLTHROUGH;
-    case 1:  k1 ^= (uint64_t)data[ 0 ] << 0;
-             k1 *= c1;
-             k1  = ( k1 << 31 ) | ( k1 >> 33 );
-             k1 *= c2;
-             h1 ^= k1;
-  };
-
-  h1 ^= byte_count;
-  h2 ^= byte_count;
-  h1 += h2;
-  h2 += h1;
-
-  h1 ^= h1 >> 33;
-  h1 *= 0xFF51AFD7ED558CCDull;
-  h1 ^= h1 >> 33;
-  h1 *= 0xC4CEB9FE1A85EC53ull;
-  h1 ^= h1 >> 33;
-
-  h2 ^= h2 >> 33;
-  h2 *= 0xFF51AFD7ED558CCDull;
-  h2 ^= h2 >> 33;
-  h2 *= 0xC4CEB9FE1A85EC53ull;
-  h2 ^= h2 >> 33;
-
-  return (size_t)( h1 + h2 );
-}
 
 static inline int cc_cmpr_str_char_three_way( void *void_val_1, void *void_val_2 )
 {
@@ -9104,45 +9082,39 @@ static inline cc_cmpr_fnptr_ty cc_cmpr_str_char32_select( size_t cntr_id )
 static inline size_t cc_hash_str_char( void *void_val )
 {
   CC_STR_RAW( char ) val = *(CC_STR_RAW( char ) *)void_val;
-  return cc_MurmurHash3_x64_128_truncated( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
 }
 
 static inline size_t cc_hash_str_unsigned_char( void *void_val )
 {
   CC_STR_RAW( unsigned char ) val = *(CC_STR_RAW( unsigned char ) *)void_val;
-  return cc_MurmurHash3_x64_128_truncated( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
 }
 
 static inline size_t cc_hash_str_signed_char( void *void_val )
 {
   CC_STR_RAW( signed char ) val = *(CC_STR_RAW( signed char ) *)void_val;
-  return cc_MurmurHash3_x64_128_truncated( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
 }
 
 #if defined( __cplusplus ) && __cplusplus >= 202101L
 static inline size_t cc_hash_str_char8( void *void_val )
 {
   CC_STR_RAW( char8_t ) val = *(CC_STR_RAW( char8_t ) *)void_val;
-  return cc_MurmurHash3_x64_128_truncated( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
 }
 #endif
 
 static inline size_t cc_hash_str_char16( void *void_val )
 {
   CC_STR_RAW( char16_t ) val = *(CC_STR_RAW( char16_t ) *)void_val;
-  return cc_MurmurHash3_x64_128_truncated(
-    cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ),
-    cc_str_size( val ) * sizeof( char16_t )
-  );
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) * sizeof( char16_t ) );
 }
 
 static inline size_t cc_hash_str_char32( void *void_val )
 {
   CC_STR_RAW( char32_t ) val = *(CC_STR_RAW( char32_t ) *)void_val;
-  return cc_MurmurHash3_x64_128_truncated(
-    cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ),
-    cc_str_size( val ) * sizeof( char32_t )
-  );
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) * sizeof( char32_t ) );
 }
 
 // Dummy for containers with no comparison function.

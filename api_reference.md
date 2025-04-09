@@ -3,7 +3,7 @@
 General notes:
 
 * API macros may evaluate their first argument—the pointer to the container—multiple times, so never use expressions with side effects (e.g. `&our_containers[ ++i ]` ) for that argument. In GCC and Clang, attempting to do so will cause a compiler warning. All other arguments are only evaluated once.
-* If `CC_NO_SHORT_NAMES` was declared, all API macros are prefixed with `cc_`.
+* If `CC_NO_SHORT_NAMES` was declared, all API macros and functions are prefixed with `cc_`.
 * Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original. Hence, only create a duplicate via assignment (including through function parameters and return values) if you have finished with the original.
 * An iterator is a pointer to an element in the container or to the associated `end` (or `r_end`, if the container supports it). In the documentation below, these pointers are referred to as "pointer-iterators".
 * In the documentation below, `el_ty` is the container's element type and `key_ty` is the container's key type (where applicable).
@@ -92,7 +92,7 @@ void clear( <any container type> *cntr )
 
 <dl><dd>
 
-Erases all elements, calling the element and key types' destructors if they exist.
+Erases all elements, calling the element and key types' destructors if they exist (unless cntr is a string).
 </dd></dl>
 
 ```c
@@ -101,7 +101,7 @@ void cleanup( <any container type> *cntr )
 
 <dl><dd>
 
-Erases all elements (calling the element and key types' destructors if they exist), frees any other memory associated with the container, and initializes the container for reuse.
+Erases all elements (calling the element and key types' destructors if they exist, unless the container is a string), frees any other memory associated with the container, and initializes the container for reuse.
 </dd></dl>
 
 ```c
@@ -924,7 +924,7 @@ bool reserve( str( el_ty ) *cntr, size_t n )
 
 <dl><dd>
 
-Ensures that the the capacity is large enough to accommodate `n` elements.  
+Ensures that the capacity is large enough to accommodate `n` elements.  
 Returns `true`, or `false` if unsuccessful due to memory allocation failure.
 </dd></dl>
 
@@ -1003,23 +1003,23 @@ Each variadic argument must be one of the following:
 
   * `float_dec( int precision )`
 
-    Causes subsequent floating point arguments to be formatted as decimal floating point numbers.  
-    `precision` specifies number of decimal places to include.
+    Causes subsequent floating-point arguments to be formatted as decimal floating-point numbers.  
+    `precision` specifies the number of decimal places to include.
 
   * `float_hex( int precision )`
 
-    Causes subsequent floating point arguments to be formatted as hexadecimal floating point numbers.  
-    `precision` specifies number of decimal places to include.
+    Causes subsequent floating-point arguments to be formatted as hexadecimal floating-point numbers.  
+    `precision` specifies the number of decimal places to include.
 
   * `float_sci( int precision )`
 
-    Causes subsequent floating point arguments to be formatted using scientific notation.  
-    `precision` specifies number of decimal places to include.
+    Causes subsequent floating-point arguments to be formatted using scientific notation.  
+    `precision` specifies the number of decimal places to include.
 
   * `float_shortest( int significant_digits )`
 
-    Causes subsequent floating point arguments to be formatted as decimal floating point numbers or using scientific notation, depending on which representation is shorter.  
-    `significant_digits` specifies maximum number of significant digits to include.
+    Causes subsequent floating-point arguments to be formatted as decimal floating-point numbers or using scientific notation, depending on which representation is shorter.  
+    `significant_digits` specifies the maximum number of significant digits to include.
 
   Arguments are type-promoted as follows:
     * `bool`, `unsigned char`, `unsigned short`, `unsigned int`, `unsigned long` -> `unsigned long long`.
@@ -1027,8 +1027,8 @@ Each variadic argument must be one of the following:
     * `char` -> `long long` or `unsigned long long`, depending on whether `char` is signed.
     * `float` -> `double`.
 
-By default, integer arguments are formatted as decimal integers with a minimum of one digit and floating point arguments as formatted as decimal floating point numbers with two decimal places.  
-For formatting, C and CC strings of elements of the types `char16_t` and `char32_t` are assumed to be encoded as UTF-16 and UTF-32, respectively.
+By default, integer arguments are formatted as decimal integers with a minimum of one digit, and floating-point arguments are formatted as decimal floating-point numbers with two decimal places.  
+For formatting, C and CC strings of `char16_t` and `char32_t` elements are assumed to be encoded as UTF-16 and UTF-32, respectively.
 </dd></dl>
 
 ```c
@@ -1078,7 +1078,8 @@ el_ty *erase( str( el_ty ) *cntr, size_t i )
 
 <dl><dd>
 
-Erases the element at index `i`, calling the element type's destructor if it exists.  
+Erases the element at index `i`.  
+No destructor is called for erased element, even if a destructor for the element type has been defined.  
 Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there is no subsequent element.
 </dd></dl>
 
@@ -1172,7 +1173,7 @@ Notes:
 * These functions are `inline` and have `static` scope, so you need to either redefine them in each translation unit from which they should be called or (preferably) define them in a shared header. For structs or unions, a sensible place to define them is immediately after the definition of the struct or union.
 * Only one destructor, comparison, or hash function or max load factor should be defined by the user for each type.
 * Including `cc.h` in these cases does not include the full header, so you still need to include it separately at the top of your files.
-* In-built comparison and hash functions are already defined for the following types: `char`, `unsigned char`, `signed char`, `unsigned short`, `short`, `unsigned int`, `int`, `unsigned long`, `long`, `unsigned long long`, `long long`, `size_t`, and null-terminated strings (`char *` and `const char *`). Defining a comparison or hash function for one of these types will overwrite the in-built function.
+* In-built comparison and hash functions are already defined for the following types: `char`, `unsigned char`, `signed char`, `unsigned short`, `short`, `unsigned int`, `int`, `unsigned long`, `long`, `unsigned long long`, `long long`, `size_t`, null-terminated C strings (`char *` and `const char *`). Defining a comparison or hash function for one of these types will overwrite the in-built function.
 
 ## Heterogeneous string insertion and lookup
 

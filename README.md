@@ -45,7 +45,7 @@ Try it online [here](https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAa
 
 Traditionally, C container libraries require users to define types for every container/content type combination and to specify the container type and (often) the content types (whether by casting, type-specific function names, or some other mechanism) at every API call. This causes verbosity and syntax noise.
 
-In contrast, **CC** requires no boilerplate type definitions and provides an type-safe API agnostic to container and content types. The result is simpler, more readable code. The following table compares **CC** usage to other container library patterns.
+In contrast, **CC** requires no boilerplate type definitions and provides an API agnostic to container and content types. The result is simpler, more readable code. The following table compares **CC** usage to other container library patterns.
 
 <table>
 <tr>
@@ -834,7 +834,7 @@ CC should not generate any compiler warnings under the following settings:
 <table>
 <tr>
 <th>Compiler</th>
-<th>Warnings flags</th>
+<th>Warning options</th>
 </tr>
 <tr>
 <td>
