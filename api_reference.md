@@ -1177,11 +1177,11 @@ Notes:
 
 ## Heterogeneous string insertion and lookup
 
-When CC strings are used as the key and/or element type of another container, most API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, CC automatically handles the conversion of the C string into a CC string.
+When CC strings are used as the key and/or element type of another container, most API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, CC automatically converts the C string into a CC string.
 
 The API macros that support heterogeneous insertion are `push`, `insert` and `get_or_insert`.
 
-The API macros that support heterogeneous lookup are `get` and `erase`.
+The API macros that support heterogeneous lookup are `get` and `erase`. In this case, CC performs no memory allocations.
 
 Trivial example:
 

@@ -602,7 +602,7 @@ int main( void )
 
 ### Destructors
 
-**CC** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element (or key) of the associated type is removed from a container (except a **CC** string). Typically, a destructor frees the dynamic memory owned by the key or element.
+**CC** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element or key of the associated type is removed from a container (except a **CC** string). Typically, a destructor frees the dynamic memory owned by the element or key.
 
 ```c
 #include <stdio.h>
@@ -648,12 +648,14 @@ int main( void )
   if( !push( &our_list, our_vec ) )
   {
     // Out of memory, so abort.
+    // This requires cleaning up our_vec, as well as our_list, because it was not inserted and
+    // the list therefore did not take ownership of it.
     cleanup( &our_vec );
     cleanup( &our_list );
     return 1;
   }
   
-  cleanup( &our_list ); // our_vec is cleaned-up automatically.
+  cleanup( &our_list ); // our_vec is in our_list, so it is cleaned-up automatically.
 }
 
 ```
@@ -662,9 +664,9 @@ int main( void )
 
 **CC** includes default hash and comparison functions for fundamental integer types, null-terminated C strings (`char *` and `const char *`), and **CC** strings. Hence, these types can be used as map and ordered map keys, and set and ordered set elements, straight away.
 
-To use other types or overwrite the default functions for the aforementioned types, define custom hash and/or comparison functions with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )`, respectively.
+To use other types or overwrite the default functions for the aforementioned types, define custom hash and/or comparison functions with the signatures `size_t ( type val )` and `int ( type val_1, type val_2 )`, respectively.
 
-Maps and sets require both a hash and comparison function, whereas ordered maps and ordered sets require only a comparison function.
+Maps and sets require both a hash and a comparison function, whereas ordered maps and ordered sets require only a comparison function.
 
 ```c
 #include "cc.h"
@@ -674,7 +676,7 @@ typedef struct
   unsigned int id;
 } our_type;
 
-// First #define CC_CMPR and CC_HASH as comparision and hash functions.
+// First #define CC_CMPR and CC_HASH as comparison and hash functions.
 // The comparison function should return 0 in the case of val_1 == val_2,
 // < 0 in the case of val_1 < val_2, and > 0 in the case of val_1 > val_2.
 #define CC_CMPR our_type, { return val_1.id < val_2.id ? -1 : val_1.id > val_2.id; }
@@ -698,7 +700,7 @@ int main( void )
 
 To this end, **CC** defines default hash, comparison, and memory-freeing destructor functions for all **CC** string types.
 
-Additionally, when **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, **CC** automatically handles the conversion of the C string into a **CC** string. This functionality is called "heterogeneous" insertion and lookup. The API macros that support heterogeneous insertion are `push`, `insert`, and `get_or_insert`, while those that support heterogeneous lookup are `get` and `erase`.
+Additionally, when **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, **CC** automatically converts the C string into a **CC** string. This functionality is called "heterogeneous" insertion and lookup. The API macros that support heterogeneous insertion are `push`, `insert`, and `get_or_insert`, while those that support heterogeneous lookup are `get` and `erase`. In the lookup case, **CC** performs no memory allocations.
 
 The following example demonstrates how **CC** strings can be used with a map:
 
@@ -726,7 +728,7 @@ int main( void )
   )
   {
     // Out of memory, so abort.
-    // This requires cleaning up the keys, too, since they were not inserted and the map therefore
+    // This requires cleaning up the strings, too, since they were not inserted and the map therefore
     // did not take ownership of them.
     cleanup( &our_str_key );
     cleanup( &our_str_el );
@@ -735,8 +737,7 @@ int main( void )
   }
 
   // Heterogeneous insertion of C strings.
-  // CC automatically handles the creation of the strings (and their cleanup, if the operation
-  // fails).
+  // CC automatically creates CC strings (and cleans them up if the operation fails).
   if( !insert( &our_map, "Japan", "Tokyo" ) )
   {
     // Out of memory, so abort.
@@ -760,7 +761,7 @@ int main( void )
   // Printed: Tokyo
 
   // Heterogeneous lookup using a C string.
-  // Unlike regular lookup, heterogeneous lookup requires no dynamic memory allocation.
+  // This requires no dynamic memory allocations.
   el = get( &our_map, "France" );
   printf( first( el ) );
   // Printed: Paris
@@ -829,7 +830,7 @@ Destructor, comparison, and hash functions are also deduced via a novel techniqu
 
 ### What compiler warning options does it support?
 
-CC should not generate any compiler warnings under the following settings:
+When used correctly, **CC** should not generate any compiler warnings under the following settings:
 
 <table>
 <tr>
@@ -867,7 +868,7 @@ MSVC
 
 ### What's next?
 
-TODO: Create and link to an issue discussing CC's future direction.
+For a discussion of **CC**'s future direction, see [here](TODO: add link).
 
 ## Support and Contribute
 
@@ -875,4 +876,4 @@ There are several ways that you can support **CC**:
 
 * Star this repository ⭐.
 * [Report](https://github.com/JacksonAllan/CC/issues) any issues or bugs you find when using the library.
-* [Sponsor or donate](https://github.com/sponsors/JacksonAllan) to the library's continued development.
+* [Sponsor or donate](https://github.com/sponsors/JacksonAllan) to the library's continued development 🩷.
