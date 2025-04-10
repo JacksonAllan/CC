@@ -1032,9 +1032,10 @@ API:
 
 Version history:
 
-  --/04/2025 1.4.0: Added CC strings.
+  10/04/2025 1.4.0: Added CC strings.
                     Added cc_initialized for in-situ initialization of global containers.
                     Added support for const char * map and omap keys and set and oset elements.
+                    Added support for const source arguments in cc_splice and cc_init_clone.
                     Added support for -Wextra and -Wconversion compiler flags.
   11/02/2025 1.3.2: Fixed a critical bug causing maps to call the wrong destructors during cleanup.
   23/08/2024 1.3.1: Fixed missing static inline qualifier on an internal omap function.
