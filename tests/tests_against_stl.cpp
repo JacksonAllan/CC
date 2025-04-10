@@ -1,6 +1,6 @@
 /*
 
-Convenient Containers v1.3.2 - tests/tests_against_stl.cpp
+Convenient Containers v1.4.0 - tests/tests_against_stl.cpp
 
 This file tests CC containers against the equivalent C++ STL containers.
 Primarily, it checks that a CC container and its equivalent STL container end up in the same state after a random
@@ -28,11 +28,14 @@ License (MIT):
 
 */
 
+#include <cstdio>
 #include <ctime>
 #include <iostream>
 #include <list>
 #include <map>
 #include <set>
+#include <string>
+#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -145,7 +148,7 @@ int main()
         {
           size_t i = 0;
           if( cc_size( &our_vec ) )
-            i = rand() % ( cc_size( &our_vec ) + 1 );
+            i = (size_t)rand() % ( cc_size( &our_vec ) + 1 );
 
           int *el;
           int el_val = rand();
@@ -153,14 +156,14 @@ int main()
 
           ALWAYS_ASSERT( *el == el_val );
 
-          stl_vec.insert( stl_vec.begin() + i, el_val );
+          stl_vec.insert( stl_vec.begin() + (std::vector<int>::difference_type)i, el_val );
         }
         break;
         case 3: // cc_insert_n.
         {
           size_t i = 0;
           if( cc_size( &our_vec ) )
-            i = rand() % ( cc_size( &our_vec ) + 1 );
+            i = (size_t)rand() % ( cc_size( &our_vec ) + 1 );
 
           int *el;
           int els[ 5 ] = { rand(), rand(), rand(), rand(), rand() };
@@ -168,7 +171,7 @@ int main()
 
           ALWAYS_ASSERT( *el == els[ 0 ] );
 
-          stl_vec.insert( stl_vec.begin() + i, std::begin( els ), std::end( els ) );
+          stl_vec.insert( stl_vec.begin() + (std::vector<int>::difference_type)i, std::begin( els ), std::end( els ) );
         }
         break;
         case 4: // cc_erase.
@@ -176,7 +179,7 @@ int main()
           if( !cc_size( &our_vec ) )
             break;
 
-          size_t i = rand() % cc_size( &our_vec );
+          size_t i = (size_t)rand() % cc_size( &our_vec );
           int *el = cc_erase( &our_vec, i );
 
           if( i == cc_size( &our_vec ) )
@@ -184,7 +187,7 @@ int main()
           else
             ALWAYS_ASSERT( *el == *cc_get( &our_vec, i ) );
 
-          stl_vec.erase( stl_vec.begin() + i );
+          stl_vec.erase( stl_vec.begin() + (std::vector<int>::difference_type)i );
         }
         break;
         case 5: // cc_erase_n.
@@ -192,8 +195,8 @@ int main()
           if( !cc_size( &our_vec ) )
             break;
 
-          size_t i = rand() % cc_size( &our_vec );
-          size_t n = rand() % 5;
+          size_t i = (size_t)rand() % cc_size( &our_vec );
+          size_t n = (size_t)rand() % 5;
           if( i + n > cc_size( &our_vec ) )
             break;
 
@@ -204,7 +207,10 @@ int main()
           else
             ALWAYS_ASSERT( *el == *cc_get( &our_vec, i ) );         
 
-          stl_vec.erase( stl_vec.begin() + i, stl_vec.begin() + i + n );
+          stl_vec.erase(
+            stl_vec.begin() + (std::vector<int>::difference_type)i,
+            stl_vec.begin() + (std::vector<int>::difference_type)( i + n )
+          );
         }
         break;
         case 6: // cc_reserve.
@@ -290,7 +296,7 @@ int main()
         {
           size_t i = 0;
           if( cc_size( &our_list[ list ] ) != 0 )
-            i = rand() % cc_size( &our_list[ list ] );
+            i = (size_t)rand() % cc_size( &our_list[ list ] );
           
           int *cc_itr = cc_first( &our_list[ list ] );
           for( size_t j = 0; j < i; ++j )
@@ -313,7 +319,7 @@ int main()
           if( cc_size( &our_list[ list ] ) == 0 )
             break;
 
-          size_t i = rand() % cc_size( &our_list[ list ] );
+          size_t i = (size_t)rand() % cc_size( &our_list[ list ] );
 
           int *cc_itr = cc_first( &our_list[ list ] );
           for( size_t j = 0; j < i; ++j )
@@ -331,7 +337,7 @@ int main()
           if( cc_size( &our_list[ list ] ) == 0 )
             break;
 
-          size_t i_src = rand() % cc_size( &our_list[ list ] );
+          size_t i_src = (size_t)rand() % cc_size( &our_list[ list ] );
 
           int *cc_itr_src = cc_first( &our_list[ list ] );
           for( size_t j = 0; j < i_src; ++j )
@@ -342,7 +348,7 @@ int main()
 
           size_t i_dest = 0;
           if( cc_size( &our_list[ !list ] ) != 0 )
-            i_dest = rand() % ( cc_size( &our_list[ !list ] ) + 1 );
+            i_dest = (size_t)rand() % ( cc_size( &our_list[ !list ] ) + 1 );
 
           int *cc_itr_dest = cc_first( &our_list[ !list ] );
           for( size_t j = 0; j < i_dest; ++j )
@@ -360,8 +366,8 @@ int main()
           if( cc_size( &our_list[ list ] ) == 0 )
             break;
 
-          size_t i_src = rand() % cc_size( &our_list[ list ] );
-          size_t i_dest = rand() % ( cc_size( &our_list[ list ] ) + 1 );
+          size_t i_src = (size_t)rand() % cc_size( &our_list[ list ] );
+          size_t i_dest = (size_t)rand() % ( cc_size( &our_list[ list ] ) + 1 );
           if( i_src == i_dest )
             break;
 
@@ -530,8 +536,8 @@ int main()
         {
           if( rand() % 2 )
             UNTIL_SUCCESS( cc_reserve( &our_map, cc_cap( &our_map ) ) ); // Reserve above the current capacity.
-          else if( cc_cap( &our_map ) * CC_DEFAULT_LOAD  >= 5 ) // Reserve below the current capacity.
-            UNTIL_SUCCESS( cc_reserve( &our_map, (size_t)( cc_cap( &our_map ) * CC_DEFAULT_LOAD - 5 ) ) );
+          else if( (double)cc_cap( &our_map ) * CC_DEFAULT_LOAD  >= 5 ) // Reserve below the current capacity.
+            UNTIL_SUCCESS( cc_reserve( &our_map, (size_t)( (double)cc_cap( &our_map ) * CC_DEFAULT_LOAD - 5 ) ) );
         }
         break;
         case 5: // cc_shrink.
@@ -635,8 +641,8 @@ int main()
         {
           if( rand() % 2 )
             UNTIL_SUCCESS( cc_reserve( &our_set, cc_cap( &our_set ) ) );
-          else if( cc_cap( &our_set ) * CC_DEFAULT_LOAD  >= 5 )
-            UNTIL_SUCCESS( cc_reserve( &our_set, (size_t)( cc_cap( &our_set ) * CC_DEFAULT_LOAD - 5 ) ) );
+          else if( (double)cc_cap( &our_set ) * CC_DEFAULT_LOAD  >= 5 )
+            UNTIL_SUCCESS( cc_reserve( &our_set, (size_t)( (double)cc_cap( &our_set ) * CC_DEFAULT_LOAD - 5 ) ) );
         }
         break;
         case 5: // cc_shrink.
@@ -908,6 +914,258 @@ int main()
 
     std::cout << "Done. Final size: " << cc_size( &our_oset ) << "\n";
     cc_cleanup( &our_oset );
+  }
+
+  // String.
+  for( int test = 0; test < N_TESTS; ++test )
+  {
+    std::cout << "Str test " << test << "... ";
+    std::basic_string<char> stl_str;
+    cc_str( char ) our_str;
+    cc_init( &our_str );
+
+    for( int op = 0; op < N_OPS; ++op )
+    {
+      switch( rand() % 12 )
+      {
+        case 0: // cc_push.
+        {
+          char *el;
+          char el_val = (char)( 'a' + rand() % 26 );
+          UNTIL_SUCCESS( ( el = cc_push( &our_str, el_val ) ) );
+
+          ALWAYS_ASSERT( *el == el_val );
+
+          stl_str.push_back( el_val );
+        }
+        break;
+        case 1: // cc_push_n.
+        {
+          char *el;
+          char els[ 5 ] = { 
+            (char)( 'a' + rand() % 26 ), 
+            (char)( 'a' + rand() % 26 ), 
+            (char)( 'a' + rand() % 26 ), 
+            (char)( 'a' + rand() % 26 ), 
+            (char)( 'a' + rand() % 26 )
+          };
+          UNTIL_SUCCESS( ( el = cc_push_n( &our_str, els, 5 ) ) );
+
+          ALWAYS_ASSERT( *el == els[ 0 ] );
+
+          stl_str.insert( stl_str.end(), std::begin( els ), std::end( els ) );
+        }
+        break;
+        case 2: // cc_insert.
+        {
+          size_t i = 0;
+          if( cc_size( &our_str ) )
+            i = (size_t)rand() % ( cc_size( &our_str ) + 1 );
+
+          char *el;
+          char el_val = (char)( 'a' + rand() % 26 );
+          UNTIL_SUCCESS( ( el = cc_insert( &our_str, i, el_val ) ) );
+
+          ALWAYS_ASSERT( *el == el_val );
+
+          stl_str.insert( stl_str.begin() + (std::basic_string<char>::difference_type)i, el_val );
+        }
+        break;
+        case 3: // cc_insert_n.
+        {
+          size_t i = 0;
+          if( cc_size( &our_str ) )
+            i = (size_t)rand() % ( cc_size( &our_str ) + 1 );
+
+          char *el;
+          char els[ 5 ] = { 
+            (char)( 'a' + rand() % 26 ), 
+            (char)( 'a' + rand() % 26 ), 
+            (char)( 'a' + rand() % 26 ), 
+            (char)( 'a' + rand() % 26 ), 
+            (char)( 'a' + rand() % 26 )
+          };
+          UNTIL_SUCCESS( ( el = cc_insert_n( &our_str, i, els, 5 ) ) );
+
+          ALWAYS_ASSERT( *el == els[ 0 ] );
+
+          stl_str.insert( stl_str.begin() + (std::basic_string<char>::difference_type)i, std::begin( els ), std::end( els ) );
+        }
+        break;
+        case 4: // cc_erase.
+        {
+          if( !cc_size( &our_str ) )
+            break;
+
+          size_t i = (size_t)rand() % cc_size( &our_str );
+          char *el = cc_erase( &our_str, i );
+
+          if( i == cc_size( &our_str ) )
+            ALWAYS_ASSERT( el == cc_end( &our_str ) );
+          else
+            ALWAYS_ASSERT( *el == *cc_get( &our_str, i ) );
+
+          stl_str.erase( stl_str.begin() + (std::basic_string<char>::difference_type)i );
+        }
+        break;
+        case 5: // cc_erase_n.
+        {
+          if( !cc_size( &our_str ) )
+            break;
+
+          size_t i = (size_t)rand() % cc_size( &our_str );
+          size_t n = (size_t)rand() % 5;
+          if( i + n > cc_size( &our_str ) )
+            break;
+
+          char *el = cc_erase_n( &our_str, i, n );
+
+          if( i == cc_size( &our_str ) )
+            ALWAYS_ASSERT( el == cc_end( &our_str ) );
+          else
+            ALWAYS_ASSERT( *el == *cc_get( &our_str, i ) );         
+
+          stl_str.erase(
+            stl_str.begin() + (std::basic_string<char>::difference_type)i,
+            stl_str.begin() + (std::basic_string<char>::difference_type)( i + n )
+          );
+        }
+        break;
+        case 6: // cc_reserve.
+        {
+          if( rand() % 2 )
+            UNTIL_SUCCESS( cc_reserve( &our_str, cc_cap( &our_str ) + 5 ) ); // Reserve above current capacity.
+          else if( cc_cap( &our_str ) >= 5 )
+            UNTIL_SUCCESS( cc_reserve( &our_str, cc_cap( &our_str ) - 5 ) ); // Reserve below current capacity.
+        }
+        break;
+        case 7: // cc_resize.
+        {
+          if( rand() % 2 )
+          {
+            char fill_el = (char)( 'a' + rand() % 26 );
+            UNTIL_SUCCESS( cc_resize( &our_str, cc_size( &our_str ) + 5, fill_el ) );
+            stl_str.resize( stl_str.size() + 5, fill_el );
+          }
+          else if( cc_size( &our_str ) >= 5 )
+          {
+            UNTIL_SUCCESS( cc_resize( &our_str, cc_size( &our_str ) - 5, 'a' ) );
+            stl_str.resize( stl_str.size() - 5 );
+          }
+        }
+        break;
+        case 8: // cc_shrink.
+        {
+          UNTIL_SUCCESS( cc_shrink( &our_str ) );
+        }
+        break;
+        case 9: // cc_init_clone.
+        {
+          cc_str( char ) clone;
+          UNTIL_SUCCESS( cc_init_clone( &clone, &our_str ) );
+          cc_cleanup( &our_str );
+          our_str = clone;
+        }
+        break;
+        case 10: // cc_push_fmt.
+        {
+          char               a = (char)rand();
+          unsigned char      b = (unsigned char)rand();
+          signed char        c = (signed char)rand();
+          unsigned short     d = (unsigned short)rand();
+          short              e = (short)rand();
+          unsigned int       f = (unsigned int)rand();
+          int                g = (int)rand();
+          unsigned long      h = (unsigned long)rand();
+          long               i = (long)rand();
+          unsigned long long j = (unsigned long long)rand();
+          long long          k = (long long)rand();
+          bool               l = (bool)rand();
+          char               m[] = {
+                               (char)( 'a' + rand() % 26 ),
+                               (char)( 'a' + rand() % 26 ),
+                               (char)( 'a' + rand() % 26 ),
+                               (char)( 'a' + rand() % 26 ),
+                               (char)( 'a' + rand() % 26 ),
+                               '\0'
+                             };
+          float              n = (float)rand() / 1000.0f;
+          double             o = (double)rand() / 1000.0;
+
+          char n_as_cstring[ 256 ];
+          char o_as_cstring[ 256 ];
+          snprintf( n_as_cstring, 256, "%.2f", n );
+          snprintf( o_as_cstring, 256, "%.2f", o );
+
+          std::stringstream ss;
+          ss << (int)a << (int)b << (int)c << d << e << f << g << h << i << j << k << l << m << std::string( m ) <<
+            n_as_cstring << o_as_cstring;
+          stl_str += ss.str();
+
+          cc_str( char ) m_as_cc_str = cc_initialized( &m_as_cc_str );
+          UNTIL_SUCCESS( cc_push_fmt( &m_as_cc_str, m ) );
+          UNTIL_SUCCESS( cc_push_fmt( &our_str, a, b, c, d, e, f, g, h, i, j, k, l, m, m_as_cc_str, n, o ) );
+          cc_cleanup( &m_as_cc_str );
+        }
+        break;
+        case 11: // cc_insert_fmt.
+        {
+          size_t index = 0;
+          if( cc_size( &our_str ) )
+            index = (size_t)rand() % ( cc_size( &our_str ) + 1 );
+
+          char               a = (char)rand();
+          unsigned char      b = (unsigned char)rand();
+          signed char        c = (signed char)rand();
+          unsigned short     d = (unsigned short)rand();
+          short              e = (short)rand();
+          unsigned int       f = (unsigned int)rand();
+          int                g = (int)rand();
+          unsigned long      h = (unsigned long)rand();
+          long               i = (long)rand();
+          unsigned long long j = (unsigned long long)rand();
+          long long          k = (long long)rand();
+          bool               l = (bool)rand();
+          char               m[] = {
+                               (char)( 'a' + rand() % 26 ),
+                               (char)( 'a' + rand() % 26 ),
+                               (char)( 'a' + rand() % 26 ),
+                               (char)( 'a' + rand() % 26 ),
+                               (char)( 'a' + rand() % 26 ),
+                               '\0'
+                             };
+          float              n = (float)rand() / 1000.0f;
+          double             o = (double)rand() / 1000.0;
+
+          char n_as_cstring[ 256 ];
+          char o_as_cstring[ 256 ];
+          snprintf( n_as_cstring, 256, "%.2f", n );
+          snprintf( o_as_cstring, 256, "%.2f", o );
+
+          std::stringstream ss;
+          ss << (int)a << (int)b << (int)c << d << e << f << g << h << i << j << k << l << m << std::string( m ) <<
+            n_as_cstring << o_as_cstring;
+          std::string ss_string = ss.str();
+          stl_str.insert(
+            stl_str.begin() + (std::basic_string<char>::difference_type)index, ss_string.begin(), ss_string.end()
+          );
+
+          cc_str( char ) m_as_cc_str = cc_initialized( &m_as_cc_str );
+          UNTIL_SUCCESS( cc_push_fmt( &m_as_cc_str, m ) );
+          UNTIL_SUCCESS( cc_insert_fmt( &our_str, index, a, b, c, d, e, f, g, h, i, j, k, l, m, m_as_cc_str, n, o ) );
+          cc_cleanup( &m_as_cc_str );
+        }
+        break;
+      }
+    }
+
+    // Check.
+    ALWAYS_ASSERT( cc_size( &our_str ) == stl_str.size() );
+    for( size_t i = 0; i < cc_size( &our_str ); ++i )
+      ALWAYS_ASSERT( *cc_get( &our_str, i ) == stl_str[ i ] );
+
+    std::cout << "Done. Final size: " << cc_size( &our_str ) << "\n";
+    cc_cleanup( &our_str );
   }
 
   ALWAYS_ASSERT( oustanding_allocs.empty() );

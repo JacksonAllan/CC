@@ -1,6 +1,6 @@
 /*
 
-Convenient Containers v1.3.2 - tests/unit_tests.c
+Convenient Containers v1.4.0 - tests/unit_tests.c
 
 This file tests CC containers.
 It aims to cover the full API and to check corner cases, particularly transitions between placeholder containers and
@@ -31,6 +31,7 @@ License (MIT):
 #define TEST_SET
 #define TEST_OMAP
 #define TEST_OSET
+#define TEST_STR
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,7 +106,7 @@ static void check_dtors_arr( void )
 typedef struct { int val; } custom_ty;
 #define CC_DTOR custom_ty, { dtor_called[ val.val ] = true; }
 #define CC_CMPR custom_ty, { return val_1.val < val_2.val ? -1 : val_1.val > val_2.val; }
-#define CC_HASH custom_ty, { return val.val * 2654435761ull; }
+#define CC_HASH custom_ty, { return (size_t)( (unsigned long long)val.val * 2654435761ull ); }
 #define CC_LOAD custom_ty, 0.7
 #include "../cc.h"
 
@@ -193,8 +194,8 @@ static void test_vec_resize( void )
   ALWAYS_ASSERT( size( &our_vec ) == 30 );
 
   // Test validity through use.
-  for( int i = 0; i < 30; ++i )
-    *get( &our_vec, i ) = i;
+  for( size_t i = 0; i < 30; ++i )
+    *get( &our_vec, i ) = (int)i;
 
   VEC_CHECK;
 
@@ -243,8 +244,8 @@ static void test_vec_shrink( void )
   ALWAYS_ASSERT( cap( &our_vec ) == 30 );
 
   // Test validity through use.
-  for( int i = 0; i < 30; ++i )
-    *get( &our_vec, i ) = i;
+  for( size_t i = 0; i < 30; ++i )
+    *get( &our_vec, i ) = (int)i;
 
   VEC_CHECK;
 
@@ -273,6 +274,7 @@ static void test_vec_insert( void )
   {
     int *el;
     UNTIL_SUCCESS( el = insert( &our_vec, size( &our_vec ), 60 + i ) );
+
     ALWAYS_ASSERT( *el == 60 + i );
   }
 
@@ -308,7 +310,7 @@ static void test_vec_insert_n( void )
     20, 21, 22, 23, 24, 25, 26, 27, 28, 29
   };
 
-  ALWAYS_ASSERT( !insert_n( &our_vec, size( &our_vec ), NULL, 0 ) ); // Zero-size insert.
+  ALWAYS_ASSERT( !insert_n( &our_vec, size( &our_vec ), NULL, 0 ) ); // Zero-size insertion.
 
   int *el;
   UNTIL_SUCCESS( el = insert_n( &our_vec, size( &our_vec ), expected + 20, 10 ) ); // End.
@@ -410,7 +412,7 @@ static void test_vec_erase( void )
     UNTIL_SUCCESS( push( &our_vec, i ) );
 
   bool erase = true;
-  for( int i = 0; i < 50; )
+  for( size_t i = 0; i < 50; )
   {
     if( erase )
     {
@@ -445,7 +447,7 @@ static void test_vec_erase_n( void )
     UNTIL_SUCCESS( push( &our_vec, i ) );
 
   bool erase = true;
-  for( int i = 0; i < 50; )
+  for( size_t i = 0; i < 50; )
   {
     if( erase )
     {
@@ -599,11 +601,11 @@ static void test_vec_dtors( void )
   // Test erase and clear.
 
   UNTIL_SUCCESS( resize( &our_vec, 100 ) );
-  for( int i = 0; i < 100; ++i )
-    get( &our_vec, i )->val = i;
+  for( size_t i = 0; i < 100; ++i )
+    get( &our_vec, i )->val = (int)i;
 
   bool erase = true;
-  for( int i = 0; i < 50; )
+  for( size_t i = 0; i < 50; )
   {
     if( erase )
       erase( &our_vec, i );
@@ -618,8 +620,8 @@ static void test_vec_dtors( void )
 
   // Test cleanup.
   UNTIL_SUCCESS( resize( &our_vec, 100 ) );
-  for( int i = 0; i < 100; ++i )
-    get( &our_vec, i )->val = i;
+  for( size_t i = 0; i < 100; ++i )
+    get( &our_vec, i )->val = (int)i;
 
   cleanup( &our_vec );
   check_dtors_arr();
@@ -1028,7 +1030,7 @@ static void test_map_reserve( void )
 
   // Reserve up from placeholder.
   UNTIL_SUCCESS( reserve( &our_map, 30 ) );
-  ALWAYS_ASSERT( 30 <= cap( &our_map ) * CC_DEFAULT_LOAD );
+  ALWAYS_ASSERT( 30 <= (double)cap( &our_map ) * CC_DEFAULT_LOAD );
 
   // Reserve same capacity.
   size_t cap = cap( &our_map );
@@ -1037,7 +1039,7 @@ static void test_map_reserve( void )
 
   // Reserve up from non-placeholder.
   UNTIL_SUCCESS( reserve( &our_map, 60 ) );
-  ALWAYS_ASSERT( 60 <= cap( &our_map ) * CC_DEFAULT_LOAD );
+  ALWAYS_ASSERT( 60 <= (double)cap( &our_map ) * CC_DEFAULT_LOAD );
 
   // Reserve lower capacity.
   cap = cap( &our_map );
@@ -1046,7 +1048,7 @@ static void test_map_reserve( void )
 
   // Test validity through use.
   for( int i = 0; i < 60; ++i )
-    UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_map, i, (size_t)i + 1 ) );
 
   // Check.
   ALWAYS_ASSERT( size( &our_map ) == 60 );
@@ -1076,7 +1078,7 @@ static void test_map_shrink( void )
   // Test shrink same size.
   UNTIL_SUCCESS( reserve( &our_map, 30 ) );
   for( int i = 0; i < 30; ++i )
-    insert( &our_map, i, i + 1 );
+    insert( &our_map, i, (size_t)i + 1 );
 
   ALWAYS_ASSERT( size( &our_map ) == 30 );
   map( int, size_t ) same = our_map;
@@ -1088,7 +1090,7 @@ static void test_map_shrink( void )
   // Test shrink down.
   UNTIL_SUCCESS( reserve( &our_map, 500 ) );
   ALWAYS_ASSERT( size( &our_map ) == 30 );
-  ALWAYS_ASSERT( 500 <= cap( &our_map ) * CC_DEFAULT_LOAD );
+  ALWAYS_ASSERT( 500 <= (double)cap( &our_map ) * CC_DEFAULT_LOAD );
   UNTIL_SUCCESS( shrink( &our_map ) );
   ALWAYS_ASSERT( size( &our_map ) == 30 );
   ALWAYS_ASSERT( cap( &our_map ) == cap );
@@ -1109,7 +1111,7 @@ static void test_map_insert( void )
   for( int i = 0; i < 100; ++i )
   {
     size_t *el;
-    UNTIL_SUCCESS( el = insert( &our_map, i, i + 1 ) );
+    UNTIL_SUCCESS( el = insert( &our_map, i, (size_t)i + 1 ) );
     ALWAYS_ASSERT( *el == (size_t)i + 1 );
   }
 
@@ -1117,7 +1119,7 @@ static void test_map_insert( void )
   for( int i = 0; i < 100; ++i )
   {
     size_t *el;
-    UNTIL_SUCCESS( el = insert( &our_map, i, i + 2 ) );
+    UNTIL_SUCCESS( el = insert( &our_map, i, (size_t)i + 2 ) );
     ALWAYS_ASSERT( *el == (size_t)i + 2 );
   }
 
@@ -1137,7 +1139,7 @@ static void test_map_get_or_insert( void )
   for( int i = 0; i < 100; ++i )
   {
     size_t *el;
-    UNTIL_SUCCESS( ( el = get_or_insert( &our_map, i, i + 1 ) ) );
+    UNTIL_SUCCESS( ( el = get_or_insert( &our_map, i, (size_t)i + 1 ) ) );
     ALWAYS_ASSERT( *el == (size_t)i + 1 );
   }
 
@@ -1150,7 +1152,7 @@ static void test_map_get_or_insert( void )
   {
     size_t *el_1 = get( &our_map, i );
     size_t *el_2;
-    UNTIL_SUCCESS( ( el_2 = get_or_insert( &our_map, i, i + 1 ) ) );
+    UNTIL_SUCCESS( ( el_2 = get_or_insert( &our_map, i, (size_t)i + 1 ) ) );
     ALWAYS_ASSERT( el_2 == el_1 && *el_2 == (size_t)i + 1 );
   }
 
@@ -1170,7 +1172,7 @@ static void test_map_get( void )
 
   // Test get existing.
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_map, i, (size_t)i + 1 ) );
 
   for( int i = 0; i < 100; ++i )
     ALWAYS_ASSERT( *get( &our_map, i ) == (size_t)i + 1 );
@@ -1189,7 +1191,7 @@ static void test_map_erase( void )
 
   // Test erase existing.
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_map, i, (size_t)i + 1 ) );
 
   ALWAYS_ASSERT( size( &our_map ) == 100 );
 
@@ -1221,7 +1223,7 @@ static void test_map_erase_itr( void )
   // In this instance, the key count and order of insert have been carefully chosen to cause skipped or repeat-visited
   // keys if erase_itr does not correctly handle the case of another key being moved to the bucket of the erased key.
   for( int i = 119; i >= 0; --i )
-    UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_map, i, (size_t)i + 1 ) );
 
   ALWAYS_ASSERT( size( &our_map ) == 120 );
 
@@ -1238,7 +1240,7 @@ static void test_map_erase_itr( void )
     else
     {
       size_t *el = get( &our_map, i );
-      ALWAYS_ASSERT( el && *el == i + 1 );
+      ALWAYS_ASSERT( el && *el == (size_t)i + 1 );
     }
   }
 
@@ -1265,7 +1267,7 @@ static void test_map_erase_itr( void )
     else
     {
       el = get( &our_map, i );
-      ALWAYS_ASSERT( el && *el == i + 1 );
+      ALWAYS_ASSERT( el && *el == (size_t)i + 1 );
     }
   }
 
@@ -1283,7 +1285,7 @@ static void test_map_clear( void )
 
   // Test non-empty;
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_map, i, (size_t)i + 1 ) );
 
   clear( &our_map );
   ALWAYS_ASSERT( size( &our_map ) == 0 );
@@ -1292,7 +1294,7 @@ static void test_map_clear( void )
 
   // Test reuse.
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_map, i, (size_t)i + 1 ) );
 
   for( int i = 0; i < 100; ++i )
     ALWAYS_ASSERT( *get( &our_map, i ) == (size_t)i + 1 );
@@ -1311,7 +1313,7 @@ static void test_map_cleanup( void )
 
   // Non-empty.
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_map, i, (size_t)i + 1 ) );
   ALWAYS_ASSERT( size( &our_map ) == 100 );
   cleanup( &our_map );
   ALWAYS_ASSERT( size( &our_map ) == 0 );
@@ -1319,7 +1321,7 @@ static void test_map_cleanup( void )
 
   // Test use.
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_map, i, (size_t)i + 1 ) );
   for( int i = 0; i < 100; ++i )
     ALWAYS_ASSERT( *get( &our_map, i ) == (size_t)i + 1 );
 
@@ -1339,7 +1341,7 @@ static void test_map_init_clone( void )
   // Test init_clone non-placeholder.
   map( int, size_t ) our_map;
   for( int i = 0; i < 10; ++i )
-    UNTIL_SUCCESS( insert( &src_map, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &src_map, i, (size_t)i + 1 ) );
   UNTIL_SUCCESS( init_clone( &our_map, &src_map ) );
 
   // Check.
@@ -1378,7 +1380,7 @@ static void test_map_iteration_and_get_key( void )
   // Non-empty.
 
   for( int i = 0; i < 30; ++i )
-    UNTIL_SUCCESS( insert( &our_map, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_map, i, (size_t)i + 1 ) );
   
   for( size_t *i = first( &our_map ); i != end( &our_map ); i = next( &our_map, i ) )
   {
@@ -1466,9 +1468,11 @@ static void test_map_dtors( void )
   check_dtors_arr();
 }
 
-// Strings are a special case that warrant seperate testing.
+// C strings are a special case that warrant seperate testing.
 static void test_map_strings( void )
 {
+  // Non-const strings.
+
   map( char *, char * ) our_map;
   init( &our_map );
 
@@ -1511,21 +1515,65 @@ static void test_map_strings( void )
     ALWAYS_ASSERT( strcmp( *i, "test" ) == 0 || strcmp( *i, str_4 ) == 0 );
 
   cleanup( &our_map );
+
+  // const strings.
+
+  map( const char *, const char * ) our_const_map;
+  init( &our_const_map );
+
+  const char **const_el;
+
+  // String literals.
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_map, "This", "is" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "is" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = get_or_insert( &our_const_map, "a", "test" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "test" ) == 0 );
+
+  const char *const_str_1 = str_1;
+  const char *const_str_2 = str_2;
+  const char *const_str_3 = str_3;
+  const char *const_str_4 = str_4;
+
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_map, const_str_1, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = get_or_insert( &our_const_map, const_str_3, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_const_map ) == 4 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_map, "This" ), "is" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_map, "a" ), "test" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_map, const_str_1, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_map, const_str_3, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+  ALWAYS_ASSERT( size( &our_const_map ) == 4 );
+
+  // Erase.
+  erase( &our_const_map, "This" );
+  erase( &our_const_map, const_str_1 );
+  ALWAYS_ASSERT( size( &our_const_map ) == 2 );
+
+  // Iteration.
+  for_each( &our_const_map, i )
+    ALWAYS_ASSERT( strcmp( *i, "test" ) == 0 || strcmp( *i, const_str_4 ) == 0 );
+
+  cleanup( &our_const_map );
 }
 
-#define TEST_MAP_DEFAULT_INTEGER_TYPE( ty )    \
-{                                              \
-  map( ty, int ) our_map;                      \
-  init( &our_map );                            \
-                                               \
-  for( int i = 0; i < 100; ++i )               \
-    UNTIL_SUCCESS( insert( &our_map, i, i ) ); \
-                                               \
-  for( int i = 0; i < 100; ++i )               \
-    ALWAYS_ASSERT( *get( &our_map, i ) == i ); \
-                                               \
-  cleanup( &our_map );                         \
-}                                              \
+#define TEST_MAP_DEFAULT_INTEGER_TYPE( ty )        \
+{                                                  \
+  map( ty, int ) our_map;                          \
+  init( &our_map );                                \
+                                                   \
+  for( int i = 0; i < 100; ++i )                   \
+    UNTIL_SUCCESS( insert( &our_map, (ty)i, i ) ); \
+                                                   \
+  for( int i = 0; i < 100; ++i )                   \
+    ALWAYS_ASSERT( *get( &our_map, (ty)i ) == i ); \
+                                                   \
+  cleanup( &our_map );                             \
+}                                                  \
 
 static void test_map_default_integer_types( void )
 {
@@ -1559,7 +1607,7 @@ static void test_set_reserve( void )
 
   // Reserve up from placeholder.
   UNTIL_SUCCESS( reserve( &our_set, 30 ) );
-  ALWAYS_ASSERT( 30 <= cap( &our_set ) * CC_DEFAULT_LOAD );
+  ALWAYS_ASSERT( 30 <= (double)cap( &our_set ) * CC_DEFAULT_LOAD );
 
   // Reserve same capacity.
   size_t cap = cap( &our_set );
@@ -1568,7 +1616,7 @@ static void test_set_reserve( void )
 
   // Reserve up from non-placeholder.
   UNTIL_SUCCESS( reserve( &our_set, 60 ) );
-  ALWAYS_ASSERT( 60 <= cap( &our_set ) * CC_DEFAULT_LOAD );
+  ALWAYS_ASSERT( 60 <= (double)cap( &our_set ) * CC_DEFAULT_LOAD );
 
   // Reserve lower capacity.
   cap = cap( &our_set );
@@ -1619,7 +1667,7 @@ static void test_set_shrink( void )
   // Test shrink down.
   UNTIL_SUCCESS( reserve( &our_set, 500 ) );
   ALWAYS_ASSERT( size( &our_set ) == 30 );
-  ALWAYS_ASSERT( 500 <= cap( &our_set ) * CC_DEFAULT_LOAD );
+  ALWAYS_ASSERT( 500 <= (double)cap( &our_set ) * CC_DEFAULT_LOAD );
   UNTIL_SUCCESS( shrink( &our_set ) );
 
   ALWAYS_ASSERT( size( &our_set ) == 30 );
@@ -1984,6 +2032,8 @@ static void test_set_dtors( void )
 
 static void test_set_strings( void )
 {
+  // Non-const strings.
+
   set( char * ) our_set;
   init( &our_set );
 
@@ -2026,6 +2076,51 @@ static void test_set_strings( void )
   ALWAYS_ASSERT( strcmp( *get( &our_set, "strings" ), str_4 ) == 0 );
 
   cleanup( &our_set );
+
+  // const strings.
+
+  set( const char * ) our_const_set;
+  init( &our_const_set );
+
+  const char **const_el;
+
+  // String literals.
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, "This" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "This" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, "is" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "is" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, "a" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "a" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, "test" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "test" ) == 0 );
+
+  // Other strings.
+  const char *const_str_1 = str_1;
+  const char *const_str_2 = str_2;
+  const char *const_str_3 = str_3;
+  const char *const_str_4 = str_4;
+
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, const_str_1 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_1 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, const_str_3 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_3 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_set, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_const_set ) == 8 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, "This" ), "This" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, "is" ), "is" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, "a" ), "a" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, "test" ), "test" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, str_1 ), str_1 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, str_2 ), str_2 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, str_3 ), str_3 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_set, str_4 ), str_4 ) == 0 );
+
+  cleanup( &our_const_set );
 }
 
 #define TEST_SET_DEFAULT_INTEGER_TYPE( ty )    \
@@ -2074,7 +2169,7 @@ static void test_omap_insert( void )
   for( int i = 0; i < 100; ++i )
   {
     size_t *el;
-    UNTIL_SUCCESS( el = insert( &our_omap, i, i + 1 ) );
+    UNTIL_SUCCESS( el = insert( &our_omap, i, (size_t)i + 1 ) );
     ALWAYS_ASSERT( *el == (size_t)i + 1 );
   }
 
@@ -2082,7 +2177,7 @@ static void test_omap_insert( void )
   for( int i = 0; i < 100; ++i )
   {
     size_t *el;
-    UNTIL_SUCCESS( el = insert( &our_omap, i, i + 2 ) );
+    UNTIL_SUCCESS( el = insert( &our_omap, i, (size_t)i + 2 ) );
     ALWAYS_ASSERT( *el == (size_t)i + 2 );
   }
 
@@ -2098,7 +2193,7 @@ static void test_omap_insert( void )
   for( int i = 0; i < 100; ++i )
   {
     size_t *el;
-    UNTIL_SUCCESS( el = insert( &our_omap, i * ( i % 2 ? 1 : -1 ), i + 1 ) );
+    UNTIL_SUCCESS( el = insert( &our_omap, i * ( i % 2 ? 1 : -1 ), (size_t)i + 1 ) );
     ALWAYS_ASSERT( *el == (size_t)i + 1 );
   }
 
@@ -2106,7 +2201,7 @@ static void test_omap_insert( void )
   for( int i = 0; i < 100; ++i )
   {
     size_t *el;
-    UNTIL_SUCCESS( el = insert( &our_omap, i * ( i % 2 ? 1 : -1 ), i + 2 ) );
+    UNTIL_SUCCESS( el = insert( &our_omap, i * ( i % 2 ? 1 : -1 ), (size_t)i + 2 ) );
     ALWAYS_ASSERT( *el == (size_t)i + 2 );
   }
 
@@ -2126,7 +2221,7 @@ static void test_omap_get_or_insert( void )
   for( int i = 0; i < 100; ++i )
   {
     size_t *el;
-    UNTIL_SUCCESS( ( el = get_or_insert( &our_omap, i, i + 1 ) ) );
+    UNTIL_SUCCESS( ( el = get_or_insert( &our_omap, i, (size_t)i + 1 ) ) );
     ALWAYS_ASSERT( *el == (size_t)i + 1 );
   }
 
@@ -2139,7 +2234,7 @@ static void test_omap_get_or_insert( void )
   {
     size_t *el_1 = get( &our_omap, i );
     size_t *el_2;
-    UNTIL_SUCCESS( ( el_2 = get_or_insert( &our_omap, i, i + 1 ) ) );
+    UNTIL_SUCCESS( ( el_2 = get_or_insert( &our_omap, i, (size_t)i + 1 ) ) );
     ALWAYS_ASSERT( el_2 == el_1 && *el_2 == (size_t)i + 1 );
   }
 
@@ -2159,7 +2254,7 @@ static void test_omap_get( void )
 
   // Test get existing.
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_omap, i, (size_t)i + 1 ) );
 
   for( int i = 0; i < 100; ++i )
     ALWAYS_ASSERT( *get( &our_omap, i ) == (size_t)i + 1 );
@@ -2180,7 +2275,7 @@ static void test_omap_erase( void )
 
   // Test erase existing.
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_omap, i, (size_t)i + 1 ) );
 
   ALWAYS_ASSERT( size( &our_omap ) == 100 );
 
@@ -2207,7 +2302,7 @@ static void test_omap_erase( void )
 
   // Test erase existing.
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_omap, i * ( i % 2 ? 1 : -1 ), i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_omap, i * ( i % 2 ? 1 : -1 ), (size_t)i + 1 ) );
 
   ALWAYS_ASSERT( size( &our_omap ) == 100 );
 
@@ -2237,7 +2332,7 @@ static void test_omap_erase_itr( void )
   init( &our_omap );
 
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_omap, i, (size_t)i + 1 ) );
 
   ALWAYS_ASSERT( size( &our_omap ) == 100 );
 
@@ -2254,7 +2349,7 @@ static void test_omap_erase_itr( void )
     else
     {
       size_t *el = get( &our_omap, i );
-      ALWAYS_ASSERT( el && *el == i + 1 );
+      ALWAYS_ASSERT( el && *el == (size_t)i + 1 );
     }
   }
 
@@ -2282,7 +2377,7 @@ static void test_omap_erase_itr( void )
     else
     {
       el = get( &our_omap, i );
-      ALWAYS_ASSERT( el && *el == i + 1 );
+      ALWAYS_ASSERT( el && *el == (size_t)i + 1 );
     }
   }
 
@@ -2300,7 +2395,7 @@ static void test_omap_clear( void )
 
   // Test non-empty;
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_omap, i, (size_t)i + 1 ) );
 
   clear( &our_omap );
   ALWAYS_ASSERT( size( &our_omap ) == 0 );
@@ -2309,7 +2404,7 @@ static void test_omap_clear( void )
 
   // Test reuse.
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_omap, i, (size_t)i + 1 ) );
 
   for( int i = 0; i < 100; ++i )
     ALWAYS_ASSERT( *get( &our_omap, i ) == (size_t)i + 1 );
@@ -2328,7 +2423,7 @@ static void test_omap_cleanup( void )
 
   // Non-empty.
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_omap, i, (size_t)i + 1 ) );
   ALWAYS_ASSERT( size( &our_omap ) == 100 );
   cleanup( &our_omap );
   ALWAYS_ASSERT( size( &our_omap ) == 0 );
@@ -2336,7 +2431,7 @@ static void test_omap_cleanup( void )
 
   // Test use.
   for( int i = 0; i < 100; ++i )
-    UNTIL_SUCCESS( insert( &our_omap, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &our_omap, i, (size_t)i + 1 ) );
   for( int i = 0; i < 100; ++i )
     ALWAYS_ASSERT( *get( &our_omap, i ) == (size_t)i + 1 );
 
@@ -2356,7 +2451,7 @@ static void test_omap_init_clone( void )
   // Test init_clone non-placeholder.
   omap( int, size_t ) our_omap;
   for( int i = 0; i < 10; ++i )
-    UNTIL_SUCCESS( insert( &src_omap, i, i + 1 ) );
+    UNTIL_SUCCESS( insert( &src_omap, i, (size_t)i + 1 ) );
   UNTIL_SUCCESS( init_clone( &our_omap, &src_omap ) );
 
   // Check.
@@ -2414,7 +2509,7 @@ static void test_omap_iteration_and_get_key( void )
   };
 
   for( int i = 0; i < 30; ++i )
-    UNTIL_SUCCESS( insert( &our_omap, keys[ i ], keys[ i ] + 1 ) );
+    UNTIL_SUCCESS( insert( &our_omap, keys[ i ], (size_t)keys[ i ] + 1 ) );
 
   size_t *last_iteration = NULL;
   for( size_t *i = first( &our_omap ); i != end( &our_omap ); i = next( &our_omap, i ) )
@@ -2679,6 +2774,8 @@ static void test_omap_dtors( void )
 // Strings are a special case that warrant seperate testing.
 static void test_omap_strings( void )
 {
+  // Non-const strings.
+
   omap( char *, char * ) our_omap;
   init( &our_omap );
 
@@ -2692,7 +2789,7 @@ static void test_omap_strings( void )
 
   // Other strings.
   char str_1[] = "of";
-  char str_2[] = "maps";
+  char str_2[] = "omaps";
   char str_3[] = "with";
   char str_4[] = "strings.";
 
@@ -2721,21 +2818,65 @@ static void test_omap_strings( void )
     ALWAYS_ASSERT( strcmp( *i, "test" ) == 0 || strcmp( *i, str_4 ) == 0 );
 
   cleanup( &our_omap );
+
+  // const strings.
+
+  omap( const char *, const char * ) our_const_omap;
+  init( &our_const_omap );
+
+  const char **const_el;
+
+  // String literals.
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_omap, "This", "is" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "is" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = get_or_insert( &our_const_omap, "a", "test" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "test" ) == 0 );
+
+  const char *const_str_1 = str_1;
+  const char *const_str_2 = str_2;
+  const char *const_str_3 = str_3;
+  const char *const_str_4 = str_4;
+
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_omap, const_str_1, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = get_or_insert( &our_const_omap, const_str_3, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_const_omap ) == 4 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_omap, "This" ), "is" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_omap, "a" ), "test" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_omap, const_str_1, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_omap, const_str_3, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+  ALWAYS_ASSERT( size( &our_const_omap ) == 4 );
+
+  // Erase.
+  erase( &our_const_omap, "This" );
+  erase( &our_const_omap, const_str_1 );
+  ALWAYS_ASSERT( size( &our_const_omap ) == 2 );
+
+  // Iteration.
+  for_each( &our_const_omap, i )
+    ALWAYS_ASSERT( strcmp( *i, "test" ) == 0 || strcmp( *i, const_str_4 ) == 0 );
+
+  cleanup( &our_const_omap );
 }
 
-#define TEST_OMAP_DEFAULT_INTEGER_TYPE( ty )    \
-{                                               \
-  omap( ty, int ) our_omap;                     \
-  init( &our_omap );                            \
-                                                \
-  for( int i = 0; i < 100; ++i )                \
-    UNTIL_SUCCESS( insert( &our_omap, i, i ) ); \
-                                                \
-  for( int i = 0; i < 100; ++i )                \
-    ALWAYS_ASSERT( *get( &our_omap, i ) == i ); \
-                                                \
-  cleanup( &our_omap );                         \
-}                                               \
+#define TEST_OMAP_DEFAULT_INTEGER_TYPE( ty )        \
+{                                                   \
+  omap( ty, int ) our_omap;                         \
+  init( &our_omap );                                \
+                                                    \
+  for( int i = 0; i < 100; ++i )                    \
+    UNTIL_SUCCESS( insert( &our_omap, (ty)i, i ) ); \
+                                                    \
+  for( int i = 0; i < 100; ++i )                    \
+    ALWAYS_ASSERT( *get( &our_omap, (ty)i ) == i ); \
+                                                    \
+  cleanup( &our_omap );                             \
+}                                                   \
 
 static void test_omap_default_integer_types( void )
 {
@@ -3377,7 +3518,7 @@ static void test_oset_strings( void )
 
   // Other strings.
   char str_1[] = "of";
-  char str_2[] = "sets";
+  char str_2[] = "osets";
   char str_3[] = "with";
   char str_4[] = "strings";
 
@@ -3397,11 +3538,56 @@ static void test_oset_strings( void )
   ALWAYS_ASSERT( strcmp( *get( &our_oset, "a" ), "a" ) == 0 );
   ALWAYS_ASSERT( strcmp( *get( &our_oset, "test" ), "test" ) == 0 );
   ALWAYS_ASSERT( strcmp( *get( &our_oset, "of" ), str_1 ) == 0 );
-  ALWAYS_ASSERT( strcmp( *get( &our_oset, "sets" ), str_2 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_oset, "osets" ), str_2 ) == 0 );
   ALWAYS_ASSERT( strcmp( *get( &our_oset, "with" ), str_3 ) == 0 );
   ALWAYS_ASSERT( strcmp( *get( &our_oset, "strings" ), str_4 ) == 0 );
 
   cleanup( &our_oset );
+
+  // const strings.
+
+  oset( const char * ) our_const_oset;
+  init( &our_const_oset );
+
+  const char **const_el;
+
+  // String literals.
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, "This" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "This" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, "is" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "is" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, "a" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "a" ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, "test" ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, "test" ) == 0 );
+
+  // Other strings.
+  const char *const_str_1 = str_1;
+  const char *const_str_2 = str_2;
+  const char *const_str_3 = str_3;
+  const char *const_str_4 = str_4;
+
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, const_str_1 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_1 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, const_str_2 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_2 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, const_str_3 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_3 ) == 0 );
+  UNTIL_SUCCESS( ( const_el = insert( &our_const_oset, const_str_4 ) ) );
+  ALWAYS_ASSERT( strcmp( *const_el, const_str_4 ) == 0 );
+
+  // Check.
+  ALWAYS_ASSERT( size( &our_const_oset ) == 8 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, "This" ), "This" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, "is" ), "is" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, "a" ), "a" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, "test" ), "test" ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, str_1 ), str_1 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, str_2 ), str_2 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, str_3 ), str_3 ) == 0 );
+  ALWAYS_ASSERT( strcmp( *get( &our_const_oset, str_4 ), str_4 ) == 0 );
+
+  cleanup( &our_const_oset );
 }
 
 #define TEST_OSET_DEFAULT_INTEGER_TYPE( ty )    \
@@ -3409,10 +3595,10 @@ static void test_oset_strings( void )
   oset( ty ) our_oset;                          \
   init( &our_oset );                            \
                                                 \
-  for( int i = 0; i < 100; ++i )                \
+  for( ty i = 0; i < 100; ++i )                 \
     UNTIL_SUCCESS( insert( &our_oset, i ) );    \
                                                 \
-  for( int i = 0; i < 100; ++i )                \
+  for( ty i = 0; i < 100; ++i )                 \
     ALWAYS_ASSERT( *get( &our_oset, i ) == i ); \
                                                 \
   cleanup( &our_oset );                         \
@@ -3436,11 +3622,1857 @@ static void test_oset_default_integer_types( void )
 
 #endif
 
+// Vector tests.
+#ifdef TEST_STR
+
+static bool compare_strings8( const void *str_1, const void *str_2 )
+{
+  return strcmp( (const char *)str_1, (const char *)str_2 ) == 0;
+}
+
+static bool compare_strings16( const char16_t *str_1, const char16_t *str_2 )
+{
+  while( true )
+  {
+    if( *str_1 != *str_2 )
+      return false;
+
+    if( !*str_1 )
+      return true;
+
+    ++str_1;
+    ++str_2;
+  }
+}
+
+static bool compare_strings32( const char32_t *str_1, const char32_t *str_2 )
+{
+  while( true )
+  {
+    if( *str_1 != *str_2 )
+      return false;
+
+    if( !*str_1 )
+      return true;
+
+    ++str_1;
+    ++str_2;
+  }
+}
+
+static void test_str_reserve( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // Test null termination of placeholders.
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"" ) );
+
+  // Reserve zero with placeholder.
+
+  UNTIL_SUCCESS( reserve( &our_str8, 0 ) );
+  ALWAYS_ASSERT( (void *)our_str8 == (void *)&cc_str_placeholder_char8 );
+
+  UNTIL_SUCCESS( reserve( &our_str16, 0 ) );
+  ALWAYS_ASSERT( (void *)our_str16 == (void *)&cc_str_placeholder_char16 );
+
+  UNTIL_SUCCESS( reserve( &our_str32, 0 ) );
+  ALWAYS_ASSERT( (void *)our_str32 == (void *)&cc_str_placeholder_char32 );
+
+  // Reserve up from placeholder.
+
+  UNTIL_SUCCESS( reserve( &our_str8, 30 ) );
+  ALWAYS_ASSERT( cap( &our_str8 ) >= 30 );
+
+  UNTIL_SUCCESS( reserve( &our_str16, 30 ) );
+  ALWAYS_ASSERT( cap( &our_str16 ) >= 30 );
+
+  UNTIL_SUCCESS( reserve( &our_str32, 30 ) );
+  ALWAYS_ASSERT( cap( &our_str32 ) >= 30 );
+
+  // Reserve same capacity.
+
+  size_t cap;
+
+  cap = cap( &our_str8 );
+  UNTIL_SUCCESS( reserve( &our_str8, 30 ) );
+  ALWAYS_ASSERT( cap( &our_str8 ) == cap );
+
+  cap = cap( &our_str16 );
+  UNTIL_SUCCESS( reserve( &our_str16, 30 ) );
+  ALWAYS_ASSERT( cap( &our_str16 ) == cap );
+
+  cap = cap( &our_str32 );
+  UNTIL_SUCCESS( reserve( &our_str32, 30 ) );
+  ALWAYS_ASSERT( cap( &our_str32 ) == cap );
+
+  // Reserve up from non-placeholder.
+
+  UNTIL_SUCCESS( reserve( &our_str8, 60 ) );
+  ALWAYS_ASSERT( cap( &our_str8 ) >= 60 );
+
+  UNTIL_SUCCESS( reserve( &our_str16, 60 ) );
+  ALWAYS_ASSERT( cap( &our_str16 ) >= 60 );
+
+  UNTIL_SUCCESS( reserve( &our_str32, 60 ) );
+  ALWAYS_ASSERT( cap( &our_str32 ) >= 60 );
+
+  // Reserve lower capacity.
+
+  cap = cap( &our_str8 );
+  UNTIL_SUCCESS( reserve( &our_str8, 30 ) );
+  ALWAYS_ASSERT( cap( &our_str8 ) == cap );
+
+  cap = cap( &our_str16 );
+  UNTIL_SUCCESS( reserve( &our_str16, 30 ) );
+  ALWAYS_ASSERT( cap( &our_str16 ) == cap );
+
+  cap = cap( &our_str32 );
+  UNTIL_SUCCESS( reserve( &our_str32, 30 ) );
+  ALWAYS_ASSERT( cap( &our_str32 ) == cap );
+
+  // Test validity through use.
+
+  UNTIL_SUCCESS( push_fmt( &our_str8, "Validity test." ) );
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "Validity test." ) );
+
+  UNTIL_SUCCESS( push_fmt( &our_str16, u"Validity test." ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"Validity test." ) );
+
+  UNTIL_SUCCESS( push_fmt( &our_str32, U"Validity test." ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"Validity test." ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_resize( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // Resize placeholder vec with zero.
+
+  UNTIL_SUCCESS( resize( &our_str8, 0, '-' ) );
+  ALWAYS_ASSERT( cap( &our_str8 ) == 0 );
+  ALWAYS_ASSERT( size( &our_str8 ) == 0 );
+
+  UNTIL_SUCCESS( resize( &our_str16, 0, u'-' ) );
+  ALWAYS_ASSERT( cap( &our_str16 ) == 0 );
+  ALWAYS_ASSERT( size( &our_str16 ) == 0 );
+
+  UNTIL_SUCCESS( resize( &our_str32, 0, U'-' ) );
+  ALWAYS_ASSERT( cap( &our_str32 ) == 0 );
+  ALWAYS_ASSERT( size( &our_str32 ) == 0 );
+
+  // Resize up from placeholder.
+
+  UNTIL_SUCCESS( resize( &our_str8, 20, '-' ) );
+  ALWAYS_ASSERT( cap( &our_str8 ) >= 20 );
+  ALWAYS_ASSERT( size( &our_str8 ) == 20 );
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "--------------------" ) );
+
+  UNTIL_SUCCESS( resize( &our_str16, 20, u'-' ) );
+  ALWAYS_ASSERT( cap( &our_str16 ) >= 20 );
+  ALWAYS_ASSERT( size( &our_str16 ) == 20 );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"--------------------" ) );
+
+  UNTIL_SUCCESS( resize( &our_str32, 20, U'-' ) );
+  ALWAYS_ASSERT( cap( &our_str32 ) >= 20 );
+  ALWAYS_ASSERT( size( &our_str32 ) == 20 );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"--------------------" ) );
+
+  // Resize up from non-placeholder.
+
+  UNTIL_SUCCESS( resize( &our_str8, 40, '*' ) );
+  ALWAYS_ASSERT( cap( &our_str8 ) >= 40 );
+  ALWAYS_ASSERT( size( &our_str8 ) == 40 );
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "--------------------********************" ) );
+
+  UNTIL_SUCCESS( resize( &our_str16, 40, u'*' ) );
+  ALWAYS_ASSERT( cap( &our_str16 ) >= 40 );
+  ALWAYS_ASSERT( size( &our_str16 ) == 40 );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"--------------------********************" ) );
+
+  UNTIL_SUCCESS( resize( &our_str32, 40, U'*' ) );
+  ALWAYS_ASSERT( cap( &our_str32 ) >= 40 );
+  ALWAYS_ASSERT( size( &our_str32 ) == 40 );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"--------------------********************" ) );
+
+  // Resize down.
+
+  UNTIL_SUCCESS( resize( &our_str8, 20, '^' ) );
+  ALWAYS_ASSERT( cap( &our_str8 ) >= 40 );
+  ALWAYS_ASSERT( size( &our_str8 ) == 20 );
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "--------------------" ) );
+
+  UNTIL_SUCCESS( resize( &our_str16, 20, u'^' ) );
+  ALWAYS_ASSERT( cap( &our_str16 ) >= 40 );
+  ALWAYS_ASSERT( size( &our_str16 ) == 20 );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"--------------------" ) );
+
+  UNTIL_SUCCESS( resize( &our_str32, 20, U'^' ) );
+  ALWAYS_ASSERT( cap( &our_str32 ) >= 40 );
+  ALWAYS_ASSERT( size( &our_str32 ) == 20 );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"--------------------" ) );
+
+  // Test validity through use.
+
+  for( size_t i = 0; i < 20; ++i )
+  {
+    *get( &our_str8, i ) = (char)( 'a' + i );
+    *get( &our_str16, i ) = (char16_t)( 'a' + i );
+    *get( &our_str32, i ) = (char32_t)( 'a' + i );
+  }
+
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "abcdefghijklmnopqrst" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"abcdefghijklmnopqrst" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"abcdefghijklmnopqrst" ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_shrink( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // Test placeholder.
+
+  UNTIL_SUCCESS( shrink( &our_str8 ) );
+  ALWAYS_ASSERT( size( &our_str8 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str8 ) == 0 );
+
+  UNTIL_SUCCESS( shrink( &our_str16 ) );
+  ALWAYS_ASSERT( size( &our_str16 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str16 ) == 0 );
+
+  UNTIL_SUCCESS( shrink( &our_str32 ) );
+  ALWAYS_ASSERT( size( &our_str32 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str32 ) == 0 );
+
+  // Test restoration of placeholder.
+
+  UNTIL_SUCCESS( reserve( &our_str8, 30 ) );
+  UNTIL_SUCCESS( shrink( &our_str8 ) );
+  ALWAYS_ASSERT( size( &our_str8 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str8 ) == 0 );
+  ALWAYS_ASSERT( (void *)our_str8 == (void *)&cc_str_placeholder_char8 );
+
+  UNTIL_SUCCESS( reserve( &our_str16, 30 ) );
+  UNTIL_SUCCESS( shrink( &our_str16 ) );
+  ALWAYS_ASSERT( size( &our_str16 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str16 ) == 0 );
+  ALWAYS_ASSERT( (void *)our_str16 == (void *)&cc_str_placeholder_char16 );
+
+  UNTIL_SUCCESS( reserve( &our_str32, 30 ) );
+  UNTIL_SUCCESS( shrink( &our_str32 ) );
+  ALWAYS_ASSERT( size( &our_str32 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str32 ) == 0 );
+  ALWAYS_ASSERT( (void *)our_str32 == (void *)&cc_str_placeholder_char32 );
+
+  // Test shrink same size.
+
+  UNTIL_SUCCESS( resize( &our_str8, 30, '-' ) );
+  ALWAYS_ASSERT( size( &our_str8 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str8 ) == 30 );
+  str( char ) same8 = our_str8;
+  UNTIL_SUCCESS( shrink( &our_str8 ) );
+  ALWAYS_ASSERT( size( &our_str8 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str8 ) == 30 );
+  ALWAYS_ASSERT( our_str8 == same8 );
+
+  UNTIL_SUCCESS( resize( &our_str16, 30, u'-' ) );
+  ALWAYS_ASSERT( size( &our_str16 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str16 ) == 30 );
+  str( char16_t ) same16 = our_str16;
+  UNTIL_SUCCESS( shrink( &our_str16 ) );
+  ALWAYS_ASSERT( size( &our_str16 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str16 ) == 30 );
+  ALWAYS_ASSERT( our_str16 == same16 );
+
+  UNTIL_SUCCESS( resize( &our_str32, 30, U'-' ) );
+  ALWAYS_ASSERT( size( &our_str32 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str32 ) == 30 );
+  str( char32_t ) same32 = our_str32;
+  UNTIL_SUCCESS( shrink( &our_str32 ) );
+  ALWAYS_ASSERT( size( &our_str32 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str32 ) == 30 );
+  ALWAYS_ASSERT( our_str32 == same32 );
+
+  // Test shrink down.
+
+  UNTIL_SUCCESS( reserve( &our_str8, 60 ) );
+  ALWAYS_ASSERT( size( &our_str8 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str8 ) >= 30 );
+  UNTIL_SUCCESS( shrink( &our_str8 ) );
+  ALWAYS_ASSERT( size( &our_str8 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str8 ) == 30 );
+
+  UNTIL_SUCCESS( reserve( &our_str16, 60 ) );
+  ALWAYS_ASSERT( size( &our_str16 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str16 ) >= 30 );
+  UNTIL_SUCCESS( shrink( &our_str16 ) );
+  ALWAYS_ASSERT( size( &our_str16 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str16 ) == 30 );
+
+  UNTIL_SUCCESS( reserve( &our_str32, 60 ) );
+  ALWAYS_ASSERT( size( &our_str32 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str32 ) >= 30 );
+  UNTIL_SUCCESS( shrink( &our_str32 ) );
+  ALWAYS_ASSERT( size( &our_str32 ) == 30 );
+  ALWAYS_ASSERT( cap( &our_str32 ) == 30 );
+
+  // Test validity through use.
+
+  for( size_t i = 0; i < 30; ++i )
+  {
+    *get( &our_str8, i ) = (char)( 'a' + i );
+    *get( &our_str16, i ) = (char16_t)( 'a' + i );
+    *get( &our_str32, i ) = (char32_t)( 'a' + i );
+  }
+
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_insert( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // End.
+  for( size_t i = 0; i < 30; ++i )
+  {
+    char *el8;
+    UNTIL_SUCCESS( el8 = insert( &our_str8, size( &our_str8 ), (char)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el8 == (char)( 'a' + i ) );
+
+    char16_t *el16;
+    UNTIL_SUCCESS( el16 = insert( &our_str16, size( &our_str16 ), (char16_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el16 == (char16_t)( 'a' + i ) );
+
+    char32_t *el32;
+    UNTIL_SUCCESS( el32 = insert( &our_str32, size( &our_str32 ), (char32_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el32 == (char32_t)( 'a' + i ) );
+  }
+
+  // Beginning.
+  for( size_t i = 0; i < 30; ++i )
+  {
+    char *el8;
+    UNTIL_SUCCESS( el8 = insert( &our_str8, 0, (char)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el8 == (char)( 'a' + i ) );
+
+    char16_t *el16;
+    UNTIL_SUCCESS( el16 = insert( &our_str16, 0, (char16_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el16 == (char16_t)( 'a' + i ) );
+
+    char32_t *el32;
+    UNTIL_SUCCESS( el32 = insert( &our_str32, 0, (char32_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el32 == (char32_t)( 'a' + i ) );
+  }
+
+  // Middle.
+  for( size_t i = 0; i < 30; ++i )
+  {
+    char *el8;
+    UNTIL_SUCCESS( el8 = insert( &our_str8, 30, (char)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el8 == (char)( 'a' + i ) );
+
+    char16_t *el16;
+    UNTIL_SUCCESS( el16 = insert( &our_str16, 30, (char16_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el16 == (char16_t)( 'a' + i ) );
+
+    char32_t *el32;
+    UNTIL_SUCCESS( el32 = insert( &our_str32, 30, (char32_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el32 == (char32_t)( 'a' + i ) );
+  }
+
+  // Check.
+
+  ALWAYS_ASSERT(
+    compare_strings8(
+      first( &our_str8 ),
+      "~}|{zyxwvutsrqponmlkjihgfedcba~}|{zyxwvutsrqponmlkjihgfedcbaabcdefghijklmnopqrstuvwxyz{|}~"
+    )
+  );
+
+  ALWAYS_ASSERT(
+    compare_strings16(
+      first( &our_str16 ),
+      u"~}|{zyxwvutsrqponmlkjihgfedcba~}|{zyxwvutsrqponmlkjihgfedcbaabcdefghijklmnopqrstuvwxyz{|}~"
+    )
+  );
+
+  ALWAYS_ASSERT(
+    compare_strings32(
+      first( &our_str32 ),
+      U"~}|{zyxwvutsrqponmlkjihgfedcba~}|{zyxwvutsrqponmlkjihgfedcbaabcdefghijklmnopqrstuvwxyz{|}~"
+    )
+  );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_insert_fmt( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // End.
+  for( size_t i = 0; i < 30; ++i )
+  {
+    char el8[ 2 ] = { (char)( 'a' + i ), '\0' };
+    char *el_result8;
+    UNTIL_SUCCESS( el_result8 = insert_fmt( &our_str8, size( &our_str8 ), el8 ) );
+    ALWAYS_ASSERT( *el_result8 == *el8 );
+
+    char16_t el16[ 2 ] = { (char16_t)( 'a' + i ), u'\0' };
+    char16_t *el_result16;
+    UNTIL_SUCCESS( el_result16 = insert_fmt( &our_str16, size( &our_str16 ), el16 ) );
+    ALWAYS_ASSERT( *el_result16 == *el16 );
+
+    char32_t el32[ 2 ] = { (char32_t)( 'a' + i ), U'\0' };
+    char32_t *el_result32;
+    UNTIL_SUCCESS( el_result32 = insert_fmt( &our_str32, size( &our_str32 ), el32 ) );
+    ALWAYS_ASSERT( *el_result32 == *el32 );
+  }
+
+  // Beginning.
+  for( size_t i = 0; i < 30; ++i )
+  {
+    char el8[ 2 ] = { (char)( 'a' + i ), '\0' };
+    char *el_result8;
+    UNTIL_SUCCESS( el_result8 = insert_fmt( &our_str8, 0, el8 ) );
+    ALWAYS_ASSERT( *el_result8 == *el8 );
+
+    char16_t el16[ 2 ] = { (char16_t)( 'a' + i ), u'\0' };
+    char16_t *el_result16;
+    UNTIL_SUCCESS( el_result16 = insert_fmt( &our_str16, 0, el16 ) );
+    ALWAYS_ASSERT( *el_result16 == *el16 );
+
+    char32_t el32[ 2 ] = { (char32_t)( 'a' + i ), U'\0' };
+    char32_t *el_result32;
+    UNTIL_SUCCESS( el_result32 = insert_fmt( &our_str32, 0, el32 ) );
+    ALWAYS_ASSERT( *el_result32 == *el32 );
+  }
+
+  // Middle.
+  for( size_t i = 0; i < 30; ++i )
+  {
+    char el8[ 2 ] = { (char)( 'a' + i ), '\0' };
+    char *el_result8;
+    UNTIL_SUCCESS( el_result8 = insert_fmt( &our_str8, 30, el8 ) );
+    ALWAYS_ASSERT( *el_result8 == *el8 );
+
+    char16_t el16[ 2 ] = { (char16_t)( 'a' + i ), u'\0' };
+    char16_t *el_result16;
+    UNTIL_SUCCESS( el_result16 = insert_fmt( &our_str16, 30, el16 ) );
+    ALWAYS_ASSERT( *el_result16 == *el16 );
+
+    char32_t el32[ 2 ] = { (char32_t)( 'a' + i ), U'\0' };
+    char32_t *el_result32;
+    UNTIL_SUCCESS( el_result32 = insert_fmt( &our_str32, 30, el32 ) );
+    ALWAYS_ASSERT( *el_result32 == *el32 );
+  }
+
+  // Integers.
+
+  UNTIL_SUCCESS(
+    insert_fmt(
+      &our_str8, 30, (char)1, (unsigned char)2, (signed char)3, (unsigned short)4, (short)5, (unsigned int)6, (int)7,
+      (unsigned long)8, (long)9, (unsigned long long)10, (long long)11, integer_dec( 2 ), 1, 2, 3, integer_hex( 3 ), 10,
+      20, 30, integer_oct( 4 ), 10, 20, 30
+    )
+  );
+
+  UNTIL_SUCCESS(
+    insert_fmt(
+      &our_str16, 30, (char)1, (unsigned char)2, (signed char)3, (unsigned short)4, (short)5, (unsigned int)6, (int)7,
+      (unsigned long)8, (long)9, (unsigned long long)10, (long long)11, integer_dec( 2 ), 1, 2, 3, integer_hex( 3 ), 10,
+      20, 30, integer_oct( 4 ), 10, 20, 30
+    )
+  );
+
+  UNTIL_SUCCESS(
+    insert_fmt(
+      &our_str32, 30, (char)1, (unsigned char)2, (signed char)3, (unsigned short)4, (short)5, (unsigned int)6, (int)7,
+      (unsigned long)8, (long)9, (unsigned long long)10, (long long)11, integer_dec( 2 ), 1, 2, 3, integer_hex( 3 ), 10,
+      20, 30, integer_oct( 4 ), 10, 20, 30
+    )
+  );
+
+  // Floating points.
+
+  UNTIL_SUCCESS(
+    insert_fmt(
+      &our_str8, 30, 1.0f, 2.0, float_dec( 3 ), 3.0, 4.0, 5.0, float_hex( 4 ), 6.0, 7.0, float_sci( 5 ), 8.0, 9.0,
+      float_shortest( 2 ), 10.0, 12345.0
+    )
+  );
+
+  UNTIL_SUCCESS(
+    insert_fmt(
+      &our_str16, 30, 1.0f, 2.0, float_dec( 3 ), 3.0, 4.0, 5.0, float_hex( 4 ), 6.0, 7.0, float_sci( 5 ), 8.0, 9.0,
+      float_shortest( 2 ), 10.0, 12345.0
+    )
+  );
+
+  UNTIL_SUCCESS(
+    insert_fmt(
+      &our_str32, 30, 1.0f, 2.0, float_dec( 3 ), 3.0, 4.0, 5.0, float_hex( 4 ), 6.0, 7.0, float_sci( 5 ), 8.0, 9.0,
+      float_shortest( 2 ), 10.0, 12345.0
+    )
+  );
+
+  // C strings.
+
+  UNTIL_SUCCESS( insert_fmt( &our_str8, 30, "Test insert C string: föóföóföó." ) );
+  UNTIL_SUCCESS( insert_fmt( &our_str16, 30, u"Test insert C string: föóföóföó." ) );
+  UNTIL_SUCCESS( insert_fmt( &our_str32, 30, U"Test insert C string: föóföóföó." ) );
+
+  // CC strings.
+
+  str( char ) our_other_str8;
+  init( &our_other_str8 );
+  UNTIL_SUCCESS( push_fmt( &our_other_str8, "Test insert CC string: föóföóföó." ) );
+
+  str( char16_t ) our_other_str16;
+  init( &our_other_str16 );
+  UNTIL_SUCCESS( push_fmt( &our_other_str16, u"Test insert CC string: föóföóföó." ) );
+
+  str( char32_t ) our_other_str32;
+  init( &our_other_str32 );
+  UNTIL_SUCCESS( push_fmt( &our_other_str32, U"Test insert CC string: föóföóföó." ) );
+
+  UNTIL_SUCCESS( insert_fmt( &our_str8, 30, our_other_str8 ) );
+  UNTIL_SUCCESS( insert_fmt( &our_str16, 30, our_other_str16 ) );
+  UNTIL_SUCCESS( insert_fmt( &our_str32, 30, our_other_str32 ) );
+
+  // Maximum number of arguments.
+
+  UNTIL_SUCCESS(
+    insert_fmt(
+      &our_str8, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+      28, 29, 30, 31, 32
+    )
+  );
+
+  UNTIL_SUCCESS(
+    insert_fmt(
+      &our_str16, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+      28, 29, 30, 31, 32
+    )
+  );
+
+  UNTIL_SUCCESS(
+    insert_fmt(
+      &our_str32, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+      28, 29, 30, 31, 32
+    )
+  );
+
+  cleanup( &our_other_str8 );
+  cleanup( &our_other_str16 );
+  cleanup( &our_other_str32 );
+
+  // Check.
+
+  ALWAYS_ASSERT(
+    compare_strings8(
+      first( &our_str8 ),
+      "~}|{zyxwvutsrqponmlkjihgfedcba"
+      "1234567891011121314151617181920212223242526272829303132"
+      "Test insert CC string: föóföóföó."
+      "Test insert C string: föóföóföó."
+      "1.002.003.0004.0005.0000x1.8000p+20x1.c000p+28.00000e+009.00000e+00101.2e+04"
+      "123456789101101020300a01401e001200240036"
+      "~}|{zyxwvutsrqponmlkjihgfedcbaabcdefghijklmnopqrstuvwxyz{|}~"
+    )
+  );
+
+  ALWAYS_ASSERT(
+    compare_strings16(
+      first( &our_str16 ),
+      u"~}|{zyxwvutsrqponmlkjihgfedcba"
+      u"1234567891011121314151617181920212223242526272829303132"
+      u"Test insert CC string: föóföóföó."
+      u"Test insert C string: föóföóföó."
+      u"1.002.003.0004.0005.0000x1.8000p+20x1.c000p+28.00000e+009.00000e+00101.2e+04"
+      u"123456789101101020300a01401e001200240036"
+      u"~}|{zyxwvutsrqponmlkjihgfedcbaabcdefghijklmnopqrstuvwxyz{|}~"
+    )
+  );
+
+  ALWAYS_ASSERT(
+    compare_strings32(
+      first( &our_str32 ),
+      U"~}|{zyxwvutsrqponmlkjihgfedcba"
+      U"1234567891011121314151617181920212223242526272829303132"
+      U"Test insert CC string: föóföóföó."
+      U"Test insert C string: föóföóföó."
+      U"1.002.003.0004.0005.0000x1.8000p+20x1.c000p+28.00000e+009.00000e+00101.2e+04"
+      U"123456789101101020300a01401e001200240036"
+      U"~}|{zyxwvutsrqponmlkjihgfedcbaabcdefghijklmnopqrstuvwxyz{|}~"
+    )
+  );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_insert_n( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // Zero-size insertion.
+  ALWAYS_ASSERT( !insert_n( &our_str8, size( &our_str8 ), NULL, 0 ) );
+  ALWAYS_ASSERT( !insert_n( &our_str16, size( &our_str16 ), NULL, 0 ) );
+  ALWAYS_ASSERT( !insert_n( &our_str32, size( &our_str32 ), NULL, 0 ) );
+
+  // Normal insert.
+
+  char *el8;
+  UNTIL_SUCCESS( el8 = insert_n( &our_str8, size( &our_str8 ), "uvwxyz{|}~", 10 ) ); // End.
+  ALWAYS_ASSERT( *el8 == 'u' );
+  UNTIL_SUCCESS( el8 = insert_n( &our_str8, 0, "abcdefghij", 10 ) ); // Beginning.
+  ALWAYS_ASSERT( *el8 == 'a' );
+  UNTIL_SUCCESS( el8 = insert_n( &our_str8, 10, "klmnopqrst", 10 ) ); // Middle.
+  ALWAYS_ASSERT( *el8 == 'k' );
+
+  char16_t *el16;
+  UNTIL_SUCCESS( el16 = insert_n( &our_str16, size( &our_str16 ), u"uvwxyz{|}~", 10 ) ); // End.
+  ALWAYS_ASSERT( *el16 == u'u' );
+  UNTIL_SUCCESS( el16 = insert_n( &our_str16, 0, u"abcdefghij", 10 ) ); // Beginning.
+  ALWAYS_ASSERT( *el16 == u'a' );
+  UNTIL_SUCCESS( el16 = insert_n( &our_str16, 10, u"klmnopqrst", 10 ) ); // Middle.
+  ALWAYS_ASSERT( *el16 == u'k' );
+
+  char32_t *el32;
+  UNTIL_SUCCESS( el32 = insert_n( &our_str32, size( &our_str32 ), U"uvwxyz{|}~", 10 ) ); // End.
+  ALWAYS_ASSERT( *el32 == U'u' );
+  UNTIL_SUCCESS( el32 = insert_n( &our_str32, 0, U"abcdefghij", 10 ) ); // Beginning.
+  ALWAYS_ASSERT( *el32 == U'a' );
+  UNTIL_SUCCESS( el32 = insert_n( &our_str32, 10, U"klmnopqrst", 10 ) ); // Middle.
+  ALWAYS_ASSERT( *el32 == U'k' );
+
+  // Check.
+
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_push( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  for( size_t i = 0; i < 30; ++i )
+  {
+    char *el8;
+    UNTIL_SUCCESS( el8 = push( &our_str8, (char)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el8 == (char)( 'a' + i ) );
+
+    char16_t *el16;
+    UNTIL_SUCCESS( el16 = push( &our_str16, (char16_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el16 == (char16_t)( 'a' + i ) );
+
+    char32_t *el32;
+    UNTIL_SUCCESS( el32 = push( &our_str32, (char32_t)( 'a' + i ) ) );
+    ALWAYS_ASSERT( *el32 == (char32_t)( 'a' + i ) );
+  }
+
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_push_fmt( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // Push a variety of strings, integers, and floating point values.
+
+  for( size_t i = 0; i < 30; ++i )
+  {
+    if( i % 2 == 0 )
+    {
+      char el[ 2 ] = { (char)( 'a' + i ), '\0' };
+      char *el_result;
+      UNTIL_SUCCESS( el_result = push_fmt( &our_str8, el ) );
+      ALWAYS_ASSERT( ( *el_result == *el ) );
+    }
+    else if( i % 3 == 0 )
+      UNTIL_SUCCESS( push_fmt( &our_str8, i ) );
+    else
+      UNTIL_SUCCESS( push_fmt( &our_str8, (double)i ) );
+  }
+
+  for( size_t i = 0; i < 30; ++i )
+  {
+    if( i % 2 == 0 )
+    {
+      char16_t el[ 2 ] = { (char16_t)( 'a' + i ), u'\0' };
+      char16_t *el_result;
+      UNTIL_SUCCESS( el_result = push_fmt( &our_str16, el ) );
+      ALWAYS_ASSERT( ( *el_result == *el ) );
+    }
+    else if( i % 3 == 0 )
+      UNTIL_SUCCESS( push_fmt( &our_str16, i ) );
+    else
+      UNTIL_SUCCESS( push_fmt( &our_str16, (double)i ) );
+  }
+
+  for( size_t i = 0; i < 30; ++i )
+  {
+    if( i % 2 == 0 )
+    {
+      char32_t el[ 2 ] = { (char32_t)( 'a' + i ), U'\0' };
+      char32_t *el_result;
+      UNTIL_SUCCESS( el_result = push_fmt( &our_str32, el ) );
+      ALWAYS_ASSERT( ( *el_result == *el ) );
+    }
+    else if( i % 3 == 0 )
+      UNTIL_SUCCESS( push_fmt( &our_str32, i ) );
+    else
+      UNTIL_SUCCESS( push_fmt( &our_str32, (double)i ) );
+  }
+
+  // Maximum number of arguments.
+
+  UNTIL_SUCCESS(
+    push_fmt(
+      &our_str8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+      29, 30, 31, 32
+    )
+  );
+
+  UNTIL_SUCCESS(
+    push_fmt(
+      &our_str16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+      29, 30, 31, 32
+    )
+  );
+
+  UNTIL_SUCCESS(
+    push_fmt(
+      &our_str32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+      29, 30, 31, 32
+    )
+  );
+
+  // Check.
+
+  ALWAYS_ASSERT(
+    compare_strings8(
+      first( &our_str8 ), 
+      "a1.00c3e5.00g7.00i9k11.00m13.00o15q17.00s19.00u21w23.00y25.00{27}29.00"
+      "1234567891011121314151617181920212223242526272829303132"
+    )
+  );
+
+  ALWAYS_ASSERT(
+    compare_strings16(
+      first( &our_str16 ), 
+      u"a1.00c3e5.00g7.00i9k11.00m13.00o15q17.00s19.00u21w23.00y25.00{27}29.00"
+      u"1234567891011121314151617181920212223242526272829303132"
+    )
+  );
+
+  ALWAYS_ASSERT(
+    compare_strings32(
+      first( &our_str32 ), 
+      U"a1.00c3e5.00g7.00i9k11.00m13.00o15q17.00s19.00u21w23.00y25.00{27}29.00"
+      U"1234567891011121314151617181920212223242526272829303132"
+    )
+  );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_push_n( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // Zero-size insertion.
+  ALWAYS_ASSERT( !push_n( &our_str8, NULL, 0 ) );
+  ALWAYS_ASSERT( !push_n( &our_str16, NULL, 0 ) );
+  ALWAYS_ASSERT( !push_n( &our_str32, NULL, 0 ) );
+
+  // Normal insert.
+
+  char *el8;
+  UNTIL_SUCCESS( el8 = push_n( &our_str8, "abcdefghij", 10 ) );
+  ALWAYS_ASSERT( *el8 == 'a' );
+  UNTIL_SUCCESS( el8 = push_n( &our_str8, "klmnopqrst", 10 ) );
+  ALWAYS_ASSERT( *el8 == 'k' );
+  UNTIL_SUCCESS( el8 = push_n( &our_str8, "uvwxyz{|}~", 10 ) );
+  ALWAYS_ASSERT( *el8 == 'u' );
+
+  char16_t *el16;
+  UNTIL_SUCCESS( el16 = push_n( &our_str16, u"abcdefghij", 10 ) );
+  ALWAYS_ASSERT( *el16 == 'a' );
+  UNTIL_SUCCESS( el16 = push_n( &our_str16, u"klmnopqrst", 10 ) );
+  ALWAYS_ASSERT( *el16 == 'k' );
+  UNTIL_SUCCESS( el16 = push_n( &our_str16, u"uvwxyz{|}~", 10 ) );
+  ALWAYS_ASSERT( *el16 == 'u' );
+
+  char32_t *el32;
+  UNTIL_SUCCESS( el32 = push_n( &our_str32, U"abcdefghij", 10 ) );
+  ALWAYS_ASSERT( *el32 == 'a' );
+  UNTIL_SUCCESS( el32 = push_n( &our_str32, U"klmnopqrst", 10 ) );
+  ALWAYS_ASSERT( *el32 == 'k' );
+  UNTIL_SUCCESS( el32 = push_n( &our_str32, U"uvwxyz{|}~", 10 ) );
+  ALWAYS_ASSERT( *el32 == 'u' );
+
+  // Check.
+
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_erase( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  UNTIL_SUCCESS( push_fmt( &our_str8, "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  UNTIL_SUCCESS( push_fmt( &our_str16, u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  UNTIL_SUCCESS( push_fmt( &our_str32, U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  bool erase;
+
+  erase = true;
+  for( size_t i = 0; i < 15; )
+  {
+    if( erase )
+    {
+      char *el = erase( &our_str8, i );
+      ALWAYS_ASSERT( ( *el = *get( &our_str8, i ) ) );
+    }
+    else
+      ++i;
+
+    erase = !erase;
+  }
+
+  erase = true;
+  for( size_t i = 0; i < 15; )
+  {
+    if( erase )
+    {
+      char16_t *el = erase( &our_str16, i );
+      ALWAYS_ASSERT( ( *el = *get( &our_str16, i ) ) );
+    }
+    else
+      ++i;
+
+    erase = !erase;
+  }
+
+  erase = true;
+  for( size_t i = 0; i < 15; )
+  {
+    if( erase )
+    {
+      char32_t *el = erase( &our_str32, i );
+      ALWAYS_ASSERT( ( *el = *get( &our_str32, i ) ) );
+    }
+    else
+      ++i;
+
+    erase = !erase;
+  }
+
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "bdfhjlnprtvxz|~" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"bdfhjlnprtvxz|~" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"bdfhjlnprtvxz|~" ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_erase_n( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  UNTIL_SUCCESS( push_fmt( &our_str8, "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  UNTIL_SUCCESS( push_fmt( &our_str16, u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  UNTIL_SUCCESS( push_fmt( &our_str32, U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  bool erase;
+
+  erase = true;
+  for( size_t i = 0; i < 15; )
+  {
+    if( erase )
+    {
+      char *el = erase_n( &our_str8, i, 5 );
+      ALWAYS_ASSERT( ( *el = *get( &our_str8, i ) ) );
+    }
+    else
+      i += 5;
+
+    erase = !erase;
+  }
+
+  erase = true;
+  for( size_t i = 0; i < 15; )
+  {
+    if( erase )
+    {
+      char16_t *el = erase_n( &our_str16, i, 5 );
+      ALWAYS_ASSERT( ( *el = *get( &our_str16, i ) ) );
+    }
+    else
+      i += 5;
+
+    erase = !erase;
+  }
+
+  erase = true;
+  for( size_t i = 0; i < 15; )
+  {
+    if( erase )
+    {
+      char32_t *el = erase_n( &our_str32, i, 5 );
+      ALWAYS_ASSERT( ( *el = *get( &our_str32, i ) ) );
+    }
+    else
+      i += 5;
+
+    erase = !erase;
+  }
+
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "fghijpqrstz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"fghijpqrstz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"fghijpqrstz{|}~" ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_clear( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // Empty.
+
+  clear( &our_str8 );
+  ALWAYS_ASSERT( size( &our_str8 ) == 0 );
+
+  clear( &our_str16 );
+  ALWAYS_ASSERT( size( &our_str16 ) == 0 );
+
+  clear( &our_str32 );
+  ALWAYS_ASSERT( size( &our_str32 ) == 0 );
+
+  // Non-empty.
+
+  UNTIL_SUCCESS( resize( &our_str8, 30, '-' ) );
+  ALWAYS_ASSERT( size( &our_str8 ) == 30 );
+  clear( &our_str8 );
+  ALWAYS_ASSERT( size( &our_str8 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str8 ) >= 30 );
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "" ) );
+
+  UNTIL_SUCCESS( resize( &our_str16, 30, u'-' ) );
+  ALWAYS_ASSERT( size( &our_str16 ) == 30 );
+  clear( &our_str16 );
+  ALWAYS_ASSERT( size( &our_str16 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str16 ) >= 30 );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"" ) );
+
+  UNTIL_SUCCESS( resize( &our_str32, 30, U'-' ) );
+  ALWAYS_ASSERT( size( &our_str32 ) == 30 );
+  clear( &our_str32 );
+  ALWAYS_ASSERT( size( &our_str32 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str32 ) >= 30 );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"" ) );
+
+  // Test use.
+
+  UNTIL_SUCCESS( push_fmt( &our_str8, "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  UNTIL_SUCCESS( push_fmt( &our_str16, u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  UNTIL_SUCCESS( push_fmt( &our_str32, U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_cleanup( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // Empty.
+
+  cleanup( &our_str8 );
+  ALWAYS_ASSERT( (void *)our_str8 == (void *)&cc_str_placeholder_char8 );
+
+  cleanup( &our_str16 );
+  ALWAYS_ASSERT( (void *)our_str16 == (void *)&cc_str_placeholder_char16 );
+
+  cleanup( &our_str32 );
+  ALWAYS_ASSERT( (void *)our_str32 == (void *)&cc_str_placeholder_char32 );
+
+  // Non-empty.
+
+  UNTIL_SUCCESS( resize( &our_str8, 30, '-' ) );
+  ALWAYS_ASSERT( size( &our_str8 ) == 30 );
+  cleanup( &our_str8 );
+  ALWAYS_ASSERT( size( &our_str8 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str8 ) == 0 );
+  ALWAYS_ASSERT( (void *)our_str8 == (void *)&cc_str_placeholder_char8 );
+
+  UNTIL_SUCCESS( resize( &our_str16, 30, u'-' ) );
+  ALWAYS_ASSERT( size( &our_str16 ) == 30 );
+  cleanup( &our_str16 );
+  ALWAYS_ASSERT( size( &our_str16 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str16 ) == 0 );
+  ALWAYS_ASSERT( (void *)our_str16 == (void *)&cc_str_placeholder_char16 );
+
+  UNTIL_SUCCESS( resize( &our_str32, 30, U'-' ) );
+  ALWAYS_ASSERT( size( &our_str32 ) == 30 );
+  cleanup( &our_str32 );
+  ALWAYS_ASSERT( size( &our_str32 ) == 0 );
+  ALWAYS_ASSERT( cap( &our_str32 ) == 0 );
+  ALWAYS_ASSERT( (void *)our_str32 == (void *)&cc_str_placeholder_char32 );
+
+  // Test use.
+
+  UNTIL_SUCCESS( push_fmt( &our_str8, "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  UNTIL_SUCCESS( push_fmt( &our_str16, u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  UNTIL_SUCCESS( push_fmt( &our_str32, U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_iteration( void )
+{
+  str( char ) our_str8;
+  init( &our_str8 );
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+
+  // Empty.
+
+  size_t n_iterations = 0;
+
+  for( char *i = first( &our_str8 ); i != end( &our_str8 ); i = next( &our_str8, i ) )
+    ++n_iterations;
+
+  for_each( &our_str8, i )
+    ++n_iterations;
+
+  for( char16_t *i = first( &our_str16 ); i != end( &our_str16 ); i = next( &our_str16, i ) )
+    ++n_iterations;
+
+  for_each( &our_str16, i )
+    ++n_iterations;
+
+  for( char32_t *i = first( &our_str32 ); i != end( &our_str32 ); i = next( &our_str32, i ) )
+    ++n_iterations;
+
+  for_each( &our_str32, i )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 0 );
+
+  // Non-empty.
+
+  UNTIL_SUCCESS( push_fmt( &our_str8, "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  for( char *i = first( &our_str8 ); i != end( &our_str8 ); i = next( &our_str8, i ) )
+    ++n_iterations;
+
+  for_each( &our_str8, i )
+    ++n_iterations;
+
+  UNTIL_SUCCESS( push_fmt( &our_str16, u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  for( char16_t *i = first( &our_str16 ); i != end( &our_str16 ); i = next( &our_str16, i ) )
+    ++n_iterations;
+
+  for_each( &our_str16, i )
+    ++n_iterations;
+
+  UNTIL_SUCCESS( push_fmt( &our_str32, U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  for( char32_t *i = first( &our_str32 ); i != end( &our_str32 ); i = next( &our_str32, i ) )
+    ++n_iterations;
+
+  for_each( &our_str32, i )
+    ++n_iterations;
+
+  ALWAYS_ASSERT( n_iterations == 180 );
+
+  // Test last and first.
+
+  ALWAYS_ASSERT( *first( &our_str8 ) == 'a' );
+  ALWAYS_ASSERT( *last( &our_str8 ) == '~' );
+
+  ALWAYS_ASSERT( *first( &our_str16 ) == u'a' );
+  ALWAYS_ASSERT( *last( &our_str16 ) == u'~' );
+
+  ALWAYS_ASSERT( *first( &our_str32 ) == U'a' );
+  ALWAYS_ASSERT( *last( &our_str32 ) == U'~' );
+
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+static void test_str_init_clone( void )
+{
+  str( char ) src_str8;
+  init( &src_str8 );
+  str( char16_t ) src_str16;
+  init( &src_str16 );
+  str( char32_t ) src_str32;
+  init( &src_str32 );
+
+  // Test init_clone placeholder.
+
+  str( char ) empty_str8;
+  UNTIL_SUCCESS( init_clone( &empty_str8, &src_str8 ) );
+  ALWAYS_ASSERT( (void *)empty_str8 == (void *)&cc_str_placeholder_char8 );
+
+  str( char16_t) empty_str16;
+  UNTIL_SUCCESS( init_clone( &empty_str16, &src_str16 ) );
+  ALWAYS_ASSERT( (void *)empty_str16 == (void *)&cc_str_placeholder_char16 );
+
+  str( char32_t ) empty_str32;
+  UNTIL_SUCCESS( init_clone( &empty_str32, &src_str32 ) );
+  ALWAYS_ASSERT( (void *)empty_str32 == (void *)&cc_str_placeholder_char32 );
+
+  // Test init_clone non-placeholder.
+
+  str( char ) our_str8;
+  init( &our_str8 );
+  UNTIL_SUCCESS( push_fmt( &src_str8, "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  UNTIL_SUCCESS( init_clone( &our_str8, &src_str8 ) );
+  ALWAYS_ASSERT( compare_strings8( first( &our_str8 ), "abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  str( char16_t ) our_str16;
+  init( &our_str16 );
+  UNTIL_SUCCESS( push_fmt( &src_str16, u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  UNTIL_SUCCESS( init_clone( &our_str16, &src_str16 ) );
+  ALWAYS_ASSERT( compare_strings16( first( &our_str16 ), u"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  str( char32_t ) our_str32;
+  init( &our_str32 );
+  UNTIL_SUCCESS( push_fmt( &src_str32, U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+  UNTIL_SUCCESS( init_clone( &our_str32, &src_str32 ) );
+  ALWAYS_ASSERT( compare_strings32( first( &our_str32 ), U"abcdefghijklmnopqrstuvwxyz{|}~" ) );
+
+  cleanup( &src_str8 );
+  cleanup( &src_str16 );
+  cleanup( &src_str32 );
+  cleanup( &our_str8 );
+  cleanup( &our_str16 );
+  cleanup( &our_str32 );
+}
+
+#define STRING_LITERAL_CHAR( literal ) literal
+#define STRING_LITERAL_UNSIGNED_CHAR( literal ) (unsigned char *)literal
+#define STRING_LITERAL_SIGNED_CHAR( literal ) (signed char *)literal
+#define STRING_LITERAL_CHAR8( literal ) u8##literal
+#define STRING_LITERAL_CHAR16( literal ) u##literal
+#define STRING_LITERAL_CHAR32( literal ) U##literal
+
+#define TEST_STR_VEC_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )     \
+{                                                                                        \
+  vec( str( ty ) ) our_vec;                                                              \
+  init( &our_vec );                                                                      \
+                                                                                         \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                       \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                       \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Cat" ) ) );                \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Dog" ) ) );                \
+                                                                                         \
+  UNTIL_SUCCESS( push( &our_vec, our_str_1 ) );                                          \
+  UNTIL_SUCCESS( push( &our_vec, our_str_2 ) );                                          \
+                                                                                         \
+  str( ty ) *el;                                                                         \
+  el = get( &our_vec, 0 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Cat" ) ) );     \
+  el = get( &our_vec, 1 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );     \
+                                                                                         \
+  erase( &our_vec, 0 );                                                                  \
+  clear( &our_vec );                                                                     \
+                                                                                         \
+  /* Heterogeneous push. */                                                              \
+  UNTIL_SUCCESS( push( &our_vec, string_literal_macro( "Fish" ) ) );                     \
+  UNTIL_SUCCESS( push( &our_vec, string_literal_macro( "Parrot" ) ) );                   \
+  UNTIL_SUCCESS( push( &our_vec, string_literal_macro( "Hamster" ) ) );                  \
+  UNTIL_SUCCESS( push( &our_vec, string_literal_macro( "Ferret" ) ) );                   \
+                                                                                         \
+  /* Heterogeneous insert. */                                                            \
+  UNTIL_SUCCESS( insert( &our_vec, 0, string_literal_macro( "Spider" ) ) );              \
+  UNTIL_SUCCESS( insert( &our_vec, 0, string_literal_macro( "Mouse" ) ) );               \
+  UNTIL_SUCCESS( insert( &our_vec, 0, string_literal_macro( "Snake" ) ) );               \
+  UNTIL_SUCCESS( insert( &our_vec, 0, string_literal_macro( "Lizard" ) ) );              \
+                                                                                         \
+  el = get( &our_vec, 0 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Lizard" ) ) );  \
+  el = get( &our_vec, 1 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Snake" ) ) );   \
+  el = get( &our_vec, 2 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Mouse" ) ) );   \
+  el = get( &our_vec, 3 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Spider" ) ) );  \
+  el = get( &our_vec, 4 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Fish" ) ) );    \
+  el = get( &our_vec, 5 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Parrot" ) ) );  \
+  el = get( &our_vec, 6 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) ); \
+  el = get( &our_vec, 7 );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Ferret" ) ) );  \
+                                                                                         \
+  cleanup( &our_vec );                                                                   \
+}                                                                                        \
+
+static void test_str_interoperability_vec( void )
+{
+  TEST_STR_VEC_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_VEC_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_VEC_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_VEC_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_VEC_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_VEC_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+}
+
+#define TEST_STR_LIST_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )         \
+{                                                                                             \
+  list( str( ty ) ) our_list;                                                                 \
+  init( &our_list );                                                                          \
+                                                                                              \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                            \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                            \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Cat" ) ) );                     \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Dog" ) ) );                     \
+                                                                                              \
+  UNTIL_SUCCESS( push( &our_list, our_str_1 ) );                                              \
+  UNTIL_SUCCESS( push( &our_list, our_str_2 ) );                                              \
+                                                                                              \
+  str( ty ) *el;                                                                              \
+  el = first( &our_list );                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Cat" ) ) );          \
+  el = last( &our_list );                                                                     \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );          \
+                                                                                              \
+  erase( &our_list, first( &our_list ) );                                                     \
+  clear( &our_list );                                                                         \
+                                                                                              \
+  /* Heterogeneous push. */                                                                   \
+  UNTIL_SUCCESS( push( &our_list, string_literal_macro( "Fish" ) ) );                         \
+  UNTIL_SUCCESS( push( &our_list, string_literal_macro( "Parrot" ) ) );                       \
+  UNTIL_SUCCESS( push( &our_list, string_literal_macro( "Hamster" ) ) );                      \
+  UNTIL_SUCCESS( push( &our_list, string_literal_macro( "Ferret" ) ) );                       \
+                                                                                              \
+  /* Heterogeneous insert. */                                                                 \
+  UNTIL_SUCCESS( insert( &our_list, first( &our_list ), string_literal_macro( "Spider" ) ) ); \
+  UNTIL_SUCCESS( insert( &our_list, first( &our_list ), string_literal_macro( "Mouse" ) ) );  \
+  UNTIL_SUCCESS( insert( &our_list, first( &our_list ), string_literal_macro( "Snake" ) ) );  \
+  UNTIL_SUCCESS( insert( &our_list, first( &our_list ), string_literal_macro( "Lizard" ) ) ); \
+                                                                                              \
+  el = first( &our_list );                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Lizard" ) ) );       \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Snake" ) ) );        \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Mouse" ) ) );        \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Spider" ) ) );       \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Fish" ) ) );         \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Parrot" ) ) );       \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) );      \
+  el = next( &our_list, el );                                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Ferret" ) ) );       \
+                                                                                              \
+  cleanup( &our_list );                                                                       \
+}                                                                                             \
+
+static void test_str_interoperability_list( void )
+{
+  TEST_STR_LIST_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_LIST_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_LIST_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_LIST_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_LIST_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_LIST_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+}
+
+#define TEST_STR_MAP_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                                  \
+{                                                                                                                     \
+  map( str( ty ), str( ty ) ) our_map;                                                                                \
+  init( &our_map );                                                                                                   \
+                                                                                                                      \
+  /* Insert. */                                                                                                       \
+                                                                                                                      \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                                                    \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                                                    \
+  str( ty ) our_str_3 = initialized( &our_str_3 );                                                                    \
+  str( ty ) our_str_4 = initialized( &our_str_4 );                                                                    \
+  str( ty ) our_str_5 = initialized( &our_str_5 );                                                                    \
+  str( ty ) our_str_6 = initialized( &our_str_6 );                                                                    \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Short string" ) ) );                                    \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Medium-length string" ) ) );                            \
+  UNTIL_SUCCESS( push_fmt( &our_str_3, string_literal_macro( "This here is a significantly longer string" ) ) );      \
+  UNTIL_SUCCESS( push_fmt( &our_str_4, string_literal_macro( "Cat" ) ) );                                             \
+  UNTIL_SUCCESS( push_fmt( &our_str_5, string_literal_macro( "Dog" ) ) );                                             \
+  UNTIL_SUCCESS( push_fmt( &our_str_6, string_literal_macro( "Rabbit" ) ) );                                          \
+                                                                                                                      \
+  UNTIL_SUCCESS( insert( &our_map, our_str_1, our_str_4 ) );                                                          \
+  UNTIL_SUCCESS( insert( &our_map, our_str_2, our_str_5 ) );                                                          \
+  UNTIL_SUCCESS( insert( &our_map, our_str_3, our_str_6 ) );                                                          \
+                                                                                                                      \
+  /* Look-up. */                                                                                                      \
+                                                                                                                      \
+  str( ty ) our_str_7 = initialized( &our_str_7 );                                                                    \
+  str( ty ) our_str_8 = initialized( &our_str_8 );                                                                    \
+  str( ty ) our_str_9 = initialized( &our_str_9 );                                                                    \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                                    \
+  UNTIL_SUCCESS( push_fmt( &our_str_8, string_literal_macro( "Medium-length string" ) ) );                            \
+  UNTIL_SUCCESS( push_fmt( &our_str_9, string_literal_macro( "This here is a significantly longer string" ) ) );      \
+                                                                                                                      \
+  str( ty ) *el;                                                                                                      \
+  el = get( &our_map, our_str_7 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Cat" ) ) );                                  \
+  el = get( &our_map, our_str_8 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );                                  \
+  el = get( &our_map, our_str_9 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Rabbit" ) ) );                               \
+                                                                                                                      \
+  cleanup( &our_str_7 );                                                                                              \
+  cleanup( &our_str_8 );                                                                                              \
+  cleanup( &our_str_9 );                                                                                              \
+                                                                                                                      \
+  /* Replace and check. */                                                                                            \
+  str( ty ) our_str_10 = initialized( &our_str_10 );                                                                  \
+  str( ty ) our_str_11 = initialized( &our_str_11 );                                                                  \
+  UNTIL_SUCCESS( push_fmt( &our_str_10, string_literal_macro( "Short string" ) ) );                                   \
+  UNTIL_SUCCESS( push_fmt( &our_str_11, string_literal_macro( "Hamster" ) ) );                                        \
+  UNTIL_SUCCESS( insert( &our_map, our_str_10, our_str_11 ) );                                                        \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                                    \
+  el = get( &our_map, our_str_7 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) );                              \
+  cleanup( &our_str_7 );                                                                                              \
+                                                                                                                      \
+  /* Heterogeneous get. */                                                                                            \
+  el = get( &our_map, string_literal_macro( "Short string" ) );                                                       \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) );                              \
+  el = get( &our_map, string_literal_macro( "Medium-length string" ) );                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );                                  \
+  el = get( &our_map, string_literal_macro( "This here is a significantly longer string" ) );                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Rabbit" ) ) );                               \
+                                                                                                                      \
+  /* Heterogeneous erase. */                                                                                          \
+  ALWAYS_ASSERT( erase( &our_map, string_literal_macro( "Short string" ) ) );                                         \
+  ALWAYS_ASSERT( erase( &our_map, string_literal_macro( "Medium-length string" ) ) );                                 \
+  ALWAYS_ASSERT( erase( &our_map, string_literal_macro( "This here is a significantly longer string" ) ) );           \
+  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "Short string" ) ) );                                          \
+  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "Medium-length string" ) ) );                                  \
+  ALWAYS_ASSERT( !get( &our_map, string_literal_macro( "This here is a significantly longer string" ) ) );            \
+                                                                                                                      \
+  /* Heterogenous insert. */                                                                                          \
+  UNTIL_SUCCESS( insert( &our_map, string_literal_macro( "Apple" ), string_literal_macro( "Potato" ) ) );             \
+  UNTIL_SUCCESS( insert( &our_map, string_literal_macro( "Orange" ), string_literal_macro( "Carrot" ) ) );            \
+  UNTIL_SUCCESS( insert( &our_map, string_literal_macro( "Pear" ), string_literal_macro( "Onion" ) ) );               \
+  el = get( &our_map, string_literal_macro( "Apple" ) );                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Potato" ) ) );                               \
+  el = get( &our_map, string_literal_macro( "Orange" ) );                                                             \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Carrot" ) ) );                               \
+  el = get( &our_map, string_literal_macro( "Pear" ) );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Onion" ) ) );                                \
+                                                                                                                      \
+  /* Heterogenous get or insert. */                                                                                   \
+  UNTIL_SUCCESS( get_or_insert( &our_map, string_literal_macro( "Grapefruit" ), string_literal_macro( "Tomato" ) ) ); \
+  UNTIL_SUCCESS( get_or_insert( &our_map, string_literal_macro( "Melon" ), string_literal_macro( "Garlic" ) ) );      \
+  UNTIL_SUCCESS( get_or_insert( &our_map, string_literal_macro( "Orange" ), string_literal_macro( "Capsicum" ) ) );   \
+  UNTIL_SUCCESS( get_or_insert( &our_map, string_literal_macro( "Pear" ), string_literal_macro( "Spinach" ) ) );      \
+  el = get( &our_map, string_literal_macro( "Grapefruit" ) );                                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Tomato" ) ) );                               \
+  el = get( &our_map, string_literal_macro( "Melon" ) );                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Garlic" ) ) );                               \
+  el = get( &our_map, string_literal_macro( "Orange" ) );                                                             \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Carrot" ) ) );                               \
+  el = get( &our_map, string_literal_macro( "Pear" ) );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Onion" ) ) );                                \
+                                                                                                                      \
+  cleanup( &our_map );                                                                                                \
+}                                                                                                                     \
+
+static void test_str_interoperability_map( void )
+{
+  TEST_STR_MAP_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_MAP_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_MAP_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_MAP_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_MAP_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_MAP_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+}
+
+#define TEST_STR_SET_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                             \
+{                                                                                                                \
+  set( str( ty ) ) our_set;                                                                                      \
+  init( &our_set );                                                                                              \
+                                                                                                                 \
+  /* Insert. */                                                                                                  \
+                                                                                                                 \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                                               \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                                               \
+  str( ty ) our_str_3 = initialized( &our_str_3 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Medium-length string" ) ) );                       \
+  UNTIL_SUCCESS( push_fmt( &our_str_3, string_literal_macro( "This here is a significantly longer string" ) ) ); \
+                                                                                                                 \
+  UNTIL_SUCCESS( insert( &our_set, our_str_1 ) );                                                                \
+  UNTIL_SUCCESS( insert( &our_set, our_str_2 ) );                                                                \
+  UNTIL_SUCCESS( insert( &our_set, our_str_3 ) );                                                                \
+                                                                                                                 \
+  /* Look-up. */                                                                                                 \
+                                                                                                                 \
+  str( ty ) our_str_4 = initialized( &our_str_4 );                                                               \
+  str( ty ) our_str_5 = initialized( &our_str_5 );                                                               \
+  str( ty ) our_str_6 = initialized( &our_str_6 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_4, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_5, string_literal_macro( "Medium-length string" ) ) );                       \
+  UNTIL_SUCCESS( push_fmt( &our_str_6, string_literal_macro( "This here is a significantly longer string" ) ) ); \
+                                                                                                                 \
+  str( ty ) *el;                                                                                                 \
+  el = get( &our_set, our_str_4 );                                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Short string" ) ) );                    \
+  el = get( &our_set, our_str_5 );                                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Medium-length string" ) ) );            \
+  el = get( &our_set, our_str_6 );                                                                               \
+  ALWAYS_ASSERT(                                                                                                 \
+    compare_strings_fn( first( el ), string_literal_macro( "This here is a significantly longer string" ) )      \
+  );                                                                                                             \
+                                                                                                                 \
+  cleanup( &our_str_4 );                                                                                         \
+  cleanup( &our_str_5 );                                                                                         \
+  cleanup( &our_str_6 );                                                                                         \
+                                                                                                                 \
+  /* Replace. */                                                                                                 \
+  str( ty ) our_str_7 = initialized( &our_str_7 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( el = insert( &our_set, our_str_7 ) );                                                           \
+  ALWAYS_ASSERT(                                                                                                 \
+    *el == our_str_7 && compare_strings_fn( first( el ), string_literal_macro( "Short string" ) )                \
+  );                                                                                                             \
+                                                                                                                 \
+  /* Heterogeneous get. */                                                                                       \
+  el = get( &our_set, string_literal_macro( "Short string" ) );                                                  \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Short string" ) ) );                    \
+  el = get( &our_set, string_literal_macro( "Medium-length string" ) );                                          \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Medium-length string" ) ) );            \
+  el = get( &our_set, string_literal_macro( "This here is a significantly longer string" ) );                    \
+  ALWAYS_ASSERT(                                                                                                 \
+    compare_strings_fn( first( el ), string_literal_macro( "This here is a significantly longer string" ) )      \
+  );                                                                                                             \
+                                                                                                                 \
+  /* Heterogeneous erase. */                                                                                     \
+  ALWAYS_ASSERT( erase( &our_set, string_literal_macro( "Short string" ) ) );                                    \
+  ALWAYS_ASSERT( erase( &our_set, string_literal_macro( "Medium-length string" ) ) );                            \
+  ALWAYS_ASSERT( erase( &our_set, string_literal_macro( "This here is a significantly longer string" ) ) );      \
+  ALWAYS_ASSERT( !get( &our_set, string_literal_macro( "Short string" ) ) );                                     \
+  ALWAYS_ASSERT( !get( &our_set, string_literal_macro( "Medium-length string" ) ) );                             \
+  ALWAYS_ASSERT( !get( &our_set, string_literal_macro( "This here is a significantly longer string" ) ) );       \
+                                                                                                                 \
+  /* Heterogenous insert. */                                                                                     \
+  UNTIL_SUCCESS( insert( &our_set, string_literal_macro( "Apple" ) ) );                                          \
+  UNTIL_SUCCESS( insert( &our_set, string_literal_macro( "Orange" ) ) );                                         \
+  UNTIL_SUCCESS( insert( &our_set, string_literal_macro( "Pear" ) ) );                                           \
+  el = get( &our_set, string_literal_macro( "Apple" ) );                                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Apple" ) ) );                           \
+  el = get( &our_set, string_literal_macro( "Orange" ) );                                                        \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Orange" ) ) );                          \
+  el = get( &our_set, string_literal_macro( "Pear" ) );                                                          \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Pear" ) ) );                            \
+                                                                                                                 \
+  /* Heterogenous get or insert. */                                                                              \
+  UNTIL_SUCCESS( get_or_insert( &our_set, string_literal_macro( "Grapefruit" ) ) );                              \
+  UNTIL_SUCCESS( get_or_insert( &our_set, string_literal_macro( "Melon" ) ) );                                   \
+  str( ty ) *orange = get( &our_set, string_literal_macro( "Orange" ) );                                         \
+  str( ty ) *pear = get( &our_set, string_literal_macro( "Pear" ) );                                             \
+  UNTIL_SUCCESS( get_or_insert( &our_set, string_literal_macro( "Orange" ) ) );                                  \
+  UNTIL_SUCCESS( get_or_insert( &our_set, string_literal_macro( "Pear" ) ) );                                    \
+  el = get( &our_set, string_literal_macro( "Grapefruit" ) );                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Grapefruit" ) ) );                      \
+  el = get( &our_set, string_literal_macro( "Melon" ) );                                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Melon" ) ) );                           \
+  el = get( &our_set, string_literal_macro( "Orange" ) );                                                        \
+  ALWAYS_ASSERT( el == orange && compare_strings_fn( first( el ), string_literal_macro( "Orange" ) ) );          \
+  el = get( &our_set, string_literal_macro( "Pear" ) );                                                          \
+  ALWAYS_ASSERT( el == pear && compare_strings_fn( first( el ), string_literal_macro( "Pear" ) ) );              \
+                                                                                                                 \
+  cleanup( &our_set );                                                                                           \
+}                                                                                                                \
+
+static void test_str_interoperability_set( void )
+{
+  TEST_STR_SET_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_SET_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_SET_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_SET_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_SET_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_SET_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+}
+
+#define TEST_STR_OMAP_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                                  \
+{                                                                                                                      \
+  map( str( ty ), str( ty ) ) our_omap;                                                                                \
+  init( &our_omap );                                                                                                   \
+                                                                                                                       \
+  /* Insert. */                                                                                                        \
+                                                                                                                       \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                                                     \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                                                     \
+  str( ty ) our_str_3 = initialized( &our_str_3 );                                                                     \
+  str( ty ) our_str_4 = initialized( &our_str_4 );                                                                     \
+  str( ty ) our_str_5 = initialized( &our_str_5 );                                                                     \
+  str( ty ) our_str_6 = initialized( &our_str_6 );                                                                     \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Short string" ) ) );                                     \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Medium-length string" ) ) );                             \
+  UNTIL_SUCCESS( push_fmt( &our_str_3, string_literal_macro( "This here is a significantly longer string" ) ) );       \
+  UNTIL_SUCCESS( push_fmt( &our_str_4, string_literal_macro( "Cat" ) ) );                                              \
+  UNTIL_SUCCESS( push_fmt( &our_str_5, string_literal_macro( "Dog" ) ) );                                              \
+  UNTIL_SUCCESS( push_fmt( &our_str_6, string_literal_macro( "Rabbit" ) ) );                                           \
+                                                                                                                       \
+  UNTIL_SUCCESS( insert( &our_omap, our_str_1, our_str_4 ) );                                                          \
+  UNTIL_SUCCESS( insert( &our_omap, our_str_2, our_str_5 ) );                                                          \
+  UNTIL_SUCCESS( insert( &our_omap, our_str_3, our_str_6 ) );                                                          \
+                                                                                                                       \
+  /* Look-up. */                                                                                                       \
+                                                                                                                       \
+  str( ty ) our_str_7 = initialized( &our_str_7 );                                                                     \
+  str( ty ) our_str_8 = initialized( &our_str_8 );                                                                     \
+  str( ty ) our_str_9 = initialized( &our_str_9 );                                                                     \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                                     \
+  UNTIL_SUCCESS( push_fmt( &our_str_8, string_literal_macro( "Medium-length string" ) ) );                             \
+  UNTIL_SUCCESS( push_fmt( &our_str_9, string_literal_macro( "This here is a significantly longer string" ) ) );       \
+                                                                                                                       \
+  str( ty ) *el;                                                                                                       \
+  el = get( &our_omap, our_str_7 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Cat" ) ) );                                   \
+  el = get( &our_omap, our_str_8 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );                                   \
+  el = get( &our_omap, our_str_9 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Rabbit" ) ) );                                \
+                                                                                                                       \
+  cleanup( &our_str_7 );                                                                                               \
+  cleanup( &our_str_8 );                                                                                               \
+  cleanup( &our_str_9 );                                                                                               \
+                                                                                                                       \
+  /* Replace and check. */                                                                                             \
+  str( ty ) our_str_10 = initialized( &our_str_10 );                                                                   \
+  str( ty ) our_str_11 = initialized( &our_str_11 );                                                                   \
+  UNTIL_SUCCESS( push_fmt( &our_str_10, string_literal_macro( "Short string" ) ) );                                    \
+  UNTIL_SUCCESS( push_fmt( &our_str_11, string_literal_macro( "Hamster" ) ) );                                         \
+  UNTIL_SUCCESS( insert( &our_omap, our_str_10, our_str_11 ) );                                                        \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                                     \
+  el = get( &our_omap, our_str_7 );                                                                                    \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) );                               \
+  cleanup( &our_str_7 );                                                                                               \
+                                                                                                                       \
+  /* Heterogeneous get. */                                                                                             \
+  el = get( &our_omap, string_literal_macro( "Short string" ) );                                                       \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Hamster" ) ) );                               \
+  el = get( &our_omap, string_literal_macro( "Medium-length string" ) );                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Dog" ) ) );                                   \
+  el = get( &our_omap, string_literal_macro( "This here is a significantly longer string" ) );                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Rabbit" ) ) );                                \
+                                                                                                                       \
+  /* Heterogeneous erase. */                                                                                           \
+  ALWAYS_ASSERT( erase( &our_omap, string_literal_macro( "Short string" ) ) );                                         \
+  ALWAYS_ASSERT( erase( &our_omap, string_literal_macro( "Medium-length string" ) ) );                                 \
+  ALWAYS_ASSERT( erase( &our_omap, string_literal_macro( "This here is a significantly longer string" ) ) );           \
+  ALWAYS_ASSERT( !get( &our_omap, string_literal_macro( "Short string" ) ) );                                          \
+  ALWAYS_ASSERT( !get( &our_omap, string_literal_macro( "Medium-length string" ) ) );                                  \
+  ALWAYS_ASSERT( !get( &our_omap, string_literal_macro( "This here is a significantly longer string" ) ) );            \
+                                                                                                                       \
+  /* Heterogenous insert. */                                                                                           \
+  UNTIL_SUCCESS( insert( &our_omap, string_literal_macro( "Apple" ), string_literal_macro( "Potato" ) ) );             \
+  UNTIL_SUCCESS( insert( &our_omap, string_literal_macro( "Orange" ), string_literal_macro( "Carrot" ) ) );            \
+  UNTIL_SUCCESS( insert( &our_omap, string_literal_macro( "Pear" ), string_literal_macro( "Onion" ) ) );               \
+  el = get( &our_omap, string_literal_macro( "Apple" ) );                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Potato" ) ) );                                \
+  el = get( &our_omap, string_literal_macro( "Orange" ) );                                                             \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Carrot" ) ) );                                \
+  el = get( &our_omap, string_literal_macro( "Pear" ) );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Onion" ) ) );                                 \
+                                                                                                                       \
+  /* Heterogenous get or insert. */                                                                                    \
+  UNTIL_SUCCESS( get_or_insert( &our_omap, string_literal_macro( "Grapefruit" ), string_literal_macro( "Tomato" ) ) ); \
+  UNTIL_SUCCESS( get_or_insert( &our_omap, string_literal_macro( "Melon" ), string_literal_macro( "Garlic" ) ) );      \
+  UNTIL_SUCCESS( get_or_insert( &our_omap, string_literal_macro( "Orange" ), string_literal_macro( "Capsicum" ) ) );   \
+  UNTIL_SUCCESS( get_or_insert( &our_omap, string_literal_macro( "Pear" ), string_literal_macro( "Spinach" ) ) );      \
+  el = get( &our_omap, string_literal_macro( "Grapefruit" ) );                                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Tomato" ) ) );                                \
+  el = get( &our_omap, string_literal_macro( "Melon" ) );                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Garlic" ) ) );                                \
+  el = get( &our_omap, string_literal_macro( "Orange" ) );                                                             \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Carrot" ) ) );                                \
+  el = get( &our_omap, string_literal_macro( "Pear" ) );                                                               \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Onion" ) ) );                                 \
+                                                                                                                       \
+  cleanup( &our_omap );                                                                                                \
+}                                                                                                                      \
+
+static void test_str_interoperability_omap( void )
+{
+  TEST_STR_OMAP_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_OMAP_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_OMAP_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_OMAP_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_OMAP_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_OMAP_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+}
+
+#define TEST_STR_OSET_INEROPERABILITY( ty, string_literal_macro, compare_strings_fn )                            \
+{                                                                                                                \
+  set( str( ty ) ) our_oset;                                                                                     \
+  init( &our_oset );                                                                                             \
+                                                                                                                 \
+  /* Insert. */                                                                                                  \
+                                                                                                                 \
+  str( ty ) our_str_1 = initialized( &our_str_1 );                                                               \
+  str( ty ) our_str_2 = initialized( &our_str_2 );                                                               \
+  str( ty ) our_str_3 = initialized( &our_str_3 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_1, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_2, string_literal_macro( "Medium-length string" ) ) );                       \
+  UNTIL_SUCCESS( push_fmt( &our_str_3, string_literal_macro( "This here is a significantly longer string" ) ) ); \
+                                                                                                                 \
+  UNTIL_SUCCESS( insert( &our_oset, our_str_1 ) );                                                               \
+  UNTIL_SUCCESS( insert( &our_oset, our_str_2 ) );                                                               \
+  UNTIL_SUCCESS( insert( &our_oset, our_str_3 ) );                                                               \
+                                                                                                                 \
+  /* Look-up. */                                                                                                 \
+                                                                                                                 \
+  str( ty ) our_str_4 = initialized( &our_str_4 );                                                               \
+  str( ty ) our_str_5 = initialized( &our_str_5 );                                                               \
+  str( ty ) our_str_6 = initialized( &our_str_6 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_4, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_5, string_literal_macro( "Medium-length string" ) ) );                       \
+  UNTIL_SUCCESS( push_fmt( &our_str_6, string_literal_macro( "This here is a significantly longer string" ) ) ); \
+                                                                                                                 \
+  str( ty ) *el;                                                                                                 \
+  el = get( &our_oset, our_str_4 );                                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Short string" ) ) );                    \
+  el = get( &our_oset, our_str_5 );                                                                              \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Medium-length string" ) ) );            \
+  el = get( &our_oset, our_str_6 );                                                                              \
+  ALWAYS_ASSERT(                                                                                                 \
+    compare_strings_fn( first( el ), string_literal_macro( "This here is a significantly longer string" ) )      \
+  );                                                                                                             \
+                                                                                                                 \
+  cleanup( &our_str_4 );                                                                                         \
+  cleanup( &our_str_5 );                                                                                         \
+  cleanup( &our_str_6 );                                                                                         \
+                                                                                                                 \
+  /* Replace. */                                                                                                 \
+  str( ty ) our_str_7 = initialized( &our_str_7 );                                                               \
+  UNTIL_SUCCESS( push_fmt( &our_str_7, string_literal_macro( "Short string" ) ) );                               \
+  UNTIL_SUCCESS( el = insert( &our_oset, our_str_7 ) );                                                          \
+  ALWAYS_ASSERT(                                                                                                 \
+    *el == our_str_7 && compare_strings_fn( first( el ), string_literal_macro( "Short string" ) )                \
+  );                                                                                                             \
+                                                                                                                 \
+  /* Heterogeneous get. */                                                                                       \
+  el = get( &our_oset, string_literal_macro( "Short string" ) );                                                 \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Short string" ) ) );                    \
+  el = get( &our_oset, string_literal_macro( "Medium-length string" ) );                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Medium-length string" ) ) );            \
+  el = get( &our_oset, string_literal_macro( "This here is a significantly longer string" ) );                   \
+  ALWAYS_ASSERT(                                                                                                 \
+    compare_strings_fn( first( el ), string_literal_macro( "This here is a significantly longer string" ) )      \
+  );                                                                                                             \
+                                                                                                                 \
+  /* Heterogeneous erase. */                                                                                     \
+  ALWAYS_ASSERT( erase( &our_oset, string_literal_macro( "Short string" ) ) );                                   \
+  ALWAYS_ASSERT( erase( &our_oset, string_literal_macro( "Medium-length string" ) ) );                           \
+  ALWAYS_ASSERT( erase( &our_oset, string_literal_macro( "This here is a significantly longer string" ) ) );     \
+  ALWAYS_ASSERT( !get( &our_oset, string_literal_macro( "Short string" ) ) );                                    \
+  ALWAYS_ASSERT( !get( &our_oset, string_literal_macro( "Medium-length string" ) ) );                            \
+  ALWAYS_ASSERT( !get( &our_oset, string_literal_macro( "This here is a significantly longer string" ) ) );      \
+                                                                                                                 \
+  /* Heterogenous insert. */                                                                                     \
+  UNTIL_SUCCESS( insert( &our_oset, string_literal_macro( "Apple" ) ) );                                         \
+  UNTIL_SUCCESS( insert( &our_oset, string_literal_macro( "Orange" ) ) );                                        \
+  UNTIL_SUCCESS( insert( &our_oset, string_literal_macro( "Pear" ) ) );                                          \
+  el = get( &our_oset, string_literal_macro( "Apple" ) );                                                        \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Apple" ) ) );                           \
+  el = get( &our_oset, string_literal_macro( "Orange" ) );                                                       \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Orange" ) ) );                          \
+  el = get( &our_oset, string_literal_macro( "Pear" ) );                                                         \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Pear" ) ) );                            \
+                                                                                                                 \
+  /* Heterogenous get or insert. */                                                                              \
+  UNTIL_SUCCESS( get_or_insert( &our_oset, string_literal_macro( "Grapefruit" ) ) );                             \
+  UNTIL_SUCCESS( get_or_insert( &our_oset, string_literal_macro( "Melon" ) ) );                                  \
+  str( ty ) *orange = get( &our_oset, string_literal_macro( "Orange" ) );                                        \
+  str( ty ) *pear = get( &our_oset, string_literal_macro( "Pear" ) );                                            \
+  UNTIL_SUCCESS( get_or_insert( &our_oset, string_literal_macro( "Orange" ) ) );                                 \
+  UNTIL_SUCCESS( get_or_insert( &our_oset, string_literal_macro( "Pear" ) ) );                                   \
+  el = get( &our_oset, string_literal_macro( "Grapefruit" ) );                                                   \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Grapefruit" ) ) );                      \
+  el = get( &our_oset, string_literal_macro( "Melon" ) );                                                        \
+  ALWAYS_ASSERT( compare_strings_fn( first( el ), string_literal_macro( "Melon" ) ) );                           \
+  el = get( &our_oset, string_literal_macro( "Orange" ) );                                                       \
+  ALWAYS_ASSERT( el == orange && compare_strings_fn( first( el ), string_literal_macro( "Orange" ) ) );          \
+  el = get( &our_oset, string_literal_macro( "Pear" ) );                                                         \
+  ALWAYS_ASSERT( el == pear && compare_strings_fn( first( el ), string_literal_macro( "Pear" ) ) );              \
+                                                                                                                 \
+  cleanup( &our_oset );                                                                                          \
+}                                                                                                                \
+
+static void test_str_interoperability_oset( void )
+{
+  TEST_STR_OSET_INEROPERABILITY( char, STRING_LITERAL_CHAR, compare_strings8 );
+  TEST_STR_OSET_INEROPERABILITY( unsigned char, STRING_LITERAL_UNSIGNED_CHAR, compare_strings8 );
+  TEST_STR_OSET_INEROPERABILITY( signed char, STRING_LITERAL_SIGNED_CHAR, compare_strings8 );
+#if ( defined( __cplusplus ) && __cplusplus >= 202101L ) ||        \
+    ( defined( __STDC_VERSION__ ) && __STDC_VERSION__ >= 202311L )
+  TEST_STR_OSET_INEROPERABILITY( char8_t, STRING_LITERAL_CHAR8, compare_strings8 );
+#endif
+  TEST_STR_OSET_INEROPERABILITY( char16_t, STRING_LITERAL_CHAR16, compare_strings16 );
+  TEST_STR_OSET_INEROPERABILITY( char32_t, STRING_LITERAL_CHAR32, compare_strings32 );
+}
+
+#endif
+
 int main( void )
 {
   srand( (unsigned int)time( NULL ) );
 
-  // Repeat 1000 times since realloc failures are random.
+  // Repeat the tests 1000 times since realloc failures are random.
+  printf( "Running unit tests...\n" );
   for( int i = 0; i < 1000; ++i )
   {
     #ifdef TEST_VEC
@@ -3542,6 +5574,31 @@ int main( void )
     test_oset_dtors();
     test_oset_strings();
     test_oset_default_integer_types();
+    #endif
+
+    #ifdef TEST_STR
+    // str, init, and size are tested implicitly.
+    test_str_reserve();
+    test_str_resize();
+    test_str_shrink();
+    test_str_insert();
+    test_str_insert_fmt();
+    test_str_insert_n();
+    test_str_push();
+    test_str_push_fmt();
+    test_str_push_n();
+    test_str_erase();
+    test_str_erase_n();
+    test_str_clear();
+    test_str_cleanup();
+    test_str_iteration();
+    test_str_init_clone();
+    test_str_interoperability_vec();
+    test_str_interoperability_list();
+    test_str_interoperability_map();
+    test_str_interoperability_set();
+    test_str_interoperability_omap();
+    test_str_interoperability_oset();
     #endif
   }
 

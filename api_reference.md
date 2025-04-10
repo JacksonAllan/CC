@@ -3,7 +3,7 @@
 General notes:
 
 * API macros may evaluate their first argument—the pointer to the container—multiple times, so never use expressions with side effects (e.g. `&our_containers[ ++i ]` ) for that argument. In GCC and Clang, attempting to do so will cause a compiler warning. All other arguments are only evaluated once.
-* If `CC_NO_SHORT_NAMES` was declared, all API macros are prefixed with `cc_`.
+* If `CC_NO_SHORT_NAMES` was declared, all API macros and functions are prefixed with `cc_`.
 * Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original. Hence, only create a duplicate via assignment (including through function parameters and return values) if you have finished with the original.
 * An iterator is a pointer to an element in the container or to the associated `end` (or `r_end`, if the container supports it). In the documentation below, these pointers are referred to as "pointer-iterators".
 * In the documentation below, `el_ty` is the container's element type and `key_ty` is the container's key type (where applicable).
@@ -57,6 +57,17 @@ This call cannot fail (it does not allocate memory).
 </dd></dl>
 
 ```c
+<any container type> initialized( <same container type> *cntr )
+```
+
+<dl><dd>
+
+Returns an initialized instance of the same type as `cntr`.  
+This call cannot fail (it does not allocate memory).  
+The call is a constant expression and can therefore be used to initialize global containers at the site of their declaration, e.g.: `vec( int ) our_vec = initialized( &our_vec );`
+</dd></dl>
+
+```c
 bool init_clone( <any container type> *cntr, <same container type> *src )
 ```
 
@@ -81,7 +92,7 @@ void clear( <any container type> *cntr )
 
 <dl><dd>
 
-Erases all elements, calling the element and key types' destructors if they exist.
+Erases all elements, calling the element and key types' destructors if they exist (unless cntr is a string).
 </dd></dl>
 
 ```c
@@ -90,7 +101,7 @@ void cleanup( <any container type> *cntr )
 
 <dl><dd>
 
-Erases all elements (calling the element and key types' destructors if they exist), frees any other memory associated with the container, and initializes the container for reuse.
+Erases all elements (calling the element and key types' destructors if they exist, unless the container is a string), frees any other memory associated with the container, and initializes the container for reuse.
 </dd></dl>
 
 ```c
@@ -267,7 +278,7 @@ el_ty *last( vec( el_ty ) *cntr )
 <dl><dd>
 
 Returns a pointer-iterator to the last element.  
-This call is synonymous with `get( cntr, size( cntr ) - 1 )` and assumes that at the vector is not empty.
+This call is synonymous with `get( cntr, size( cntr ) - 1 )` and assumes that the vector is not empty.
 </dd></dl>
 
 ## List
@@ -385,7 +396,7 @@ map( key_ty, el_ty ) cntr
 
 Declares an uninitialized map named `cntr`.  
 `key_ty` must be a type, or alias for a type, for which comparison and hash functions have been defined (this requirement is enforced internally such that neglecting it causes a compiler error).  
-For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see *Destructor, comparison, and hash functions and custom max load factors* below.
+For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see [*Destructor, comparison, and hash functions and custom max load factors*](#destructor-comparison-and-hash-functions-and-custom-max-load-factors) below.
 </dd></dl>
 
 ```c
@@ -505,7 +516,7 @@ set( el_ty ) cntr
 
 Declares an uninitialized set named `cntr`.  
 `el_ty` must be a type, or alias for a type, for which comparison and hash functions have been defined (this requirement is enforced internally such that neglecting it causes a compiler error).  
-For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see *Destructor, comparison, and hash functions and custom max load factors* below.
+For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see [*Destructor, comparison, and hash functions and custom max load factors*](#destructor-comparison-and-hash-functions-and-custom-max-load-factors) below.
 </dd></dl>
 
 ```c
@@ -605,7 +616,7 @@ omap( key_ty, el_ty ) cntr
 
 Declares an uninitialized ordered map named `cntr`.  
 `key_ty` must be a type, or alias for a type, for which a comparison function has been defined (this requirement is enforced internally such that neglecting it causes a compiler error).  
-For types with in-built comparison functions, and for details on how to declare new comparison functions, see *Destructor, comparison, and hash functions and custom max load factors* below.
+For types with in-built comparison functions, and for details on how to declare new comparison functions, see [*Destructor, comparison, and hash functions and custom max load factors*](#destructor-comparison-and-hash-functions-and-custom-max-load-factors) below.
 </dd></dl>
 
 ```c
@@ -764,7 +775,7 @@ oset( el_ty ) cntr
 
 Declares an uninitialized ordered set named `cntr`.  
 `el_ty` must be a type, or alias for a type, for which a comparison function has been defined (this requirement is enforced internally such that neglecting it causes a compiler error).  
-For types with in-built comparison functions, and for details on how to declare new comparison functions, see *Destructor, comparison, and hash functions and custom max load factors* below.
+For types with in-built comparison functions, and for details on how to declare new comparison functions, see [*Destructor, comparison, and hash functions and custom max load factors*](#destructor-comparison-and-hash-functions-and-custom-max-load-factors) below.
 </dd></dl>
 
 ```c
@@ -876,6 +887,224 @@ This macro declares an `el_ty *` pointer-iterator named `i_name`.
 It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr ); i_name = prev( cntr, i_name ) )` and should be followed by the body of the loop.
 </dd></dl>
 
+## String
+
+An `str` is a dynamic, null-terminated array representing a sequence of characters.
+
+Default hash, comparison, and memory-freeing destructor functions exist for all **CC** string types.
+
+When **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. For more details, see [*Heterogeneous string insertion and lookup*](#Heterogeneous-string-insertion-and-lookup) below.
+
+String pointer-iterators (including `end`) are invalidated by any API calls that cause memory reallocation.
+
+The following function-like macros operate on strings:
+
+```c
+str( el_ty ) cntr
+```
+
+<dl><dd>
+
+Declares an uninitialized string named `cntr`.  
+`el_ty` must be `char`, `unsigned char`, `signed char`, `char8_t`, `char16_t`, `char32_t`, or an alias for one of these types.
+</dd></dl>
+
+```c
+size_t cap( str( el_ty ) *cntr )
+```
+
+<dl><dd>
+
+Returns the current capacity, i.e. the number of elements that the string can accommodate (not including the null terminator) without reallocating its internal buffer.
+</dd></dl>
+
+```c
+bool reserve( str( el_ty ) *cntr, size_t n )
+```
+
+<dl><dd>
+
+Ensures that the capacity is large enough to accommodate `n` elements.  
+Returns `true`, or `false` if unsuccessful due to memory allocation failure.
+</dd></dl>
+
+```c
+bool resize( str( el_ty ) *cntr, size_t n, el_ty fill_character )
+```
+
+<dl><dd>
+
+Sets the number of elements to `n`.
+If `n` is above the current size, the new elements are initialized to `fill_character`.  
+If `n` is below the current size, no destructor is called for any erased element, even if a destructor for the element type has been defined.  
+Returns `true`, or `false` if unsuccessful due to memory allocation failure.
+</dd></dl>
+
+```c
+bool shrink( str( el_ty ) *cntr )
+```
+
+<dl><dd>
+
+Shrinks the capacity to the current size.  
+Returns `true`, or `false` if unsuccessful due to memory allocation failure.
+</dd></dl>
+
+```c
+el_ty *get( str( el_ty ) *cntr, size_t i )
+```
+
+<dl><dd>
+
+Returns a pointer-iterator to the element at index `i`.
+</dd></dl>
+
+```c
+el_ty *push( str( el_ty ) *cntr, el_ty el )
+```
+
+<dl><dd>
+
+Inserts `el` at the end of the string.  
+Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.
+</dd></dl>
+
+```c
+el_ty *push_fmt( str( el_ty ) *cntr, ... )
+```
+
+<dl><dd>
+
+Inserts up to 32 formatted values, provided as variadic arguments, at the end of the string.  
+Returns a pointer-iterator to the first new element, or `NULL` in the case of memory allocation failure.  
+Each variadic argument must be one of the following:
+
+* A null-terminated array of elements of the same type as `el_ty` (i.e. a C string).
+* A **CC** string with the same element type.
+* A fundamental integer type (`bool`, `char`, `unsigned char`, `signed char`, `unsigned short`, `short`, `unsigned int`, `int`, `unsigned long`, `long`, `unsigned long long`, or `long long`) or alias for such a type.
+* A fundamental floating-point type (`float` or `double`).
+* A `void` pointer (to be formatted as a memory address).
+* The return value of one of the following functions:
+
+  * `integer_dec( int min_digits )`  
+
+    Causes subsequent integer arguments to be formatted as decimal integers.  
+    `min_digits` specifies the minimum number of digits, and if the formatted integer is shorter than this number, it is padded with leading zeros.
+
+  * `integer_hex( int min_digits )`
+
+    Causes subsequent integer arguments to be formatted as unsigned hexadecimal integers.  
+    `min_digits` specifies the minimum number of digits, and if the formatted integer is shorter than this number, it is padded with leading zeros.
+
+  * `integer_oct( int min_digits )`
+
+    Causes subsequent integer arguments to be formatted as unsigned octal integers.  
+    `min_digits` specifies the minimum number of digits, and if the formatted integer is shorter than this number, it is padded with leading zeros.
+
+  * `float_dec( int precision )`
+
+    Causes subsequent floating-point arguments to be formatted as decimal floating-point numbers.  
+    `precision` specifies the number of decimal places to include.
+
+  * `float_hex( int precision )`
+
+    Causes subsequent floating-point arguments to be formatted as hexadecimal floating-point numbers.  
+    `precision` specifies the number of decimal places to include.
+
+  * `float_sci( int precision )`
+
+    Causes subsequent floating-point arguments to be formatted using scientific notation.  
+    `precision` specifies the number of decimal places to include.
+
+  * `float_shortest( int significant_digits )`
+
+    Causes subsequent floating-point arguments to be formatted as decimal floating-point numbers or using scientific notation, depending on which representation is shorter.  
+    `significant_digits` specifies the maximum number of significant digits to include.
+
+Arguments are type-promoted as follows:
+
+* `bool`, `unsigned char`, `unsigned short`, `unsigned int`, `unsigned long` -> `unsigned long long`.
+* `signed char`, `short`, `int`, `long`, -> `long long`.
+* `char` -> `long long` or `unsigned long long`, depending on whether `char` is signed.
+* `float` -> `double`.
+
+By default, integer arguments are formatted as decimal integers with a minimum of one digit, and floating-point arguments are formatted as decimal floating-point numbers with two decimal places.  
+For formatting, C and **CC** strings of `char16_t` and `char32_t` elements are assumed to be encoded as UTF-16 and UTF-32, respectively.
+</dd></dl>
+
+```c
+el_ty *push_n( str( el_ty ) *cntr, el_ty *els, size_t n )
+```
+
+<dl><dd>
+
+Inserts `n` elements from array `els` at the end of the string.  
+Returns a pointer-iterator to the first new element, or `NULL` in the case of memory allocation failure.
+</dd></dl>
+
+```c
+el_ty *insert( str( el_ty ) *cntr, size_t i, el_ty el )
+```
+
+<dl><dd>
+
+Inserts `el` at index `i`.
+Returns a pointer-iterator to the new element, or `NULL` in the case of memory allocation failure.
+</dd></dl>
+
+```c
+el_ty *insert_fmt( str( el_ty ) *cntr, size_t i, ... )
+```
+
+<dl><dd>
+
+Inserts up to 32 formatted values, provided as variadic arguments, at index `i`.  
+Each variadic argument must be one of the possibilities listed in the above documentation for `push_fmt`, and the same type-promotions and encoding assumptions apply.  
+Returns a pointer-iterator to the first new element, or `NULL` in the case of memory allocation failure.
+</dd></dl>
+
+```c
+el_ty *insert_n( str( el_ty ) *cntr, size_t i, el_ty *els, size_t n )
+```
+
+<dl><dd>
+
+Inserts `n` elements from array `els` at index `i`.  
+Returns a pointer-iterator to the first new element, or `NULL` in the case of memory allocation failure.
+</dd></dl>
+
+```c
+el_ty *erase( str( el_ty ) *cntr, size_t i )
+```
+
+<dl><dd>
+
+Erases the element at index `i`.  
+No destructor is called for the erased element, even if a destructor for the element type has been defined.  
+Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there is no subsequent element.
+</dd></dl>
+
+```c
+el_ty *erase_n( str( el_ty ) *cntr, size_t i, size_t n )
+```
+
+<dl><dd>
+
+Erases `n` elements beginning at index `i`.  
+No destructor is called for erased elements, even if a destructor for the element type has been defined.  
+Returns a pointer-iterator to the element after the erased elements, or an end pointer-iterator if there is no subsequent element.
+</dd></dl>
+
+```c
+el_ty *last( str( el_ty ) *cntr )
+```
+
+<dl><dd>
+
+Returns a pointer-iterator to the last element.  
+This call is synonymous with `get( cntr, size( cntr ) - 1 )` and assumes that the string is not empty.
+</dd></dl>
+
 ## Destructor, comparison, and hash functions and custom max load factors
 
 This part of the API allows the user to define custom destructor, comparison, and hash functions and max load factors for a type.
@@ -945,4 +1174,24 @@ Notes:
 * These functions are `inline` and have `static` scope, so you need to either redefine them in each translation unit from which they should be called or (preferably) define them in a shared header. For structs or unions, a sensible place to define them is immediately after the definition of the struct or union.
 * Only one destructor, comparison, or hash function or max load factor should be defined by the user for each type.
 * Including `cc.h` in these cases does not include the full header, so you still need to include it separately at the top of your files.
-* In-built comparison and hash functions are already defined for the following types: `char`, `unsigned char`, `signed char`, `unsigned short`, `short`, `unsigned int`, `int`, `unsigned long`, `long`, `unsigned long long`, `long long`, `size_t`, and `char *` (a `NULL`-terminated string). Defining a comparison or hash function for one of these types will overwrite the in-built function.
+* In-built comparison and hash functions are already defined for the following types: `char`, `unsigned char`, `signed char`, `unsigned short`, `short`, `unsigned int`, `int`, `unsigned long`, `long`, `unsigned long long`, `long long`, `size_t`, null-terminated C strings (`char *` and `const char *`). Defining a comparison or hash function for one of these types will overwrite the in-built function.
+
+## Heterogeneous string insertion and lookup
+
+When **CC** strings are used as the key and/or element type of another container, most API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, **CC** automatically converts the C string into a **CC** string.
+
+The API macros that support heterogeneous insertion are `push`, `insert` and `get_or_insert`.
+
+The API macros that support heterogeneous lookup are `get` and `erase`. In this case, CC performs no memory allocations.
+
+Trivial example:
+
+```c
+map( str( char ), str( char ) ) our_map = initialized( &our_map );
+if( insert( &our_map, "France", "Paris" ) ) // Heterogeneous insertion.
+{
+  str( char ) *el = get( &our_map, "France" ); // Heterogeneous lookup.
+  printf( first( el ) );
+  // Printed: Paris
+}
+```

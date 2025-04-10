@@ -1,27 +1,51 @@
-<picture><img src="./header.svg" alt="CC: Convenient Containers"></picture>
+<div align="center">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="images/logo_dark.svg">
+<img src="images/logo_light.svg" alt="Convenient Containers">
+</picture>
+</div>
+<br>
+<div align="center">
+<a href="#Overview"><picture><source media="(prefers-color-scheme: dark)" srcset="images/overview_dark.svg"><img src="images/overview_light.svg" alt="Overview"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#Rationale"><picture><source media="(prefers-color-scheme: dark)" srcset="images/rationale_dark.svg"><img src="images/rationale_light.svg" alt="Rationale"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#Installation"><picture><source media="(prefers-color-scheme: dark)" srcset="images/installation_dark.svg"><img src="images/installation_light.svg" alt="Installation"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#Simple-Examples"><picture><source media="(prefers-color-scheme: dark)" srcset="images/simple_examples_dark.svg"><img src="images/simple_examples_light.svg" alt="Simple Examples"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#Advanced-Examples"><picture><source media="(prefers-color-scheme: dark)" srcset="images/advanced_examples_dark.svg"><img src="images/advanced_examples_light.svg" alt="Advanced Examples"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="api_reference.md"><picture><source media="(prefers-color-scheme: dark)" srcset="images/api_reference_dark.svg"><img src="images/api_reference_light.svg" alt="API Reference"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#FAQ"><picture><source media="(prefers-color-scheme: dark)" srcset="images/faq_dark.svg"><img src="images/faq_light.svg" alt="FAQ"/></picture></a><!--
+--><picture><source media="(prefers-color-scheme: dark)" srcset="images/separator_dark.svg" alt="·"><img src="images/separator_light.svg"/></picture><!--
+--><a href="#Support-and-Contribute"><picture><source media="(prefers-color-scheme: dark)" srcset="images/support_and_contribute_dark.svg"><img src="images/support_and_contribute_light.svg" alt="Support and Contribute"/></picture></a>
+</div>
 
-Convenient Containers (**CC**) is a small, usability-oriented generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, **unordered sets**, **ordered maps**, and **ordered sets**.
+## Overview
+Convenient Containers (**CC**) is an ergonomic, high-performance generic container library for C that provides **vectors**, **doubly linked lists**, **unordered maps**, **unordered sets**, **ordered maps**, **ordered sets**, and **null-terminated strings**.
 
 Its features include:
 
 * Fully generic API.
-* Type safety.
+* Type safety without boilerplate container-type definitions.
 * User-defined destructor, comparison, and hash functions associated with element and key types.
 * No assumption of successful memory allocation.
 * Single header.
 * Compiles in C and C++.
 
-It requires C23, or C11 and compiler support for `typeof`, or C++11.
+It requires C23, or C11 and support for `typeof` (available in every major compiler), or C++11.
 
 It is distributed under the MIT license.
 
-Try it online [here](https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAaPECAMzwBtMA7AQwFtMQByARg9KtQYEAysib0QXACx8BBAKoBnTAAUAHpwAMvAFYTStJg1AB9U8lJL6yAngGVG6AMKpaAVxYMQAJmkOAMngMmABy7gBGmMQgAGykAA6oCoS2DM5uHt7SCUk2AgFBoSwRUbGWmNYpQgRMxARp7p4%2BFphWuQxVNQT5IeGRMRbVtfUZTQqDXYE9RX3RAJQWqK7EyOwcAKReAMyByG5YANRrm45j%2BKgAdAhH2GsaAIIb2wy7rgdHjggEBHEKIAD0f2ITAA7udgIQEK4wq4lMtZIwCOc0Cw/gApJjIADWCgEd1oBgYf0cjj%2BLCYgT%2ByGQl2utwe90CBH2ZMCEH2ADdUHh0PtZnS1gB2ABCdP2%2BzixEZVDZGy8ADVykQoocvF5eUcRfcxezymzGbz9otiMYdcgNaL9oFCDKvNEjSbyurNpr6XcxQD9nd0PgjPsWpg2IIFPsiH6GOhzhb%2BMQ9YJLYdNgARfYaDXx977Lip50qkVeIV4dVasWW6X7MBgOIwhA2u1LB3meOzItukuCl0lksegDyriZqCozIDJAAnqR9jj9kwwiRERbO7tMIZXHFa/bTU6O539sRMAQlgxM%2Bbi2LBYn%2BcWPQBJBiwmy%2Bwx%2B%2BiBplMV%2BHwJYVSR4vR2NMwsjmTbMhXTY5MxA3MNgLFtOzwMsK0CO813rU1x0LAAqfYvHQg0%2BRPQ5hXnLs/n2Xt%2B0HNgWFHcdJ2nWcf1bBd6GXVcVTrY0Nz5Z1iLFXd92IQ8uGPJjCPPe4LQ9AAlPdJUwdlAmAKdwz9IEkl9f0XwURixT/S040ApMUzTQzHAnPAAC9MBQzjHW40D8NE%2BC2Qw4A9xshtcObDYAFZ9k2BNzyMjRYO3SImCUDy0KbETOxaJReKg/M8BEyTSKvAhwraFVNi4HT9mjYwl2QGt2PXcpxxaUKxQlKUbS8XyeVlccMKq%2By0v2ZRJUETB0BATMBrVNVJH2Ea/L8gV9kmgAOfZpovVtr0yoFsseLx8r0/VWtoQKCrwYgxiiuy0yqisgLDdAjuQTcn12oJVAIK7Kp25tHM7WrBDLWVGpVHD9m2zcOq6xlev6oRWEwKdg3onVGItRdWKuwGJOLD6CC%2B1U1h8xwGACMZ%2BtlZHW1oPBDv0plm3tEmxli/TrTK%2BtqYp1LL1Ir0fSUzSEWDUMHA2kh/zA4CTITMyszTaDoMLN6S2c8tK2rDyma86rCK3Tsez7Q1KOHYgxwnVApxnWp8uYpcGBXJXSeZniCL4vcDyPW3RLPBb3XS29InvJTHy5uMImjSHDFQAgEEiJ8AwRfmY3J/6qvOmgDsehnjSZm7TrAc6HCtsZ052877uTjYOOMZXbte4i5cQz3ahzghnpatrVfbRLNYoodqL12jDfok3EoRi22OLqnraJ7cdwdwSnfVsS3f2D1sDUxSI606PBYBhP9rJ4fGdH%2BzbrOozs5T0u97TGWxTljevD8gKgPOkKL5LeOj7U6yT7LtrabFeLMESl/kyFzrs9ImHUMpZRSDlPKUYSBFQxKVHeqdrYgKfmjDGDUb5NVVI3F6tMPTAx6n1AaXBsKkJGmNfYE0ppzTmnPJaECBA5XWjAmOW0AF7STnXPO8ss7hi4fvdhQCP7IPLqrNB9UfrNTjrg527tOrdUykQ8GbAoZG1QLDOeA9LbCNzu1FGrZxG/SxjjAAskwOIBNVRj3nqRRM5QDC7inMycx%2BxgQQljpiTAI5oYqQUAgWcK9ub5TJGxRktF/G1ANPaEJtMrRF1tNElxejXRyJvHeZefsCDaRYYLQywscymQghLfMUtVZVzAEhL2HkQnoVwtBAaFcCItztjYsiWsBwdxogbNRfcWlaKHgk%2BsITrGdn4o7YSsi2wCnEik1pi8IoZOfEEnJsc8nGQKaLIpGzJZGQCk/cKkUT41Jis7DqMkCByQUhpJZQY16rN2pBQp4scyS2SqFZpok/EBI3kZNy8SS7HOlt/UsbIv4tMMd9TBIBJHYMtDg6xrtWbyJBkQrg3hsIgACpIEA40YhTRALNaaIAACcdD0rLTfJAx4JCICZODAIWgI5ZjRzgSVap5iUHEQhZjTBv14XJLkQQxR/UAp%2BVmmqaI%2BxSX6NSRS1aWw1S0puVk5SPJPHeOZSw1lCDBnGmOeqzlBFuUYJ8n1GFf0MIGukdY/BCjQYYqxTi/Fs00Vqh8niol0rZn0JWlSrYmw7lfMiT85Midt66uMMMgRO1D7JmPogyNSSTr5yMkIhNxym6oIUegxq0LeVSMtV44wel00cvLvyvBpEhX2uUUHaGM4NEyv2P09lcRQGo2zRI7G7Q9yWLVAKic7lY6U3rEoAgsSGD0wTWO9ti0PbpOuZHW5Kz9RrMeZs55oFXkwSfuUyptcT5jpVk/D54827a06V3bpvc5x9JYoPDyM6B2jMnkJYFiLvWkXmepTmyrsm/gFvch%2BIsMybvTCU3ZqsDnv2nXuLyLM537HOZcxZS6sl3NXQ8kD4EwPbqBcWU9ss4whv2H8x9cGTkzzlmC0SNVO1GPzbCgGA6P2CrtaishlDqHzSbT6yljDqUsuKjqkuR7y5cvo5C01fLrUDttSi/qw1qEkLFWS/Y4DfUCYVRh4j7Cw3/PtE%2B5NPCj58MPXubhBdMAPXI/XURWa6oMekwWr%2Bkz5OELBhDVRMNMBw2LC28zNsXQWmNcYhg3ZiBYF3DyEJfabW2PsTUIOh4SBRd6s4ttbjQ4eK8T4nkQamR0vyqgEJ/5wkBJHcaEr5iJ1TojdVttySwE129oE5dAHWEGSw9snDkE8NlIQhUlrHkGu1PA6BEhjSXZERaeejpVEul0WNre2jzb73aITQ1kZJYxlTwmTPD9HVv2odXiurrwGeti3XTs5MeziLQZG4C2dcjkN4Hkid5ZHXcnddAk8vrJS3ky0I2KAr1rzpkZPqNyjlcyw0fHqFqF5qxvMdpqx1p1bUXoq8Ji0aTr3WSoFASuaJK1Maf44eal%2BwlVofpQwRlmqOvase2WuHJYEfOaY65rc7nhWkNFfsSVs0vVgLlX6zYiq6Wqv2OqhQDPWyFWE8zuI44rWs7o45qTZrGMWqtSjtzVb2P9VdQ63HuKCdE89aT0XWnNgBpWaDkj%2BmlfcNjRdZ30a7rWYM/WKHmaJMa55aavNHOddFpLfVjNL0K36%2BRR5/YtbvMNt81bhhKWdTECceqnchg3LjmYGwRlBViAldIRAHYbgkg6mbKGSatLVAvEr5gOXukBbEQd3pre3uqvHP7S1IERhMBFRUpvThkPjmTWfQfTORl%2B9uSH%2BgYFgivdK8Na2Bzn0JGI%2B1y1dVxbAObcj7yaP3ODcKZN9is3mj1sDJLltprHaA8NW7RFtL%2BXe2/WsYkId%2BpKvGC/%2BOyZOJEbIzU5JFNJL2D7dreXQDTDC7X7Ddf7PMHdGHNkauZCSHMTaWZuGbVbObHWTufWJbBifua/YAizSfe2ASN9SZU8aZNTY7RdU7L7IDYKbDK7EDCDW7KDN%2BMguzIFUAxDV7d7Rgz7aAzrACH7MCdgl5AHZAgjHAuCXTFNZMCHTbTA7bajXBcFSTQPLBC1LnC0NHHne1EhJTKhHjT9dTa3CnLYaBRnRXDAijNXcUHQk1PQ4/IGQ3QaUaLjGaFPTTGw8XHTJkR3TvXgl3afONMzNQ8g4zKzGzRwuzP3I1VwpHWTStWPXnBPCKNRRtSwsnbKdRcOX2ZVbPAfPPCGQvKgYvFgUvcvGEPAKvEMQ2WvazBvRopvNeSuJQ3aJ3RI8cXvf6WfQfBwXosI/o6hSfDOc6YY%2BfRfZQ/YNNerMTVndfdGTfEPDwpFDHRTHwnyK/c2DbZY2I05Og%2B4DgeYWgTgHyXgTwbgXgVATgMyHEJYFYKBXgAgTQC4%2BYMOJgKLSgeYTEGIaac4HyAUKQLwaaMEiEqEgUfQTgSQW4r40gR4jgXgX4DQUgT4jgLQeYOAWAJAazcoPsEgcgSgGoYABQZQQwFoIQfxYEO4ngUgZEOIOgcnakoIWgOk1ABk5ElkugPoZAYALgbBfk%2BgYgYICGTgXgMUyIcibk3knE3gIk5AO4YgSk6U0gFUqoH0TU/gQQEQMQdgKQGQQQRQFQdQJU0gXQLgfQHPEAUwYwcwEmMIX4SAeYVAOINoX4NElE9PSULAN0iAeYYgVwQQPANgAAFVQBcCDPmBeOWGNIGB9A5NpPpMZI%2BN3FWCZOBCBAsXuMuOuKRKtNROwFUGJKVH2FUGmmiAAFpogRpgAqRMx1pFVHBxxcBCASAoFZgPivjZgfilx/jgzSAgTcpzhJBIToTJzYSIS4SriOBETSA7itAUTNSMSsT%2BzCyOAvBizVzUS%2BylSBzSB08kg7BJAgA%3D%3D).
+Try it online [here](https://godbolt.org/#z:OYLghAFBqd5QCxAYwPYBMCmBRdBLAF1QCcAaPECAMzwBtMA7AQwFtMQByARg9KtQYEAysib0QXACx8BBAKoBnTAAUAHpwAMvAFYTStJg1AB9U8lJL6yAngGVG6AMKpaAVxYMQAJg2kHAGTwGTAA5dwAjTGIQAA5SAAdUBUJbBmc3D29fROSbAUDgsJZI6LjLTGtUoQImYgJ0908fC0wrPIZq2oIC0Iio2IsauobM5oUh7qDe4v6YgEoLVFdiZHYOAFIvAGYg5DcsAGp1rcdx/FQAOgRj7HWNAEFNnYY910PjxwQCAniFEAB6f7EJgAdwuwEICFc4VcShWskYBAuaBY/wAUkxkABrBQCe60AwMf6ORz/FhMIL/ZDIK43O6PB5BAgHclBCAHABuqDw6AOc3p6wA7AAhekHA7xYhMqjszZeABqFSI0SOXi8fOOooe4o5FXZTL5ByWxGMuuQmrFByChFlXgAbMbTRUNVstQz7uLAQd7uh8EYDq1MGxBAoDkQAwx0BdLfxiPrBFajlsACIHDSaxMfA5cdOu1WirzCvAa7Xiq0yg5gMDxWEIW0O5ZO8yJuYlj1loVustlr0AeVczNQVBZQZIAE9SAdcQcmOESEjLd29phDK54vXHWaXV3uwdiJgCMsGNmLaXxULkwLS16AJIMOE2f2GAP0YPMpjv49BLCqaOl2PxsyxbHKmubCpmJzZmB%2BabEWbbdngFZVkED4bo2ZqTsWABUBxeJhhr8meRwiouPb/Ac/aDsObAsOOk7TrO85/u2S70Ku66qg2JpbvyrqkeK%2B6HsQx5cKeLHEZeDyWl6ABKB5SpgHJBMAM6RgGwLJP6gZvgozHigBVoJsBKZphmxmOFOeAAF6YGh3HOrx4GEeJiHslhwAHnZTb4a2mwAKwHFsSaXiZGjwbuURMEoXkYS2Yndq0Sj8TBhZ4GJ0nkTeBCRe0qpbFwekHLGxgrsgdacZuFSTq04XipK0q2l4/m8nKk5YTVjkZQcyhSoImDoCA2ZDeq6qSAcY0BQFgoHNNMQHDEV7tre2XArlTxeIVBkGu1tDBUVeDEOMMUORmNVViBEboMdyDbi%2Be3BKoBDXdVu2ts53b1YIFZys1qp4QcO3bl1PVMv1g1CKwmAzqGjG6sxlrLux11A1JpafQQ31qusfmOAwgTjINcoo%2B2tB4EdhnMq2jqk%2BM8WGTaFWNjTlPpde5E%2Bn6KnaYiobhg4m0kIBEGgWZSYWTmGawbBxbvWWrmVtWtZeczPm1cRO7dn2A5GtRo7EBOU6oDOc51IVrErgwa7K2TLN8URAkHkeJ52%2BJF6LZ6mX3lEj4qc%2B3MJpEsZQ4YqAEAgUQvkGiIC3GFMAzVF00IdT2MyazO3WdYAXQ41vjBnu0XQ9KebFxxgq3db2kfLyFe3UucEC9bUdWrnbJVrVEjrR%2Bv0UbjGm8liOWxxJfUzbxO7nujvCc7GsSe7BxetgGnKZHOkx0LgOJwd5Mj0zY%2BOXd50mTnqdl/vGay%2BK8ub14AVBSBF1hZfZYJ8fGm2af5cdXT4qJZgyWv1TEXeuL1iZdSyjlVIeUCoxhICVTE5Vd5pxtqA5%2B6NMZNVvi1NUTdXp0y9CDPqA0hpcFwmQsaE0DhTRmvNea89lqQIEHlDasDY7bUAftZO9d84K2zpGbhB8OHAM/igiuat0GNV%2Bq1eOeCXYe26r1bKxCIZsGhsbVAcN56DytiIvOnVUbtgkX9bGuMACyTB4iEzVOPBe5FkwVAMPuGcLILEHBBJCOOWJMBjhhmpBQCB5yrx5oVckHEmT0QCXUQ0jpQl02tMXe0MTXH6PdPIu8D4V7%2BwILpVhQtjIizzOZKCktCzSzVtXMAKFvZeVCZhfCsEhqVyIq3e2tiKLayHJ3Oiht1H91ado4eiTGyhJsd2QSTtRJyI7IKSSqS2lLyipk18wTclx3yaZQpYtimbKliZIKz9IrRVPrUuKLsupyQIApJSWllkhnXmsva0EikSzzFLVK4UWniX8YEzeJkPIJNLicmWP9yzsm/q0oxP0sEgCkTgq0uCbFuzZgo0GxCuDeFwiAIKkgQCTRAHaGasR5ogAAJz0MyitD8UCnikIgFk0MAhaBjjmDHeBZUakWNQaRSFWMsF/QRSk%2BRhClGDSCgFOa6oCVkoMWkyla1tjqjpbc7JqleReJ8Sy1hbLEFDJNCc9VXKiI8swX5AasL/pYQNTImxBDFFg0xdi3FhK5rovVH5fFxLpVzIYatal2wtj3O%2BVE35qYk4711cYEZgjdpH1TCfJBkbkmnQLiZYRCaTnNzQYojBzUYV8ukZa7xxgDLps5RXAV%2BDyLCvtSo4OMM5yaJlQcAZHL4hgLRtmyROMOgHiseqQVU5PJxypo2JQBA4kMAZgmsd7alqewyTcqOdzVkGnWU8rZLzwJvLgs/CpVS66nzHarZ%2BnyJ7tx1l07uPS%2B4Ln6WxIeXkZ0DrGVPESIKkXevIgszSXNlU5P/ILB5j9RZZk3ZmUpey1aHI/tOg8PlWZzoOBcq5Syl3ZPuaux5IHIJge3cC0sp65YJhDQcf5j64OnNnvLcF4k6qduMfmuFgMB0fqFXatF5CqE0IWk2n1VKmE0tZaVHVpcj0V25fRqFpr%2BXWoHba1Fg1Ro0NIeK8lBwIG%2BoEwqjDxGOFhoBY6J9ybeHH34Yeg8PDC6YEeuRhuYis0NQY9Jgt38pnyaIeDSGajYaYHhqWFt5nbZuktMakxDBezECwPuXkoS%2B02rsQ42owdjwkCi/1Fxbb3Fh08d43xvIg3MnpYVVAoTAIRMCSOk0JWLETqnRG6rbaUngNrj7IJy6ANsKMlhnZOHoJ4fKUhSpLWvINbqeB8CpCmmuxIq089nSaLdIYibW9tHm33p0QmhroyyzjOnpM2eH6urftQ2vFdXXgM9fFuu3ZqZ9mkWgyNoFs75HIbwIpE7KyOt5O6%2BBZ5fXSnvNloR8UBXrUXTI6fUblGq4VhoxPUL0LzVjeY3TVjbTq1ooxV4LF40nXuoJYKIlMRSVqY0/x48NKDhKrQwyhgTLNUde1Y9stcOywI%2Bc0x1zO53MirIWKg4BK5pevAXKv1WxFX0tVQcdVCgGftmKsJ5n8RJxWtZ3RxzUmzWMYtValHbmq3scGq6h1uO8UE6JyT3jFLGEU/9YGyJzISP6aVzw2Nl0XfRvutZgzjYoeZokxr3lpq80c510Wkt9WM2vQrfrlFHmDi1u8w23zpPRdMI0RHJg0vvF7kMB5SczA2BMqKsQErZCIC7DcMkXUrZwzTTpaoV41fMBy/0oLUioOnfbx91Vk5/a2rAiMJgEqakt5cMhyc6az7D5ZxMoPjyI/0AgqEd7pXhr2wOa%2BpIxH2u2rquLYBzbUe%2BQx%2B5wbhTJucVm60etwZpcttNY7YHpq3aItpfy72v6NikhDoNJV4wP%2B46Uy8SI2RmZyyK6S3sH27W8ugGmGF2v2G6/2BYO6MO7INcqEkOYmMsLcM2q2c2usXcBsS2TEA8t%2BoBFm0%2BDsQkb6Uy54Myamx2i6p2X2QGoU2GV2IGEGt2UG78FBdmwK4BiGr272zBn2sBnWQEP2EEnBryAOqBBGeBCEumKaqYEOm22B221GeCEKkmQe2CFqXOloaOPO9qpCSm1CPGn66maetu%2BUQmCC/B6%2BH0ehJqBhp%2BwMhuw040XGs0qeNuzCOmjuem3e/Brus%2BcaZmGhlBxmVmNmWBFG/uRqrhSOsmlacevOieUU6ija1hZOuUGexAqkbWzI8%2BmABekMxeVApeLA5elesIeANeYYRs9e1mTejRLe68VcKhe0zuCRdm/eAMZRi%2BvRoR/Rk4U%2By%2BMaERueQ%2Bi%2BUxXu8R0RdmrOm%2BGM2%2BoeHhyKGOimPhfkN%2BFsG29WYBwWT%2BW%2Bxi3a1QvUoARw3aRMA64wscZUtQ0So6lytWPexgjxz2bS9w8Q8QDgK8sY5I3w6W6AH4TAhUaA94zIzxRRtEWAtA2MoofkqYF0coAAEiQMEMyI4MKCShoBoAAGI/RTLQl5xwkuKWxUCYhCRRDInYxokmSYkCDgmkk7iuD3h4DADBC8gGhjgrgmhMil7oCuCrAtQmQ%2BAaBNRTKcnJA8npb8mCnGD4AKDQmPiuDpYXRSmCh0zoBLDhD0AHCRJKCJAggRwXQ5gBpgSWj6nQhGnKgACOmpe0MQkgFwZKwBMopEVYNY/ixaLAT0yU06lyk4coAAKuHDJgia0GGdYmTM4rRMqMgGOMuGGAgB%2BG4tkeSNSbScsOluEGONGauDSdYPmWQMGdYtUWXtIgKbUMYMKRgGKf1HGeqOGLWcqaqeqUEJqegK2dGN2llC4l4qGNIiaZgGaVEKQJWV4AgG2oYO4c0cQM6eUX9CELUZ0k6ZqQObjD9ERLLEDkoWRO0h3AtleiQX0uJAFiGUUdPrtrQTuIdhAS1kCSQCCUogcOCTUDOJ%2BIZD%2BFCQIBSRmUUWICtMwDYLqJGhgK0MYIXv/H5CiUyWiWqCSlwGSljF6egUNg%2BAGZ8Y8ZOFwIKK2ZOGINOFiAwKgCCMeNkWHFDNIqBVEOBR0VBYibBZDMRfcR8kefIpRBemecQb3MtmbGtocXfoZpcttveTPMYQwU2kYn0TeQROkTsV1OKJGVDFicJBZniQScSSRbQGRRRVRWorRQcKhSSphDDCyKHCQCmWmWHJmSCNmSWXmdFgcIWapQcFiZGFntWbUVKW2UbDqYVF6OKEOeSCOVBNaRoHOVLm6R6RoOuReluSnlbgcEwb%2BjToVNBrBY%2BqGVBHEONJNghurucQpRGt8ZXLHipcimpVGZpTiQcDpYSUSfpYZZRdRbzFGeZZZYmTZSsKmQ6RmcyE5aGDma4KWXSbyB5bVV5ayb5TUbhISYFUtRoIKH5ohvkWLjAozoroevlWrhKCkbfOaJzrImfhkTWl5tkT5htbKgEetPcpSV3uPopZ7m7vGhVRJZ7nEXhQda9OIsdX5KdYYedZ4RflkfWhnndSJUjPtbeelLJfcBwAsLQJwH5LwJ4BwFoKQKgJwBZLiMsKsNArwAQJoCjQsOHEwFFpQAsFiPiutVsDEHaIKH5CSn5DEFwDEJzX5FsPoJwJIJjeTbjZwLwH8L4GTdjSjaQHALAEgNZhUAOCQOQJQLUMAAoMoIYK0EIAElRZwDwKQCiPEHQOTprcELQDrR1cLUbXQP0MgOrcwL8AEg3DbfQMQCEJDKLYbSVsbW7ZRJbXrVLX4KoBUPcMQOrV7QrcgNUH6F7fwIICIGIOwFIDIIIIoCoOoEHboFwPoHniAKYMYOYKTOEH8JAAsKgPEO0H8BwLwIUVKFgKXRAAsMQJyTYGwOGagC4I3QsITSsMnYMH6GbdrbrVjQbZcpgGsAbSCMCJYtwNLWjRwBjaQFjTjXjRwNgCHcgErUUaoMzQALR2hjTADUhU6XKclYitgQCOCTi4CEAkDQJzCk3k1zCU0rg01N2kD03i4XB2hcDi6SAaCSBc1cBc2SBEUL2C3L3C1r1i0gAS3P2o2cBeBC1B0wOkCS1aAv2kC6iHSpAgCSBAA).
 
 ## Rationale
 
 Traditionally, C container libraries require users to define types for every container/content type combination and to specify the container type and (often) the content types (whether by casting, type-specific function names, or some other mechanism) at every API call. This causes verbosity and syntax noise.
 
-In contrast, **CC** requires no type definitions and provides an API agnostic to container and content types. The result is simpler, more readable code. The following table compares **CC** usage to other container library paradigms.
+In contrast, **CC** requires no boilerplate type definitions and provides an API agnostic to container and content types. The result is simpler, more readable code. The following table compares **CC** usage to other container library patterns.
 
 <table>
 <tr>
@@ -52,7 +76,7 @@ int main( void )
 
 </td>
 <td valign="top">
-Template-instantiation paradigm:
+Template-instantiation pattern:
 
 ```c
 #include <stdio.h>
@@ -82,7 +106,7 @@ int main( void )
 </tr>
 <tr>
 <td valign="top">
-Typed-pointer/hidden-metadata paradigm:
+Typed-pointer/hidden-metadata pattern:
 
 ```c
 #include <stdio.h>
@@ -110,7 +134,7 @@ int main( void )
 
 </td>
 <td valign="top">
-<code>void</code>-pointers paradigm:
+<code>void</code>-pointers pattern:
 
 ```c
 #include <stdio.h>
@@ -140,7 +164,7 @@ int main( void )
 
 Just [download](cc.h?raw=1) `cc.h` and place it in your project's directory or your shared header directory.
 
-## Examples
+## Simple Examples
 
 ### Vector
 
@@ -250,7 +274,7 @@ int main( void )
 
 ### Map
 
-A `map` is an unordered associative container mapping elements to keys, implemented as a hybird open-addressing, chained hash table that is also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
+A `map` is an unordered associative container mapping elements to keys, implemented as a hybrid open-addressing, chained hash table that is also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
 
 ```c
 #include <stdio.h>
@@ -306,7 +330,7 @@ int main( void )
 
 ### Set
 
-A `set` is an unordered associative container for elements without a separate key, implemented as a hybird open-addressing, chained hash table also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
+A `set` is an unordered associative container for elements without a separate key, implemented as a hybrid open-addressing, chained hash table also available as a [standalone library](https://github.com/JacksonAllan/Verstable).
 
 ```c
 #include <stdio.h>
@@ -477,6 +501,79 @@ int main( void )
 }
 ```
 
+### String
+
+An `str` is a dynamic, null-terminated array representing a sequence of characters.
+
+```c
+#include <stdio.h>
+#include "cc.h"
+
+int main( void )
+{
+  str( char ) our_str;
+  init( &our_str );
+
+  // Appending formatted data.
+  const char model[] = "Hornet CB900F";
+  const char manufacturer[] = "Honda";
+  unsigned int year_introduced = 2002;
+  unsigned int year_discontinued = 2007;
+  double horsepower = 103.0;
+  double torque = 84.9;
+  if(
+    !push_fmt(
+      &our_str, "The ", model, " is a motorcycle that was manufactured by ", manufacturer,
+      " from ", year_introduced, " to ", year_discontinued, ".\nIt makes ", horsepower,
+      "hp and ", torque, "Nm of torque.\n"
+    )
+  )
+  {
+    // Out of memory, so abort.
+    cleanup( &our_str );
+    return 1;
+  }
+
+  // Inserting formatted data at an index.
+  const char alternative_model_name[] = "919";
+  if( !insert_fmt( &our_str, 17, ", also known as the ", alternative_model_name, "," ) )
+  {
+    // Out of memory, so abort.
+    cleanup( &our_str );
+    return 1;
+  }
+
+  printf( first( &our_str ) );
+  // Printed:
+  //   The Hornet CB900F, also known as the 919, is a motorcycle that was manufactured by
+  //   Honda from 2002 to 2007.
+  //   It makes 103.00hp and 84.90Nm of torque.
+
+  // Erasing elements.
+  erase_n( &our_str, 108, 41 );
+
+  printf( first( &our_str ) );
+  // Printed:
+  //   The Hornet CB900F, also known as the 919, is a motorcycle that was manufactured by
+  //   Honda from 2002 to 2007.
+
+  // Iteration #1.
+  for_each( &our_str, el )
+    printf( "%c", *el );
+  // Printed: Same as above.
+
+  // Iteration #2.
+  for( char *el = first( &our_str ); el != end( &our_str ); el = next( &our_str, el ) )
+    printf( "%c", *el );
+  // Printed: Same as above.
+
+  cleanup( &our_str );
+}
+
+```
+
+## Advanced Examples
+
 ### Prefixed API
 
 **CC** macro names may collide with names in your own code. If so, define `CC_NO_SHORT_NAMES` before including `cc.h` to expose only the prefixed API.
@@ -505,7 +602,7 @@ int main( void )
 
 ### Destructors
 
-**CC** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element (or key) of the associated type is removed from a container.
+**CC** supports per-type destructors with the signature `void ( type val )`. A destructor is automatically called whenever an element or key of the associated type is removed from a container (except a **CC** string). Typically, a destructor frees the dynamic memory owned by the element or key.
 
 ```c
 #include <stdio.h>
@@ -551,22 +648,25 @@ int main( void )
   if( !push( &our_list, our_vec ) )
   {
     // Out of memory, so abort.
+    // This requires cleaning up our_vec, as well as our_list, because it was not inserted and
+    // the list therefore did not take ownership of it.
+    cleanup( &our_vec );
     cleanup( &our_list );
     return 1;
   }
   
-  cleanup( &our_list ); // our_vec is cleaned-up automatically.
+  cleanup( &our_list ); // our_vec is in our_list, so it is cleaned-up automatically.
 }
 
 ```
 
 ### Custom hash and comparison functions
 
-**CC** includes default hash and comparison functions for fundamental integer types and `NULL`-terminated strings (`char *`). Hence, these types can be used as map and ordered map keys, and set and ordered set elements, straight away.
+**CC** includes default hash and comparison functions for fundamental integer types, null-terminated C strings (`char *` and `const char *`), and **CC** strings. Hence, these types can be used as map and ordered map keys, and set and ordered set elements, straight away.
 
-To use other types or overwrite the default functions for the aforementioned types, define custom hash and/or comparison functions with the signatures `int ( type val_1, type val_2 )` and `size_t ( type val )`, respectively.
+To use other types or overwrite the default functions for the aforementioned types, define custom hash and/or comparison functions with the signatures `size_t ( type val )` and `int ( type val_1, type val_2 )`, respectively.
 
-Maps and sets require both a hash and comparison function, whereas ordered maps and ordered sets require only a comparison function.
+Maps and sets require both a hash and a comparison function, whereas ordered maps and ordered sets require only a comparison function.
 
 ```c
 #include "cc.h"
@@ -576,7 +676,7 @@ typedef struct
   unsigned int id;
 } our_type;
 
-// First #define CC_CMPR and CC_HASH as comparision and hash functions.
+// First #define CC_CMPR and CC_HASH as comparison and hash functions.
 // The comparison function should return 0 in the case of val_1 == val_2,
 // < 0 in the case of val_1 < val_2, and > 0 in the case of val_1 > val_2.
 #define CC_CMPR our_type, { return val_1.id < val_2.id ? -1 : val_1.id > val_2.id; }
@@ -592,6 +692,82 @@ int main( void )
   oset( our_type ) our_oset;
 }
 
+```
+
+### String interoperability
+
+**CC** strings are designed for easy interoperability with other **CC** containers.
+
+To this end, **CC** defines default hash, comparison, and memory-freeing destructor functions for all **CC** string types.
+
+Additionally, when **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, the library automatically converts the C string into a **CC** string. This functionality is called "heterogeneous" insertion and lookup. The API macros that support heterogeneous insertion are `push`, `insert`, and `get_or_insert`, while those that support heterogeneous lookup are `get` and `erase`. In the lookup case, **CC** performs no memory allocations.
+
+The following example demonstrates how **CC** strings can be used with a map:
+
+```c
+#include <stdio.h>
+#include "cc.h"
+
+// No need to define a hash, comparison, or destructor function for CC strings here as these
+// functions are defined by default.
+
+int main( void )
+{
+  map( str( char ), str( char ) ) our_map;
+  init( &our_map );
+
+  // Regular insertion of CC strings.
+  str( char ) our_str_key;
+  str( char ) our_str_el;
+  init( &our_str_key );
+  init( &our_str_el );
+  if(
+    !push_fmt( &our_str_key, "France" ) ||
+    !push_fmt( &our_str_el, "Paris" ) ||
+    !insert( &our_map, our_str_key, our_str_el )
+  )
+  {
+    // Out of memory, so abort.
+    // This requires cleaning up the strings, too, since they were not inserted and the map therefore
+    // did not take ownership of them.
+    cleanup( &our_str_key );
+    cleanup( &our_str_el );
+    cleanup( &our_map );
+    return 1;
+  }
+
+  // Heterogeneous insertion of C strings.
+  // CC automatically creates CC strings (and cleans them up if the operation fails).
+  if( !insert( &our_map, "Japan", "Tokyo" ) )
+  {
+    // Out of memory, so abort.
+    cleanup( &our_map );
+    return 1;
+  }
+
+  // Regular lookup using a CC string.
+  str( char ) our_str_lookup_key;
+  init( &our_str_lookup_key );
+  if( !push_fmt( &our_str_lookup_key, "Japan" ) )
+  {
+    // Out of memory, so abort.
+    cleanup( &our_str_lookup_key );
+    cleanup( &our_map );
+    return 1;
+  }
+  str( char ) *el = get( &our_map, our_str_lookup_key );
+  cleanup( &our_str_lookup_key );
+  printf( first( el ) );
+  // Printed: Tokyo
+
+  // Heterogeneous lookup using a C string.
+  // This requires no dynamic memory allocations.
+  el = get( &our_map, "France" );
+  printf( first( el ) );
+  // Printed: Paris
+
+  cleanup( &our_map );
+}
 ```
 
 ### Custom allocation and free functions
@@ -652,6 +828,52 @@ Destructor, comparison, and hash functions are also deduced via a novel techniqu
 
 **CC** has been tested under GCC, Clang, MinGW, and MSVC. `tests/unit_tests.c` includes unit tests for all container types, with an emphasis on corner cases. `tests/tests_against_stl.cpp` includes randomized tests that perform the same operations on equivalent **CC** and C++ STL containers and then check that they remain in sync. Both test suites use a tracking and randomly failing memory allocator in order to detect memory leaks and test out-of-memory conditions.
 
+### What compiler warning options does it support?
+
+When used correctly, **CC** should not generate any compiler warnings under the following settings:
+
+<table>
+<tr>
+<th>Compiler</th>
+<th>Warning options</th>
+</tr>
+<tr>
+<td>
+GCC
+</td>
+<td>
+
+`-Wall` `-Wpedantic` `-Wextra` `-Wconversion`
+</td>
+</tr>
+<tr>
+<td>
+Clang
+</td>
+<td>
+
+`-Wall` `-Wpedantic` `-Wextra` `-Wconversion`
+</td>
+</tr>
+<tr>
+<td>
+MSVC
+</td>
+<td>
+
+`/W3`
+</td>
+</tr>
+</table>
+
 ### What's next?
 
-Future versions should include `NULL`-terminated dynamic strings and more performance benchmarks.
+For a discussion of **CC**'s future direction, see [here](TODO: add link).
+
+## Support and Contribute
+
+There are several ways that you can support **CC**:
+
+* Star this repository ⭐.
+* [Report](https://github.com/JacksonAllan/CC/issues) any issues or bugs you find when using the library.
+* [Sponsor or donate](https://github.com/sponsors/JacksonAllan) to the library's continued development 🩷.

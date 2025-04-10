@@ -1,23 +1,22 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.3.2 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.4.0 -------------------------------------------
 
-This library provides usability-oriented generic containers (vectors, linked lists, unordered maps, unordered sets,
-ordered maps, and ordered sets).
+This library provides ergonomic, high-performance generic containers (vectors, linked lists, unordered maps, unordered
+sets, ordered maps, ordered sets, and null-terminated strings).
 
 Features:
 
-* Fully generic API (no need to specify element or key type except when first declaring a container).
-* No need to pre-declare container types per element or key/element pair.
-* Type safety.
+* Fully generic API.
+* Type safety without boilerplate container-type definitions.
 * User-defined destructor, comparison, and hash functions associated with element and key types.
-* Handles memory allocation failure.
+* No assumption of successful memory allocation.
 * Single header.
 * Compiles in C and C++.
 
-It requires C23, or C11 and compiler support for __typeof__, or C++11.
+It requires C23, or C11 and support for typeof (available in every major compiler), or C++11.
 
 It has been tested with GCC, Clang, MinGW, and MSVC.
 
-Usage example:
+Simple usage example (for more advanced examples, see https://github.com/JacksonAllan/CC):
 
   +---------------------------------------------------------+----------------------------------------------------------+
   | Vector:                                                 | List:                                                    |
@@ -201,6 +200,85 @@ Usage example:
   |   cleanup( &our_omap );                                 |                                                          |
   | }                                                       |                                                          |
   +---------------------------------------------------------+----------------------------------------------------------+
+  | String:                                                 |
+  |---------------------------------------------------------|
+  | #include <stdio.h>                                      |
+  | #include "cc.h"                                         |
+  |                                                         |
+  | int main( void )                                        |
+  | {                                                       |
+  |   str( char ) our_str;                                  |
+  |   init( &our_str );                                     |
+  |                                                         |
+  |   // Appending formatted data.                          |
+  |   const char model[] = "Hornet CB900F";                 |
+  |   const char manufacturer[] = "Honda";                  |
+  |   unsigned int year_introduced = 2002;                  |
+  |   unsigned int year_discontinued = 2007;                |
+  |   double horsepower = 103.0;                            |
+  |   double torque = 84.9;                                 |
+  |   if(                                                   |
+  |     !push_fmt(                                          |
+  |       &our_str, "The ", model,                          |
+  |       " is a motorcycle that was manufactured by ",     |
+  |       manufacturer, " from ", year_introduced, " to ",  |
+  |       year_discontinued, ".\nIt makes ", horsepower,    |
+  |       "hp and ", torque, "Nm of torque.\n"              |
+  |     )                                                   |
+  |   )                                                     |
+  |   {                                                     |
+  |     // Out of memory, so abort.                         |
+  |     cleanup( &our_str );                                |
+  |     return 1;                                           |
+  |   }                                                     |
+  |                                                         |
+  |   // Inserting formatted data at an index.              |
+  |   const char alternative_model_name[] = "919";          |
+  |   if(                                                   |
+  |     !insert_fmt(                                        |
+  |       &our_str, 17, ", also known as the ",             |
+  |       alternative_model_name, ","                       |
+  |     )                                                   |
+  |   )                                                     |
+  |   {                                                     |
+  |     // Out of memory, so abort.                         |
+  |     cleanup( &our_str );                                |
+  |     return 1;                                           |
+  |   }                                                     |
+  |                                                         |
+  |   printf( first( &our_str ) );                          |
+  |   // Printed:                                           |
+  |   //   The Hornet CB900F, also known as the 919, is a   |
+  |   //   motorcycle that was manufactured by Honda from   |
+  |   //   2002 to 2007.                                    |
+  |   //   It makes 103.00hp and 84.90Nm of torque.         |
+  |                                                         |
+  |   // Erasing elements.                                  |
+  |   erase_n( &our_str, 108, 41 );                         |
+  |                                                         |
+  |   printf( first( &our_str ) );                          |
+  |   // Printed:                                           |
+  |   //   The Hornet CB900F, also known as the 919, is a   |
+  |   //   motorcycle that was manufactured by Honda from   |
+  |   //   2002 to 2007.                                    |
+  |                                                         |
+  |   // Iteration #1.                                      |
+  |   for_each( &our_str, el )                              |
+  |     printf( "%c", *el );                                |
+  |   // Printed: Same as above.                            |
+  |                                                         |
+  |   // Iteration #2.                                      |
+  |   for(                                                  |
+  |     char *el = first( &our_str );                       |
+  |     el != end( &our_str );                              |
+  |     el = next( &our_str, el )                           |
+  |   )                                                     |
+  |     printf( "%c", *el );                                |
+  |   // Printed: Same as above.                            |
+  |                                                         |
+  |   cleanup( &our_str );                                  |
+  | }                                                       |
+  +---------------------------------------------------------+
 
 Including the library:
 
@@ -229,7 +307,7 @@ API:
   * API macros may evaluate their first argument - the pointer to the container - multiple times, so never use
     expressions with side effects (e.g. &our_containers[ ++i ] ) for that argument. In GCC and Clang, attempting to do
     so will cause a compiler warning. All other arguments are only evaluated once.
-  * If CC_NO_SHORT_NAMES was declared, all API macros are prefixed with "cc_".
+  * If CC_NO_SHORT_NAMES was declared, all API macros and functions are prefixed with "cc_".
   * Duplicating a container handle via assignment and then operating on the duplicate will invalidate the original.
     Hence, only create a duplicate via assignment (including through function parameters and return values) if you have
     finished with the original.
@@ -247,6 +325,15 @@ API:
       Initializes cntr for use.
       This call cannot fail (it does not allocate memory).
 
+    <any container type> initialized( <same container type> *cntr )
+
+      Returns an initialized instance of the same type as cntr.
+      This call cannot fail (it does not allocate memory).
+      The call is a constant expression and can therefore be used to initialize global containers at the site of their
+      declaration, e.g.:
+
+        vec( int ) our_vec = initialized( &our_vec );
+
     bool init_clone( <any container type> *cntr, <same container type> *src )
 
       Initializes cntr as a shallow copy of src.
@@ -258,12 +345,13 @@ API:
 
     void clear( <any container type> *cntr )
 
-      Erases all elements, calling the element and key types' destructors if they exist.
+      Erases all elements, calling the element and key types' destructors if they exist (unless the container is a
+      string).
 
     void cleanup( <any container type> *cntr )
 
-      Erases all elements (calling the element and key types' destructors if they exist), frees any other memory
-      associated with the container, and initializes the container for reuse.
+      Erases all elements (calling the element and key types' destructors if they exist, unless the container is a
+      string), frees any other memory associated with the container, and initializes the container for reuse.
 
     el_ty *first( <any container type> *cntr )
 
@@ -300,7 +388,7 @@ API:
 
     bool reserve( vec( el_ty ) *cntr, size_t n )
 
-      Ensures that the the capacity is large enough to accommodate n elements.
+      Ensures that the capacity is large enough to accommodate n elements.
       Returns true, or false if unsuccessful due to memory allocation failure.
 
     bool resize( vec( el_ty ) *cntr, size_t n )
@@ -342,8 +430,8 @@ API:
     el_ty *erase( vec( el_ty ) *cntr, size_t i )
 
       Erases the element at index i, calling the element type's destructor if it exists.
-      Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there
-      is no subsequent element.
+      Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there is no
+      subsequent element.
 
     el_ty *erase_n( vec( el_ty ) *cntr, size_t i, size_t n )
 
@@ -355,7 +443,7 @@ API:
     el_ty *last( vec( el_ty ) *cntr )
 
       Returns a pointer-iterator to the last element.
-      This call is synonymous with get( cntr, size( cntr ) - 1 ) and assumes that at the vector is not empty.
+      This call is synonymous with get( cntr, size( cntr ) - 1 ) and assumes that the vector is not empty.
 
     Notes:
     * Vector pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
@@ -637,7 +725,7 @@ API:
     * Ordered map pointer-iterators (including r_end and end) are not invalidated by any API calls besides init and
       cleanup, unless they point to erased elements.
 
-  Ordered set (an ordered associative container for elements without a separate key, implemented as a red-black tree:
+  Ordered set (an ordered associative container for elements without a separate key, implemented as a red-black tree):
 
     oset( el_ty ) cntr
 
@@ -712,12 +800,159 @@ API:
     * Ordered set pointer-iterators (including r_end and end) may be invalidated by any API calls that cause memory
       reallocation.
 
+  String (a dynamic, null-terminated array representing a sequence of characters):
+
+    str( el_ty ) cntr
+
+      Declares an uninitialized string named cntr.
+      el_ty must be char, unsigned char, signed char, char8_t, char16_t, char32_t, or an alias for one of these types.
+
+    size_t cap( str( el_ty ) *cntr )
+
+      Returns the current capacity, i.e. the number of elements that the string can accommodate (not including the null
+      terminator) without reallocating its internal buffer.
+
+    bool reserve( str( el_ty ) *cntr, size_t n )
+
+      Ensures that the the capacity is large enough to accommodate n elements.
+      Returns true, or false if unsuccessful due to memory allocation failure.
+
+    bool resize( str( el_ty ) *cntr, size_t n, el_ty fill_character )
+      Sets the number of elements to n.
+      If n is above the current size, the new elements are initialized to fill_character.
+      If n is below the current size, no destructor is called for any erased element, even if a destructor for the
+      element type has been defined.
+      Returns true, or false if unsuccessful due to memory allocation failure.
+
+    bool shrink( str( el_ty ) *cntr )
+
+      Shrinks the capacity to the current size.
+      Returns true, or false if unsuccessful due to memory allocation failure.
+
+    el_ty *get( str( el_ty ) *cntr, size_t i )
+
+      Returns a pointer-iterator to the element at index i.
+
+    el_ty *push( str( el_ty ) *cntr, el_ty el )
+
+      Inserts el at the end of the string.
+      Returns a pointer-iterator to the new element, or NULL in the case of memory allocation failure.
+
+    el_ty *push_fmt( str( el_ty ) *cntr, ... )
+
+      Inserts up to 32 formatted values, provided as variadic arguments, at the end of the string.
+      Returns a pointer-iterator to the first new element, or NULL in the case of memory allocation failure.
+      Each variadic argument must be one of the following:
+
+        * A null-terminated array of elements of the same type as el_ty (i.e. a C string).
+        * A CC string with the same element type.
+        * A fundamental integer type (bool, char, unsigned char, signed char, unsigned short, short, unsigned int, int,
+          unsigned long, long, unsigned long long, or long long) or alias for such a type.
+        * A fundamental floating-point type (float or double).
+        * A void pointer (to be formatted as a memory address).
+        * The return value of one of the following functions:
+
+          * integer_dec( int min_digits )
+
+            Causes subsequent integer arguments to be formatted as decimal integers.
+            min_digits specifies the minimum number of digits, and if the formatted integer is shorter than this number,
+            it is padded with leading zeros.
+
+          * integer_hex( int min_digits )
+
+            Causes subsequent integer arguments to be formatted as unsigned hexadecimal integers.
+            min_digits specifies the minimum number of digits, and if the formatted integer is shorter than this number,
+            it is padded with leading zeros.
+
+          * integer_oct( int min_digits )
+
+            Causes subsequent integer arguments to be formatted as unsigned octal integers.
+            min_digits specifies the minimum number of digits, and if the formatted integer is shorter than this number,
+            it is padded with leading zeros.
+
+          * float_dec( int precision )
+
+            Causes subsequent floating-point arguments to be formatted as decimal floating-point numbers.
+            precision specifies the number of decimal places to include.
+
+          * float_hex( int precision )
+
+            Causes subsequent floating-point arguments to be formatted as hexadecimal floating-point numbers.
+            precision specifies the number of decimal places to include.
+
+          * float_sci( int precision )
+
+            Causes subsequent floating-point arguments to be formatted using scientific notation.
+            precision specifies the number of decimal places to include.
+
+          * float_shortest( int significant_digits )
+
+            Causes subsequent floating-point arguments to be formatted as decimal floating-point numbers or using
+            scientific notation, depending on which representation is shorter.
+            significant_digits specifies the maximum number of significant digits to include.
+
+      Arguments are type-promoted as follows:
+        * bool, unsigned char, unsigned short, unsigned int, unsigned long -> unsigned long long.
+        * signed char, short, int, long, -> long long.
+        * char -> long long or unsigned long long, depending on whether char is signed.
+        * float -> double.
+
+      By default, integer arguments are formatted as decimal integers with a minimum of one digit, and floating-point
+      arguments are formatted as decimal floating-point numbers with two decimal places.
+
+      For formatting, C and CC strings of char16_t and char32_t elements are assumed to be encoded as UTF-16 and UTF-32,
+      respectively.
+
+    el_ty *push_n( str( el_ty ) *cntr, el_ty *els, size_t n )
+
+      Inserts n elements from array els at the end of the string.
+      Returns a pointer-iterator to the first new element, or NULL in the case of memory allocation failure.
+
+    el_ty *insert( str( el_ty ) *cntr, size_t i, el_ty el )
+
+      Inserts el at index i.
+      Returns a pointer-iterator to the new element, or NULL in the case of memory allocation failure.
+
+    el_ty *insert_fmt( str( el_ty ) *cntr, size_t i, ... )
+
+      Inserts up to 32 formatted values, provided as variadic arguments, at index i.
+      Each variadic argument must be one of the possibilities listed in the above documentation for push_fmt, and the
+      same type-promotions and encoding assumptions apply.
+      Returns a pointer-iterator to the first new element, or NULL in the case of memory allocation failure.
+
+    el_ty *insert_n( str( el_ty ) *cntr, size_t i, el_ty *els, size_t n )
+
+      Inserts n elements from array els at index i.
+      Returns a pointer-iterator to the first new element, or NULL in the case of memory allocation failure.
+
+    el_ty *erase( str( el_ty ) *cntr, size_t i )
+
+      Erases the element at index i.
+      No destructor is called for the erased element, even if a destructor for the element type has been defined.
+      Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there is no
+      subsequent element.
+
+    el_ty *erase_n( str( el_ty ) *cntr, size_t i, size_t n )
+
+      Erases n elements beginning at index i.
+      No destructor is called for erased elements, even if a destructor for the element type has been defined.
+      Returns a pointer-iterator to the element after the erased elements, or an end pointer-iterator if there is no
+      subsequent element.
+
+    el_ty *last( str( el_ty ) *cntr )
+
+      Returns a pointer-iterator to the last element.
+      This call is synonymous with get( cntr, size( cntr ) - 1 ) and assumes that the string is not empty.
+
+    Notes:
+    * String pointer-iterators (including end) are invalidated by any API calls that cause memory reallocation.
+
   Destructor, comparison, and hash functions and custom max load factors:
 
     This part of the API allows the user to define custom destructor, comparison, and hash functions and max load
     factors for a type.
-    Once these functions are defined, any container using that type for its elements or keys will call them
-    automatically.
+    Once these functions are defined, any container (except strings) using that type for its elements or keys will call
+    them automatically.
     Once the max load factor is defined, any map using the type for its keys and any set using the type for its elements
     will use the defined load factor to determine when rehashing is necessary.
 
@@ -765,12 +1000,43 @@ API:
     * Including cc.h in these cases does not include the full header, so you still need to include it separately at the
       top of your files.
     * In-built comparison and hash functions are already defined for the following types: char, unsigned char, signed
-      char, unsigned short, short, unsigned int, int, unsigned long, long, unsigned long long, long long, size_t, and
-      char * (a NULL-terminated string). Defining a comparison or hash function for one of these types will overwrite
-      the in-built function.
+      char, unsigned short, short, unsigned int, int, unsigned long, long, unsigned long long, long long, size_t,
+      null-terminated C strings (char * and const char *), and CC strings. Defining a comparison or hash function for
+      one of these types will overwrite the in-built function.
+    * In-built, memory-freeing destructor functions are already defined for CC strings. Defining a destructor for a CC
+      string type will overwrite the in-built destructor.
+
+  Heterogeneous string insertion and lookup:
+
+    When CC strings are used as the key and/or element type of another container, most API macros that operate on the
+    container may alternatively take, as their key and/or element argument, a regular C string of the corresponding
+    character type. In this case, the library automatically converts the C string into a CC string.
+    The API macros that support heterogeneous insertion are:
+      * push
+      * insert
+      * get_or_insert
+    The API macros that support heterogeneous lookup are:
+      * get
+      * erase
+    In the lookup case, CC performs no memory allocations.
+
+    Trivial example:
+
+      map( str( char ), str( char ) ) our_map = initialized( &our_map );
+      if( insert( &our_map, "France", "Paris" ) ) // Heterogeneous insertion.
+      {
+        str( char ) *el = get( &our_map, "France" ); // Heterogeneous lookup.
+        printf( first( el ) );
+        // Printed: Paris
+      }
 
 Version history:
 
+  10/04/2025 1.4.0: Added CC strings.
+                    Added cc_initialized for in-situ initialization of global containers.
+                    Added support for const char * map and omap keys and set and oset elements.
+                    Added support for const source arguments in cc_splice and cc_init_clone.
+                    Added support for -Wextra and -Wconversion compiler flags.
   11/02/2025 1.3.2: Fixed a critical bug causing maps to call the wrong destructors during cleanup.
   23/08/2024 1.3.1: Fixed missing static inline qualifier on an internal omap function.
   29/07/2024 1.3.0: Added ordered map and ordered set.
@@ -806,7 +1072,7 @@ Version history:
 
 License (MIT):
 
-  Copyright (c) 2022-2025 Jackson L. Allan
+  Copyright (c) 2022-2024 Jackson L. Allan
 
   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
   documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -839,48 +1105,63 @@ License (MIT):
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <uchar.h>
 #ifdef __cplusplus
 #include <type_traits>
 #endif
 #endif
 
 #ifndef CC_NO_SHORT_NAMES
-#define vec( ... )           CC_MSVC_PP_FIX( cc_vec( __VA_ARGS__ ) )
-#define list( ... )          CC_MSVC_PP_FIX( cc_list( __VA_ARGS__ ) )
-#define map( ... )           CC_MSVC_PP_FIX( cc_map( __VA_ARGS__ ) )
-#define set( ... )           CC_MSVC_PP_FIX( cc_set( __VA_ARGS__ ) )
-#define omap( ... )          CC_MSVC_PP_FIX( cc_omap( __VA_ARGS__ ) )
-#define oset( ... )          CC_MSVC_PP_FIX( cc_oset( __VA_ARGS__ ) )
-#define init( ... )          CC_MSVC_PP_FIX( cc_init( __VA_ARGS__ ) )
-#define init_clone( ... )    CC_MSVC_PP_FIX( cc_init_clone( __VA_ARGS__ ) )
-#define size( ... )          CC_MSVC_PP_FIX( cc_size( __VA_ARGS__ ) )
-#define cap( ... )           CC_MSVC_PP_FIX( cc_cap( __VA_ARGS__ ) )
-#define reserve( ... )       CC_MSVC_PP_FIX( cc_reserve( __VA_ARGS__ ) )
-#define resize( ... )        CC_MSVC_PP_FIX( cc_resize( __VA_ARGS__ ) )
-#define shrink( ... )        CC_MSVC_PP_FIX( cc_shrink( __VA_ARGS__ ) )
-#define insert( ... )        CC_MSVC_PP_FIX( cc_insert( __VA_ARGS__ ) )
-#define insert_n( ... )      CC_MSVC_PP_FIX( cc_insert_n( __VA_ARGS__ ) )
-#define get_or_insert( ... ) CC_MSVC_PP_FIX( cc_get_or_insert( __VA_ARGS__ ) )
-#define push( ... )          CC_MSVC_PP_FIX( cc_push( __VA_ARGS__ ) )
-#define push_n( ... )        CC_MSVC_PP_FIX( cc_push_n( __VA_ARGS__ ) )
-#define splice( ... )        CC_MSVC_PP_FIX( cc_splice( __VA_ARGS__ ) )
-#define get( ... )           CC_MSVC_PP_FIX( cc_get( __VA_ARGS__ ) )
-#define key_for( ... )       CC_MSVC_PP_FIX( cc_key_for( __VA_ARGS__ ) )
-#define erase( ... )         CC_MSVC_PP_FIX( cc_erase( __VA_ARGS__ ) )
-#define erase_n( ... )       CC_MSVC_PP_FIX( cc_erase_n( __VA_ARGS__ ) )
-#define erase_itr( ... )     CC_MSVC_PP_FIX( cc_erase_itr( __VA_ARGS__ ) )
-#define clear( ... )         CC_MSVC_PP_FIX( cc_clear( __VA_ARGS__ ) )
-#define cleanup( ... )       CC_MSVC_PP_FIX( cc_cleanup( __VA_ARGS__ ) )
-#define first( ... )         CC_MSVC_PP_FIX( cc_first( __VA_ARGS__ ) )
-#define last( ... )          CC_MSVC_PP_FIX( cc_last( __VA_ARGS__ ) )
-#define r_end( ... )         CC_MSVC_PP_FIX( cc_r_end( __VA_ARGS__ ) )
-#define end( ... )           CC_MSVC_PP_FIX( cc_end( __VA_ARGS__ ) )
-#define next( ... )          CC_MSVC_PP_FIX( cc_next( __VA_ARGS__ ) )
-#define prev( ... )          CC_MSVC_PP_FIX( cc_prev( __VA_ARGS__ ) )
-#define for_each( ... )      CC_MSVC_PP_FIX( cc_for_each( __VA_ARGS__ ) )
-#define r_for_each( ... )    CC_MSVC_PP_FIX( cc_r_for_each( __VA_ARGS__ ) )
+#define vec( ... )            CC_MSVC_PP_FIX( cc_vec( __VA_ARGS__ ) )
+#define list( ... )           CC_MSVC_PP_FIX( cc_list( __VA_ARGS__ ) )
+#define map( ... )            CC_MSVC_PP_FIX( cc_map( __VA_ARGS__ ) )
+#define set( ... )            CC_MSVC_PP_FIX( cc_set( __VA_ARGS__ ) )
+#define omap( ... )           CC_MSVC_PP_FIX( cc_omap( __VA_ARGS__ ) )
+#define oset( ... )           CC_MSVC_PP_FIX( cc_oset( __VA_ARGS__ ) )
+#define str( ... )            CC_MSVC_PP_FIX( cc_str( __VA_ARGS__ ) )
+#define initialized( ... )    CC_MSVC_PP_FIX( cc_initialized( __VA_ARGS__ ) )
+#define init( ... )           CC_MSVC_PP_FIX( cc_init( __VA_ARGS__ ) )
+#define init_clone( ... )     CC_MSVC_PP_FIX( cc_init_clone( __VA_ARGS__ ) )
+#define size( ... )           CC_MSVC_PP_FIX( cc_size( __VA_ARGS__ ) )
+#define cap( ... )            CC_MSVC_PP_FIX( cc_cap( __VA_ARGS__ ) )
+#define reserve( ... )        CC_MSVC_PP_FIX( cc_reserve( __VA_ARGS__ ) )
+#define resize( ... )         CC_MSVC_PP_FIX( cc_resize( __VA_ARGS__ ) )
+#define shrink( ... )         CC_MSVC_PP_FIX( cc_shrink( __VA_ARGS__ ) )
+#define insert( ... )         CC_MSVC_PP_FIX( cc_insert( __VA_ARGS__ ) )
+#define insert_n( ... )       CC_MSVC_PP_FIX( cc_insert_n( __VA_ARGS__ ) )
+#define insert_fmt( ... )     CC_MSVC_PP_FIX( cc_insert_fmt( __VA_ARGS__ ) )
+#define get_or_insert( ... )  CC_MSVC_PP_FIX( cc_get_or_insert( __VA_ARGS__ ) )
+#define push( ... )           CC_MSVC_PP_FIX( cc_push( __VA_ARGS__ ) )
+#define push_n( ... )         CC_MSVC_PP_FIX( cc_push_n( __VA_ARGS__ ) )
+#define push_fmt( ... )       CC_MSVC_PP_FIX( cc_push_fmt( __VA_ARGS__ ) )
+#define splice( ... )         CC_MSVC_PP_FIX( cc_splice( __VA_ARGS__ ) )
+#define get( ... )            CC_MSVC_PP_FIX( cc_get( __VA_ARGS__ ) )
+#define key_for( ... )        CC_MSVC_PP_FIX( cc_key_for( __VA_ARGS__ ) )
+#define erase( ... )          CC_MSVC_PP_FIX( cc_erase( __VA_ARGS__ ) )
+#define erase_n( ... )        CC_MSVC_PP_FIX( cc_erase_n( __VA_ARGS__ ) )
+#define erase_itr( ... )      CC_MSVC_PP_FIX( cc_erase_itr( __VA_ARGS__ ) )
+#define clear( ... )          CC_MSVC_PP_FIX( cc_clear( __VA_ARGS__ ) )
+#define cleanup( ... )        CC_MSVC_PP_FIX( cc_cleanup( __VA_ARGS__ ) )
+#define first( ... )          CC_MSVC_PP_FIX( cc_first( __VA_ARGS__ ) )
+#define last( ... )           CC_MSVC_PP_FIX( cc_last( __VA_ARGS__ ) )
+#define r_end( ... )          CC_MSVC_PP_FIX( cc_r_end( __VA_ARGS__ ) )
+#define end( ... )            CC_MSVC_PP_FIX( cc_end( __VA_ARGS__ ) )
+#define next( ... )           CC_MSVC_PP_FIX( cc_next( __VA_ARGS__ ) )
+#define prev( ... )           CC_MSVC_PP_FIX( cc_prev( __VA_ARGS__ ) )
+#define for_each( ... )       CC_MSVC_PP_FIX( cc_for_each( __VA_ARGS__ ) )
+#define r_for_each( ... )     CC_MSVC_PP_FIX( cc_r_for_each( __VA_ARGS__ ) )
+#define integer_dec( ... )    CC_MSVC_PP_FIX( cc_integer_dec( __VA_ARGS__ ) )
+#define integer_hex( ... )    CC_MSVC_PP_FIX( cc_integer_hex( __VA_ARGS__ ) )
+#define integer_oct( ... )    CC_MSVC_PP_FIX( cc_integer_oct( __VA_ARGS__ ) )
+#define float_dec( ... )      CC_MSVC_PP_FIX( cc_float_dec( __VA_ARGS__ ) )
+#define float_hex( ... )      CC_MSVC_PP_FIX( cc_float_hex( __VA_ARGS__ ) )
+#define float_sci( ... )      CC_MSVC_PP_FIX( cc_float_sci( __VA_ARGS__ ) )
+#define float_shortest( ... ) CC_MSVC_PP_FIX( cc_float_shortest( __VA_ARGS__ ) )
+
+
 #endif
 
 #ifndef CC_H
@@ -927,7 +1208,7 @@ License (MIT):
 // This is used to pass pointers to elements and keys (which the user may have provided as rvalues) into container
 // functions.
 #ifdef __cplusplus
-template<class ty> ty& cc_unmove( ty&& var ) { return var; }
+template<typename ty> ty& cc_unmove( ty&& var ) { return var; }
 #define CC_MAKE_LVAL_COPY( ty, xp ) cc_unmove( (ty)( xp ) )
 #else
 #define CC_MAKE_LVAL_COPY( ty, xp ) *( ty[ 1 ] ){ xp }
@@ -962,11 +1243,11 @@ template<typename ty_1, typename ty_2> ty_1 cc_maybe_unused( ty_2 xp ){ return (
 
 #ifdef __cplusplus
 
-template<bool cond, class ty_1, class ty_2, class xp_ty, typename std::enable_if<cond, bool>::type = true> \
-ty_1 cc_if_then_cast_ty_1_else_cast_ty_2( xp_ty xp ){ return (ty_1)xp; }                                   \
+template<bool cond, typename ty_1, typename ty_2, typename xp_ty, typename std::enable_if<cond, bool>::type = true> \
+ty_1 cc_if_then_cast_ty_1_else_cast_ty_2( xp_ty xp ){ return (ty_1)xp; }                                            \
 
-template<bool cond, class ty_1, class ty_2, class xp_ty, typename std::enable_if<!cond, bool>::type = true> \
-ty_2 cc_if_then_cast_ty_1_else_cast_ty_2( xp_ty xp ){ return (ty_2)xp; }                                    \
+template<bool cond, typename ty_1, typename ty_2, typename xp_ty, typename std::enable_if<!cond, bool>::type = true> \
+ty_2 cc_if_then_cast_ty_1_else_cast_ty_2( xp_ty xp ){ return (ty_2)xp; }                                             \
 
 #define CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2( cond, ty_1, ty_2, xp ) \
 cc_if_then_cast_ty_1_else_cast_ty_2<cond, ty_1, ty_2>( xp )         \
@@ -1023,11 +1304,23 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #define CC_MSVC_PP_FIX( xp ) xp
 
 // CC_SELECT_ON_NUM_ARGS macro for overloading API macros based on the number of arguments.
+
 #define CC_CAT_2_( a, b ) a##b
 #define CC_CAT_2( a, b ) CC_CAT_2_( a, b )
-#define CC_N_ARGS_( _1, _2, _3, _4, _5, _6, n, ... ) n
-#define CC_N_ARGS( ... ) CC_MSVC_PP_FIX( CC_N_ARGS_( __VA_ARGS__, _6, _5, _4, _3, _2, _1, x ) )
-#define CC_SELECT_ON_NUM_ARGS( func, ... ) CC_CAT_2( func, CC_N_ARGS( __VA_ARGS__ ) )( __VA_ARGS__ )
+
+#define CC_N_ARGS_(                                                                                                   \
+  _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, \
+  _26, _27, _28, _29, _30, _31, _32, _33, _34,  n, ...                                                                \
+) n                                                                                                                   
+
+#define CC_N_ARGS( ... ) CC_MSVC_PP_FIX(                                                                             \
+  CC_N_ARGS_(                                                                                                        \
+    __VA_ARGS__, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, \
+    9, 8, 7, 6, 5, 4, 3, 2, 1, x                                                                                     \
+  )                                                                                                                  \
+)                                                                                                                    \
+
+#define CC_SELECT_ON_NUM_ARGS( func, ... ) CC_MSVC_PP_FIX( CC_CAT_2( func, CC_N_ARGS( __VA_ARGS__ ) )( __VA_ARGS__ ) )
 
 // If the user has defined CC_REALLOC and CC_FREE, then CC_GET_REALLOC and CC_GET_FREE are replaced with those macros.
 // Otherwise, they are replaced by realloc and free from the standard library.
@@ -1040,10 +1333,20 @@ CC_CAST_MAYBE_UNUSED(                                               \
 
 // Macro used with CC_STATIC_ASSERT to provide type safety in cc_init_clone and cc_splice calls.
 #ifdef __cplusplus
-#define CC_IS_SAME_TY( a, b ) std::is_same<CC_TYPEOF_XP( a ), CC_TYPEOF_XP( b )>::value
+
+#define CC_IS_SAME_TY( a, b )                                     \
+(                                                                 \
+  std::is_same<CC_TYPEOF_XP( b ), CC_TYPEOF_XP( a )>::value ||    \
+  std::is_same<CC_TYPEOF_XP( b ), const CC_TYPEOF_XP( a )>::value \
+)                                                                 \
+
 #else
-#define CC_IS_SAME_TY( a, b ) _Generic( (a), CC_TYPEOF_XP( b ): true, default: false )
+#define CC_IS_SAME_TY( a, b ) _Generic( (b), CC_TYPEOF_XP( a ): true, const CC_TYPEOF_XP( a ): true, default: false )
 #endif
+
+// Returns arg but generates a warning or error if it is not a pointer to the container's element type.
+// This macro is used by cc_push_n and cc_insert_n to ensure that the source is an array matching the element type.
+#define CC_CHECKED_EL_TY_PTR( cntr, arg ) ( true ? (arg) : (const CC_EL_TY( cntr ) *)NULL )
 
 // Macro for handling unused parameters in most container functions that plug directly into API macros.
 // These functions must provide a standardized signature across containers.
@@ -1082,11 +1385,11 @@ static void *cc_dummy_true_ptr = &cc_dummy_true;
 // Types for comparison, hash, destructor, realloc, and free functions.
 // These are only for internal use as user-provided comparison, hash, and destructor functions have different signatures
 // (see above documentation).
-typedef int ( *cc_cmpr_fnptr_ty )( void *, void * );
-typedef size_t ( *cc_hash_fnptr_ty )( void * );
-typedef void ( *cc_dtor_fnptr_ty )( void * );
 typedef void *( *cc_realloc_fnptr_ty )( void *, size_t );
 typedef void ( *cc_free_fnptr_ty )( void * );
+typedef int ( *cc_cmpr_fnptr_ty )( void *, void * );
+typedef size_t ( *cc_hash_fnptr_ty )( void * );
+typedef void ( *cc_dtor_fnptr_ty )( void *, cc_free_fnptr_ty );
 
 // Container ids to identify container type at compile-time.
 #define CC_VEC  1
@@ -1095,6 +1398,7 @@ typedef void ( *cc_free_fnptr_ty )( void * );
 #define CC_SET  4
 #define CC_OMAP 5
 #define CC_OSET 6
+#define CC_STR  7
 
 // Produces the underlying function pointer type for a given element/key type pair.
 #define CC_MAKE_BASE_FNPTR_TY( el_ty, key_ty ) CC_TYPEOF_TY( CC_TYPEOF_TY( el_ty ) (*)( CC_TYPEOF_TY( key_ty )* ) )
@@ -1161,6 +1465,17 @@ typedef void ( *cc_free_fnptr_ty )( void * );
                                    ) ? 1 : -1 )                                                                     \
                                  )                                                                                  \
 
+#define cc_str( el_ty )          CC_MAKE_CNTR_TY(                                 \
+                                   el_ty,                                         \
+                                   size_t, /* String key type is size_t. */       \
+                                   CC_STR * ( CC_IS_STR_EL_TY( el_ty ) ? 1 : -1 ) \
+                                 )                                                \
+
+// Creates a string type without checking that the element type is one of the compatible character types.
+// This macro is used to reduce compilation time and avoid errors when string types are generated from incompatible
+// element types in dead _Generic paths.
+#define CC_STR_RAW( el_ty ) CC_TYPEOF_TY( el_ty (*(*)[ CC_STR ])( size_t * ) )
+
 // Retrieves a container's id (e.g. CC_VEC) from its handle.
 #define CC_CNTR_ID( cntr ) ( sizeof( *cntr ) / sizeof( **cntr ) )
 
@@ -1187,29 +1502,124 @@ key_ty cc_key_ty( el_ty (*)( key_ty * ) )
       // coupled with a comparison function.
 
 #define CC_KEY_TY_SLOT( n, arg ) CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( arg ), cc_cmpr_##n##_ty ): ( cc_cmpr_##n##_ty ){ 0 },
-#define CC_KEY_TY( cntr )                                                                         \
-CC_TYPEOF_XP(                                                                                     \
-  _Generic( (**cntr),                                                                             \
-    CC_FOR_EACH_CMPR( CC_KEY_TY_SLOT, cntr )                                                      \
-    default: _Generic( (**cntr),                                                                  \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):      ( char ){ 0 },               \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      ( unsigned char ){ 0 },      \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        ( signed char ){ 0 },        \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     ( unsigned short ){ 0 },     \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              ( short ){ 0 },              \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       ( unsigned int ){ 0 },       \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int ):                ( int ){ 0 },                \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long ):      ( unsigned long ){ 0 },      \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long ):               ( long ){ 0 },               \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long ): ( unsigned long long ){ 0 }, \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          ( long long ){ 0 },          \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    ( size_t ){ 0 },             \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             ( char * ){ 0 },             \
-      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), void * ):             ( void * ){ 0 },             \
-      default: (char){ 0 } /* Nothing. */                                                         \
-    )                                                                                             \
-  )                                                                                               \
-)                                                                                                 \
+#define CC_KEY_TY( cntr )                                                                                           \
+CC_TYPEOF_XP(                                                                                                       \
+  _Generic( (**cntr),                                                                                               \
+    CC_FOR_EACH_CMPR( CC_KEY_TY_SLOT, cntr )                                                                        \
+    default: _Generic( (**cntr),                                                                                    \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):               ( char ){ 0 },                        \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):               ( unsigned char ){ 0 },               \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):                 ( signed char ){ 0 },                 \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):              ( unsigned short ){ 0 },              \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):                       ( short ){ 0 },                       \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):                ( unsigned int ){ 0 },                \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int ):                         ( int ){ 0 },                         \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long ):               ( unsigned long ){ 0 },               \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long ):                        ( long ){ 0 },                        \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long ):          ( unsigned long long ){ 0 },          \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):                   ( long long ){ 0 },                   \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):             ( size_t ){ 0 },                      \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):                      ( char * ){ 0 },                      \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * ):                ( const char * ){ 0 },                \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), void * ):                      ( void * ){ 0 },                      \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ): ( CC_STR_RAW( char ) ){ 0 },          \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ): ( CC_STR_RAW( unsigned char ) ){ 0 }, \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ):   ( CC_STR_RAW( signed char ) ){ 0 },   \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ):      ( CC_STR_RAW( char16_t ) ){ 0 },      \
+      CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ):      ( CC_STR_RAW( char32_t ) ){ 0 },      \
+      default: (char){ 0 } /* Nothing. */                                                                           \
+    )                                                                                                               \
+  )                                                                                                                 \
+)                                                                                                                   \
+
+#endif
+
+// In MSVC under C, char is an alias for unsigned char or signed char, contrary to the C Standard, which requires all
+// three to be distinct types.
+// To accommodate this bug, we have to ensure that char doesn't clash with either of the other two types in _Generic
+// statements.
+// If char is an alias, cc_maybe_char will be a dummy type used in no other context.
+// Otherwise, it will be an alias for char.
+
+// size_t needs to be handled in a similar way because it could be an alias for a fundamental integer type or a distinct
+// builtin type.
+
+#ifndef __cplusplus
+
+typedef struct { char nothing; } cc_char_dummy;
+
+typedef CC_TYPEOF_XP(
+  _Generic( (char){ 0 },
+    unsigned char: (cc_char_dummy){ 0 },
+    signed char:   (cc_char_dummy){ 0 },
+    default:       (char){ 0 }
+  )
+) cc_maybe_char;
+
+typedef struct { char nothing; } cc_size_t_dummy;
+
+typedef CC_TYPEOF_XP(
+  _Generic( (size_t){ 0 },
+    unsigned short:     (cc_size_t_dummy){ 0 },
+    short:              (cc_size_t_dummy){ 0 },
+    unsigned int:       (cc_size_t_dummy){ 0 },
+    int:                (cc_size_t_dummy){ 0 },
+    unsigned long:      (cc_size_t_dummy){ 0 },
+    long:               (cc_size_t_dummy){ 0 },
+    unsigned long long: (cc_size_t_dummy){ 0 },
+    long long:          (cc_size_t_dummy){ 0 },
+    default:            (size_t){ 0 }
+  )
+) cc_maybe_size_t;
+
+#endif
+
+// Includes the code between parentheses in the case of C++20 or later.
+// This macro is used inside certain macros to optionally include char8_t functionality.
+// In C++20, char8_t is a distinct type and must therefore be handled explicitly (unlike in C23, wherein char8_t is an
+// alias for unsigned char and can therefore be handled implicitly).
+#ifdef __cplusplus
+#if __cplusplus >= 202101L
+#define CC_IF_CPP20( ... ) __VA_ARGS__
+#else
+#define CC_IF_CPP20( ... )
+#endif
+#endif
+
+// CC_IS_STR_EL_TY macro for determining whether a type is one of the limited number that string supports.
+// In C, char16_t and char32_t are aliases for uint_least16_t and uint_least32_t, respectively, and could therefore be
+// the same type on exotic systems that lack a fundamental 16-bit integer type.
+// However, because CC's map implementation requires uint16_t and uint32_t, we can be sure that char16_t and char32_t
+// are distinct types on any platform with which CC is compatible, and we treat them thusly.
+// This assumption is especially necessary because without it, the encoding of strings of the largest type would be
+// ambiguous in some instances (e.g. string literals).
+
+#ifdef __cplusplus
+
+#define CC_IS_STR_EL_TY( ty )                     \
+(                                                 \
+  std::is_same<ty, char>::value          ? true : \
+  std::is_same<ty, unsigned char>::value ? true : \
+  std::is_same<ty, signed char>::value   ? true : \
+  CC_IF_CPP20(                                    \
+    std::is_same<ty, char8_t>::value     ? true : \
+  )                                               \
+  std::is_same<ty, char16_t>::value      ? true : \
+  std::is_same<ty, char32_t>::value      ? true : \
+  false                                           \
+)                                                 \
+
+#else
+
+#define CC_IS_STR_EL_TY( ty ) \
+_Generic( (ty){ 0 },          \
+  cc_maybe_char: true,        \
+  unsigned char: true,        \
+  signed char:   true,        \
+  char16_t:      true,        \
+  char32_t:      true,        \
+  default:       false        \
+)                             \
 
 #endif
 
@@ -1347,19 +1757,19 @@ static inline void *cc_memcpy_and_return_ptr( void *dest, void *src, size_t size
   return ptr;
 }
 
-// All macros that call functions that could cause memory reallocation do two essential things to circumvent limitations
-// of ISO C (such as the inability to declare variables in expressions and _Thread_local linking issues).
+// Macros that call functions that could cause memory reallocation must generally do two things to circumvent
+// limitations of ISO C (such as the inability to declare variables in expressions and _Thread_local linking issues).
 // Firstly, they temporarily set the container handle to point to a temporary cc_insert_result object returned by the
 // call to the function (see CC_MAKE_LVAL_COPY above).
-#define CC_POINT_HNDL_TO_ALLOCING_FN_RESULT( cntr, fn_call )                           \
-  cntr = (CC_TYPEOF_XP( cntr ))&CC_MAKE_LVAL_COPY( cc_allocing_fn_result_ty, fn_call ) \
+#define CC_POINT_HNDL_TO_ALLOCING_FN_RESULT( cntr, fn_call )                         \
+cntr = (CC_TYPEOF_XP( cntr ))&CC_MAKE_LVAL_COPY( cc_allocing_fn_result_ty, fn_call ) \
 
 // Secondly, they call cc_memcpy_and_return_ptr to restore the correct container handle (a new pointer in the case of
 // reallocation) and return a pointer, either to any new elements or to signify success/failure, to the user.
 // (In the latter case, that pointer is cast to bool in the API macro before being passed to the user.)
 // Without this call, we would be unable to access the new elements/success-or-failure pointer stored in the
 // cc_allocing_fn_result_ty after restoring the correct container handle.
-// Note that outside the function, a temporary container handle is created from the new handle in the
+// Note that outside the function, a temporary container handle is created from the new handle stored in the
 // cc_allocing_fn_result_ty so that the later (void *) is properly converted to the correct handle type.
 // This new, correctly typed handle is then memcpy-ed over the user-supplied handle inside the function.
 #define CC_FIX_HNDL_AND_RETURN_OTHER_PTR( cntr )                                              \
@@ -1369,6 +1779,99 @@ cc_memcpy_and_return_ptr(                                                       
   sizeof( cntr ),                                                                             \
   ( (cc_allocing_fn_result_ty *)cntr )->other_ptr                                             \
 )                                                                                             \
+
+// In the case of insertion operations (such as cc_insert, cc_push, and cc_get_or_insert), the process described above
+// is complicated by the fact that to support heterogeneous insertion of C strings into containers that expect CC
+// strings, we also need to convert the C string and check and potentially free the result.
+// This could apply to the user-supplied key, element, or key and element.
+// Consequently, we need somewhere to store pointers to the converted key and or element.
+// To this end, rather than temporarily pointing the container handle at a cc_allocing_fn_result_ty struct, we point it
+// at one of several "helper" structs that contain a cc_allocing_fn_result_ty struct and several other members.
+// At the same time, we populate the helper struct's members with the converted key and/or element, a copy of the
+// original handle (as the cc_allocing_fn_result_ty "new_cntr" member), and the current size of the container, when
+// necessary.
+// This way, we can check for conversion failure, pass the container handle and converted key and/or element into the
+// relevant container function and store the result, and free the converted key and/or element if necessary.
+// Because the cc_allocing_fn_result_ty is the helper struct's first member, CC_FIX_HNDL_AND_RETURN_OTHER_PTR is then
+// called to restore the correct container handle.
+
+// Below, the various helper structs and macros to point the container at them are defined.
+// For the other macros that assist in heterogeneous insertion and lookup, see the section "Heterogeneous string
+// insertion and lookup conversion".
+
+#ifdef __cplusplus
+#define CC_COMPOUND_LITERAL( ty, ... ) cc_unmove<ty>( __VA_ARGS__ )
+#else
+#define CC_COMPOUND_LITERAL( ty, ... ) (ty) __VA_ARGS__
+#endif
+
+typedef struct
+{
+  alignas( cc_max_align_ty )
+  cc_allocing_fn_result_ty result;
+  void *converted_el;
+  void *converted_key;
+} cc_heteroinsert_helper_el_key_ty;
+
+#define CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_KEY( cntr, converted_el, converted_key ) \
+cntr = (CC_TYPEOF_XP( cntr ))&CC_COMPOUND_LITERAL(                                       \
+  cc_heteroinsert_helper_el_key_ty,                                                      \
+  {                                                                                      \
+    { cntr, NULL },                                                                      \
+    &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), converted_el ),                             \
+    &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), converted_key )                            \
+  }                                                                                      \
+)                                                                                        \
+
+typedef struct
+{
+  alignas( cc_max_align_ty )
+  cc_allocing_fn_result_ty result;
+  void *converted_el;
+} cc_heterinsert_helper_el_only_ty;
+
+#define CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_ONLY( cntr, converted_el )                                      \
+cntr = (CC_TYPEOF_XP( cntr ))&CC_COMPOUND_LITERAL(                                                              \
+  cc_heterinsert_helper_el_only_ty, { { cntr, NULL }, &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), converted_el ) } \
+)                                                                                                               \
+
+typedef struct
+{
+  alignas( cc_max_align_ty )
+  cc_allocing_fn_result_ty result;
+  void *converted_el;
+  size_t cntr_size;
+} cc_heteroinsert_helper_el_cntr_size_ty;
+
+#define CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_AND_CNTR_SIZE( cntr, converted_el, cntr_size ) \
+cntr = (CC_TYPEOF_XP( cntr ))&CC_COMPOUND_LITERAL(                                             \
+  cc_heteroinsert_helper_el_cntr_size_ty,                                                      \
+  {                                                                                            \
+    { cntr, NULL },                                                                            \
+    &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), converted_el ),                                   \
+    cntr_size                                                                                  \
+  }                                                                                            \
+)
+
+typedef struct
+{
+  alignas( cc_max_align_ty )
+  cc_allocing_fn_result_ty result;
+  void *converted_el;
+  void *converted_key;
+  size_t cntr_size;
+} cc_heteroinsert_helper_el_key_cntr_size_ty;
+
+#define CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_KEY_CNTR_SIZE( cntr, converted_el, converted_key, cntr_size ) \
+cntr = (CC_TYPEOF_XP( cntr ))&CC_COMPOUND_LITERAL(                                                            \
+  cc_heteroinsert_helper_el_key_cntr_size_ty,                                                                 \
+  {                                                                                                           \
+    { cntr, NULL },                                                                                           \
+    &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), converted_el ),                                                  \
+    &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), converted_key ),                                                \
+    cntr_size                                                                                                 \
+  }                                                                                                           \
+)                                                                                                             \
 
 // Functions to find the first and last non-zero uint16_t in a uint64_t.
 // These functions are used when we scan four buckets at a time while iterating over maps and sets.
@@ -1383,21 +1886,21 @@ static inline bool cc_is_little_endian( void )
 
 #if defined( __GNUC__ ) && ULLONG_MAX == 0xFFFFFFFFFFFFFFFF
 
-static inline int cc_first_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_first_nonzero_uint16( uint64_t a )
 {
   if( cc_is_little_endian() )
-    return __builtin_ctzll( a ) / 16;
+    return (unsigned int)__builtin_ctzll( a ) / 16;
   
-  return __builtin_clzll( a ) / 16;
+  return (unsigned int)__builtin_clzll( a ) / 16;
 }
 
 // DEPRECATED.
-static inline int cc_last_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_last_nonzero_uint16( uint64_t a )
 {
   if( cc_is_little_endian() )
-    return __builtin_clzll( a ) / 16;
+    return (unsigned int)__builtin_clzll( a ) / 16;
   
-  return __builtin_ctzll( a ) / 16;
+  return (unsigned int)__builtin_ctzll( a ) / 16;
 }
 
 #elif defined( _MSC_VER ) && ( defined( _M_X64 ) || defined( _M_ARM64 ) )
@@ -1406,7 +1909,7 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
 #pragma intrinsic(_BitScanForward64)
 #pragma intrinsic(_BitScanReverse64)
 
-static inline int cc_first_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_first_nonzero_uint16( uint64_t a )
 {
   unsigned long result;
 
@@ -1422,7 +1925,7 @@ static inline int cc_first_nonzero_uint16( uint64_t a )
 }
 
 // DEPRECATED.
-static inline int cc_last_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_last_nonzero_uint16( uint64_t a )
 {
   unsigned long result;
 
@@ -1439,9 +1942,9 @@ static inline int cc_last_nonzero_uint16( uint64_t a )
 
 #else
 
-static inline int cc_first_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_first_nonzero_uint16( uint64_t a )
 {
-  int result = 0;
+  unsigned int result = 0;
 
   uint32_t half;
   memcpy( &half, &a, sizeof( uint32_t ) );
@@ -1457,9 +1960,9 @@ static inline int cc_first_nonzero_uint16( uint64_t a )
 }
 
 // DEPRECATED.
-static inline int cc_last_nonzero_uint16( uint64_t a )
+static inline unsigned int cc_last_nonzero_uint16( uint64_t a )
 {
-  int result = 3;
+  unsigned int result = 3;
 
   uint32_t half;
   memcpy( &half, (char *)&a + sizeof( uint32_t ), sizeof( uint32_t ) );
@@ -1567,7 +2070,7 @@ static inline cc_allocing_fn_result_ty cc_vec_reserve(
 static inline cc_allocing_fn_result_ty cc_vec_insert_n(
   void *cntr,
   size_t index,
-  void *els,
+  const void *els,
   size_t n,
   size_t el_size,
   cc_realloc_fnptr_ty realloc_
@@ -1630,7 +2133,7 @@ static inline cc_allocing_fn_result_ty cc_vec_insert(
 
 static inline cc_allocing_fn_result_ty cc_vec_push_n(
   void *cntr,
-  void *els,
+  const void *els,
   size_t n,
   size_t el_size,
   cc_realloc_fnptr_ty realloc_
@@ -1657,7 +2160,8 @@ static inline void *cc_vec_erase_n(
   size_t index,
   size_t n,
   size_t el_size,
-  cc_dtor_fnptr_ty el_dtor
+  cc_dtor_fnptr_ty el_dtor,
+  cc_free_fnptr_ty free_
 )
 {
   if( n == 0 )
@@ -1665,7 +2169,7 @@ static inline void *cc_vec_erase_n(
 
   if( el_dtor )
     for( size_t j = 0; j < n; ++j )
-      el_dtor( (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * ( index + j ) );
+      el_dtor( (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * ( index + j ), free_ );
 
   memmove(
     (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * index,
@@ -1677,9 +2181,6 @@ static inline void *cc_vec_erase_n(
   return (char *)cntr + sizeof( cc_vec_hdr_ty ) + el_size * index;
 }
 
-// Shrinks the vector's capacity to its current size.
-// Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer that evaluates to true if the
-// operation was successful or false in the case of allocation failure.
 static inline void *cc_vec_erase(
   void *cntr,
   void *key, // Pointer to size_t index.
@@ -1689,10 +2190,10 @@ static inline void *cc_vec_erase(
   CC_UNUSED( cc_cmpr_fnptr_ty, cmpr ),
   cc_dtor_fnptr_ty el_dtor,
   CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
-  CC_UNUSED( cc_free_fnptr_ty, free_ )
+  cc_free_fnptr_ty free_
 )
 {
-  return cc_vec_erase_n( cntr, *(size_t *)key, 1, el_size, el_dtor );
+  return cc_vec_erase_n( cntr, *(size_t *)key, 1, el_size, el_dtor, free_ );
 }
 
 // Sets the number of elements in the vector.
@@ -1706,7 +2207,8 @@ static inline cc_allocing_fn_result_ty cc_vec_resize(
   size_t n,
   size_t el_size,
   cc_dtor_fnptr_ty el_dtor,
-  cc_realloc_fnptr_ty realloc_
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
 )
 {
   // No resize necessary (also handles placeholder).
@@ -1716,7 +2218,7 @@ static inline cc_allocing_fn_result_ty cc_vec_resize(
   // Downsizing.
   if( n < cc_vec_size( cntr ) )
   {
-    cc_vec_erase_n( cntr, n, cc_vec_size( cntr ) - n, el_size, el_dtor );
+    cc_vec_erase_n( cntr, n, cc_vec_size( cntr ) - n, el_size, el_dtor, free_ );
     return cc_make_allocing_fn_result( cntr, cc_dummy_true_ptr );
   }
 
@@ -1739,6 +2241,9 @@ static inline cc_allocing_fn_result_ty cc_vec_resize(
   return result;
 }
 
+// Shrinks the vector's capacity to its current size.
+// Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer that evaluates to true if the
+// operation was successful or false in the case of allocation failure.
 static inline cc_allocing_fn_result_ty cc_vec_shrink(
   void *cntr,
   size_t el_size,
@@ -1787,7 +2292,8 @@ static inline void *cc_vec_init_clone(
     cc_vec_size( src ),
     el_size,
     NULL, // Destructor unused.
-    realloc_
+    realloc_,
+    NULL  // Free function unused.
   );
 
   if( CC_UNLIKELY( !result.other_ptr ) )
@@ -1809,10 +2315,10 @@ static inline void cc_vec_clear(
   CC_UNUSED( uint64_t, layout ),
   cc_dtor_fnptr_ty el_dtor,
   CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
-  CC_UNUSED( cc_free_fnptr_ty, free_ )
+  cc_free_fnptr_ty free_
 )
 {
-  cc_vec_erase_n( cntr, 0, cc_vec_size( cntr ), el_size, el_dtor );
+  cc_vec_erase_n( cntr, 0, cc_vec_size( cntr ), el_size, el_dtor, free_ );
 }
 
 // Clears the vector and frees its memory if it is not a placeholder.
@@ -1831,7 +2337,7 @@ static inline void cc_vec_cleanup(
     0,       // Dummy.
     el_dtor,
     NULL,    // Dummy.
-    NULL     // Dummy.
+    free_
   );
 
   if( !cc_vec_is_placeholder( cntr ) )
@@ -2175,7 +2681,7 @@ static inline void *cc_list_erase(
   next->prev = hdr->prev;
   
   if( el_dtor )
-    el_dtor( *(void **)key );
+    el_dtor( *(void **)key, free_ );
 
   free_( hdr );
   --cc_list_hdr( cntr )->size;
@@ -2468,7 +2974,7 @@ static inline void *cc_map_key_for(
 
 static inline size_t cc_map_bucket_index_from_itr( void *cntr, void *itr, size_t el_size, uint64_t layout )
 {
-  return ( (char *)itr - (char *)cc_map_el( cntr, 0, el_size, layout ) ) / CC_BUCKET_SIZE( el_size, layout );
+  return (size_t)( (char *)itr - (char *)cc_map_el( cntr, 0, el_size, layout ) ) / CC_BUCKET_SIZE( el_size, layout );
 }
 
 static inline size_t cc_map_min_cap_for_n_els(
@@ -2481,7 +2987,7 @@ static inline size_t cc_map_min_cap_for_n_els(
 
   // Round up to a power of two.
   size_t cap = CC_MAP_MIN_NONZERO_BUCKET_COUNT;
-  while( n > cap * max_load )
+  while( n > (size_t)( (double)cap * max_load ) )
     cap *= 2;
 
   return cap;
@@ -2592,7 +3098,7 @@ static inline bool cc_map_evict(
   }
 
   // Disconnect the key-element pair from chain.
-  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
+  cc_map_hdr( cntr )->metadata[ prev ] = (uint16_t)( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
     ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_DISPLACEMENT_MASK );
 
   // Find the empty bucket to which to move the key-element pair.
@@ -2614,8 +3120,9 @@ static inline bool cc_map_evict(
   // Re-link the key-element pair to the chain from its new bucket.
   cc_map_hdr( cntr )->metadata[ empty ] = ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_HASH_FRAG_MASK ) |
     ( cc_map_hdr( cntr )->metadata[ prev ] & CC_MAP_DISPLACEMENT_MASK );
-  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
-    displacement;
+  cc_map_hdr( cntr )->metadata[ prev ] = (uint16_t)(
+    ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) | displacement
+  );
 
   return true;
 }
@@ -2643,7 +3150,8 @@ static inline void *cc_map_insert_raw(
   cc_hash_fnptr_ty hash,
   cc_cmpr_fnptr_ty cmpr,
   cc_dtor_fnptr_ty el_dtor,
-  cc_dtor_fnptr_ty key_dtor
+  cc_dtor_fnptr_ty key_dtor,
+  cc_free_fnptr_ty free_
 )
 {
   size_t key_hash = hash( key );
@@ -2657,7 +3165,7 @@ static inline void *cc_map_insert_raw(
   if( !( cc_map_hdr( cntr )->metadata[ home_bucket ] & CC_MAP_IN_HOME_BUCKET_MASK ) )
   {
     // Load-factor check.
-    if( CC_UNLIKELY( cc_map_hdr( cntr )->size + 1 > max_load * cc_map_cap( cntr ) ) )
+    if( CC_UNLIKELY( cc_map_hdr( cntr )->size + 1 > (size_t)( max_load * (double)cc_map_cap( cntr ) ) ) )
       return NULL;
 
     // Vacate the home bucket if it contains a key-element pair.
@@ -2690,10 +3198,10 @@ static inline void *cc_map_insert_raw(
       if( replace )
       {
         if( key_dtor )
-          key_dtor( cc_map_key( cntr, bucket, el_size, layout ) );
+          key_dtor( cc_map_key( cntr, bucket, el_size, layout ), free_ );
 
         if( el_dtor )
-          el_dtor( cc_map_el( cntr, bucket, el_size, layout ) );
+          el_dtor( cc_map_el( cntr, bucket, el_size, layout ), free_ );
 
         memcpy( cc_map_key( cntr, bucket, el_size, layout ), key, CC_KEY_SIZE( layout ) );
         memcpy( cc_map_el( cntr, bucket, el_size, layout ), el, el_size );
@@ -2710,7 +3218,7 @@ static inline void *cc_map_insert_raw(
   }
 
   // Load-factor check.
-  if( CC_UNLIKELY( cc_map_hdr( cntr )->size + 1 > max_load * cc_map_cap( cntr ) ) )
+  if( CC_UNLIKELY( cc_map_hdr( cntr )->size + 1 > (size_t)( max_load * (double)cc_map_cap( cntr ) ) ) )
     return NULL;
 
   // Find the earliest empty bucket, per quadratic probing.
@@ -2728,8 +3236,9 @@ static inline void *cc_map_insert_raw(
 
   cc_map_hdr( cntr )->metadata[ empty ] = hashfrag | ( cc_map_hdr( cntr )->metadata[ prev ] & CC_MAP_DISPLACEMENT_MASK
     );
-  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
-    displacement;
+  cc_map_hdr( cntr )->metadata[ prev ] = (uint16_t)(
+     ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) | displacement
+  );
 
   ++cc_map_hdr( cntr )->size;
 
@@ -2785,8 +3294,9 @@ static inline void *cc_map_reinsert(
 
   cc_map_hdr( cntr )->metadata[ empty ] = hashfrag | ( cc_map_hdr( cntr )->metadata[ prev ] & CC_MAP_DISPLACEMENT_MASK
     );
-  cc_map_hdr( cntr )->metadata[ prev ] = ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) |
-    displacement;
+  cc_map_hdr( cntr )->metadata[ prev ] = (uint16_t)(
+    ( cc_map_hdr( cntr )->metadata[ prev ] & ~CC_MAP_DISPLACEMENT_MASK ) | displacement
+  );
 
   ++cc_map_hdr( cntr )->size;
 
@@ -2939,7 +3449,8 @@ static inline cc_allocing_fn_result_ty cc_map_insert(
       hash,
       cmpr,
       el_dtor,
-      key_dtor
+      key_dtor,
+      free_
     );
 
     if( CC_LIKELY( itr ) )
@@ -3134,7 +3645,8 @@ static inline bool cc_map_erase_raw(
   uint64_t layout,
   cc_hash_fnptr_ty hash,
   cc_dtor_fnptr_ty el_dtor,
-  cc_dtor_fnptr_ty key_dtor
+  cc_dtor_fnptr_ty key_dtor,
+  cc_free_fnptr_ty free_
 )
 {
   --cc_map_hdr( cntr )->size;
@@ -3146,9 +3658,9 @@ static inline bool cc_map_erase_raw(
   )
   {
     if( el_dtor )
-      el_dtor( cc_map_el( cntr, erase_bucket, el_size, layout ) );
+      el_dtor( cc_map_el( cntr, erase_bucket, el_size, layout ), free_ );
     if( key_dtor )
-      key_dtor( cc_map_key( cntr, erase_bucket, el_size, layout ) );
+      key_dtor( cc_map_key( cntr, erase_bucket, el_size, layout ), free_ );
 
     cc_map_hdr( cntr )->metadata[ erase_bucket ] = CC_MAP_EMPTY;
     return true;
@@ -3164,9 +3676,9 @@ static inline bool cc_map_erase_raw(
   }
 
   if( el_dtor )
-    el_dtor( cc_map_el( cntr, erase_bucket, el_size, layout ) );
+    el_dtor( cc_map_el( cntr, erase_bucket, el_size, layout ), free_ );
   if( key_dtor )
-    key_dtor( cc_map_key( cntr, erase_bucket, el_size, layout ) );
+    key_dtor( cc_map_key( cntr, erase_bucket, el_size, layout ), free_ );
 
   // Case 2: The key-element pair is the last in a chain containing multiple key-element pairs.
   // Traverse the chain from the beginning and find the penultimate key-element pair.
@@ -3207,8 +3719,10 @@ static inline bool cc_map_erase_raw(
         CC_BUCKET_SIZE( el_size, layout )
       );
 
-      cc_map_hdr( cntr )->metadata[ erase_bucket ] = ( cc_map_hdr( cntr )->metadata[ erase_bucket ] &
-        ~CC_MAP_HASH_FRAG_MASK ) | ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_HASH_FRAG_MASK );
+      cc_map_hdr( cntr )->metadata[ erase_bucket ] = (uint16_t)(
+        ( cc_map_hdr( cntr )->metadata[ erase_bucket ] & ~CC_MAP_HASH_FRAG_MASK ) |
+        ( cc_map_hdr( cntr )->metadata[ bucket ] & CC_MAP_HASH_FRAG_MASK )
+      );
 
       cc_map_hdr( cntr )->metadata[ prev ] |= CC_MAP_DISPLACEMENT_MASK;
       cc_map_hdr( cntr )->metadata[ bucket ] = CC_MAP_EMPTY;
@@ -3237,12 +3751,12 @@ static inline CC_ALWAYS_INLINE void *cc_map_erase_itr(
   cc_hash_fnptr_ty hash,
   cc_dtor_fnptr_ty el_dtor,
   cc_dtor_fnptr_ty key_dtor,
-  CC_UNUSED( cc_free_fnptr_ty, free_ )
+  cc_free_fnptr_ty free_
 )
 {
   size_t bucket = cc_map_bucket_index_from_itr( cntr, itr, el_size, layout );
 
-  if( cc_map_erase_raw( cntr, bucket, SIZE_MAX, el_size, layout, hash, el_dtor, key_dtor ) )
+  if( cc_map_erase_raw( cntr, bucket, SIZE_MAX, el_size, layout, hash, el_dtor, key_dtor, free_ ) )
     return cc_map_next( cntr, itr, el_size, layout );
 
   return itr;
@@ -3260,7 +3774,7 @@ static inline void *cc_map_erase(
   cc_cmpr_fnptr_ty cmpr,
   cc_dtor_fnptr_ty el_dtor,
   cc_dtor_fnptr_ty key_dtor,
-  CC_UNUSED( cc_free_fnptr_ty, free_ )
+  cc_free_fnptr_ty free_
 )
 {
   size_t key_hash = hash( key );
@@ -3278,7 +3792,7 @@ static inline void *cc_map_erase(
       CC_LIKELY( cmpr( cc_map_key( cntr, bucket, el_size, layout ), key ) )
     )
     {
-      cc_map_erase_raw( cntr, bucket, home_bucket, el_size, layout, hash, el_dtor, key_dtor );
+      cc_map_erase_raw( cntr, bucket, home_bucket, el_size, layout, hash, el_dtor, key_dtor, free_ );
       return &cc_dummy_true;
     }
 
@@ -3375,7 +3889,7 @@ static inline void cc_map_clear(
   uint64_t layout,
   cc_dtor_fnptr_ty el_dtor,
   cc_dtor_fnptr_ty key_dtor,
-  CC_UNUSED( cc_free_fnptr_ty, free_ )
+  cc_free_fnptr_ty free_
 )
 {
   if( cc_map_size( cntr ) == 0 ) // Also handles placeholder.
@@ -3385,10 +3899,10 @@ static inline void cc_map_clear(
     if( cc_map_hdr( cntr )->metadata[ bucket ] )
     {
       if( key_dtor )
-        key_dtor( cc_map_key( cntr, bucket, el_size, layout ) );
+        key_dtor( cc_map_key( cntr, bucket, el_size, layout ), free_ );
 
       if( el_dtor )
-        el_dtor( cc_map_el( cntr, bucket, el_size, layout ) );
+        el_dtor( cc_map_el( cntr, bucket, el_size, layout ), free_ );
 
       cc_map_hdr( cntr )->metadata[ bucket ] = CC_MAP_EMPTY;
     }
@@ -3406,7 +3920,7 @@ static inline void cc_map_cleanup(
   cc_free_fnptr_ty free_
 )
 {
-  cc_map_clear( cntr, el_size, layout, el_dtor, key_dtor, NULL /* Dummy */ );
+  cc_map_clear( cntr, el_size, layout, el_dtor, key_dtor, free_ );
 
   if( !cc_map_is_placeholder( cntr ) )
     free_( cntr );
@@ -3496,7 +4010,7 @@ static inline void *cc_set_erase_itr(
   cc_hash_fnptr_ty hash,
   cc_dtor_fnptr_ty el_dtor,
   CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
-  CC_UNUSED( cc_free_fnptr_ty, free_ )
+  cc_free_fnptr_ty free_
 )
 {
   return cc_map_erase_itr(
@@ -3507,7 +4021,7 @@ static inline void *cc_set_erase_itr(
     hash,
     el_dtor,
     NULL,    // Only one destructor.
-    NULL     // Dummy.
+    free_
   );
 }
 
@@ -3520,7 +4034,7 @@ static inline void *cc_set_erase(
   cc_cmpr_fnptr_ty cmpr,
   cc_dtor_fnptr_ty el_dtor,
   CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
-  CC_UNUSED( cc_free_fnptr_ty, free_ )
+  cc_free_fnptr_ty free_
 )
 {
   return cc_map_erase(
@@ -3532,7 +4046,7 @@ static inline void *cc_set_erase(
     cmpr,
     el_dtor,
     NULL,    // Only one destructor.
-    NULL     // Dummy.
+    free_
   );
 }
 
@@ -3566,10 +4080,10 @@ static inline void cc_set_clear(
   uint64_t layout,
   cc_dtor_fnptr_ty el_dtor,
   CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
-  CC_UNUSED( cc_free_fnptr_ty, free_ )
+  cc_free_fnptr_ty free_
 )
 {
-  cc_map_clear( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one destructor */, NULL /* Dummy */ );
+  cc_map_clear( cntr, 0 /* Zero element size */, layout, el_dtor, NULL /* Only one destructor */, free_ );
 }
 
 static inline void cc_set_cleanup(
@@ -3950,7 +4464,7 @@ static inline cc_allocing_fn_result_ty cc_omap_insert(
   cc_dtor_fnptr_ty el_dtor,
   cc_dtor_fnptr_ty key_dtor,
   cc_realloc_fnptr_ty realloc_,
-  CC_UNUSED( cc_free_fnptr_ty, free_ )
+  cc_free_fnptr_ty free_
 )
 {
   // Allocate a header if necessary.
@@ -3981,10 +4495,10 @@ static inline cc_allocing_fn_result_ty cc_omap_insert(
       if( replace )
       {
         if( key_dtor )
-          key_dtor( cc_omap_key( node, el_size, layout ) );
+          key_dtor( cc_omap_key( node, el_size, layout ), free_ );
 
         if( el_dtor )
-          el_dtor( cc_omap_el( node ) );
+          el_dtor( cc_omap_el( node ), free_ );
 
         memcpy( cc_omap_key( node, el_size, layout ), key, CC_KEY_SIZE( layout ) );
         memcpy( cc_omap_el( node ), el, el_size );
@@ -4191,10 +4705,10 @@ static inline void cc_omap_erase_raw(
   }
 
   if( key_dtor )
-    key_dtor( cc_omap_key( node, el_size, layout ) );
+    key_dtor( cc_omap_key( node, el_size, layout ), free_ );
 
   if( el_dtor )
-    el_dtor( cc_omap_el( node ) );
+    el_dtor( cc_omap_el( node ), free_ );
 
   free_( node );
   --cc_omap_hdr( cntr )->size;
@@ -4274,10 +4788,10 @@ static inline void cc_omap_clear(
       next = node->parent;
 
       if( key_dtor )
-        key_dtor( cc_omap_key( node, el_size, layout ) );
+        key_dtor( cc_omap_key( node, el_size, layout ), free_ );
 
       if( el_dtor )
-        el_dtor( cc_omap_el( node ) );
+        el_dtor( cc_omap_el( node ), free_ );
 
       free_( node );
     }
@@ -4606,30 +5120,1345 @@ static inline void *cc_oset_next(
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
+/*                                                      String                                                        */
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+// cc_str is based largely on the implementation of cc_vec. However, besides null-termination, there are some other
+// major differences:
+// * cc_str's header contains a pointer to its data buffer. Usually, this pointer simply points to the end of the header
+//   inside the same memory allocation. However, in the case of a temporary string constructed by the library for the
+//   purpose of heterogeneous lookup in associative containers, the pointer points to a separate buffer supplied by the
+//   user. This approach avoids unnecessary allocations at the expense of a slightly larger header struct.
+// * cc_str never calls destructors on its elements. This choice allows cc_str itself to have a default destructor so
+//   that it can easily be used as the key or element type of other containers.
+// * cc_str includes formatted push and insertion functions for easy string building.
+
+// String header.
+typedef struct
+{
+  alignas( alignof( char32_t ) > alignof( size_t ) ? alignof( char32_t ) : alignof( size_t ) )
+  size_t size;
+  size_t cap;
+  void *data;
+} cc_str_hdr_ty;
+
+// Global placeholders for strings with no allocated storage.
+// To avoid any strict-aliasing violations, we need specialized placeholders for different element types.
+#if defined( __cplusplus ) && __cplusplus >= 202101L
+static const cc_str_hdr_ty cc_str_placeholder_char8 = { 0, 0, (void *)u8"" };
+#else
+static const cc_str_hdr_ty cc_str_placeholder_char8 = { 0, 0, (void *)"" };
+#endif
+static const cc_str_hdr_ty cc_str_placeholder_char16 = { 0, 0, (void *)u"" };
+static const cc_str_hdr_ty cc_str_placeholder_char32 = { 0, 0, (void *)U"" };
+
+// CC_STR_PLACEHOLDER macro for obtaining the correct placeholder.
+
+#ifdef __cplusplus
+
+#define CC_STR_PLACEHOLDER( ty )                                           \
+(                                                                          \
+  std::is_same<ty, char16_t>::value ? (void *)&cc_str_placeholder_char16 : \
+  std::is_same<ty, char32_t>::value ? (void *)&cc_str_placeholder_char32 : \
+  /* char, unsigned char, signed char, and char8_t: */                     \
+  (void *)&cc_str_placeholder_char8                                        \
+)                                                                          \
+
+#else
+
+#define CC_STR_PLACEHOLDER( ty )                       \
+_Generic( (ty){ 0 },                                   \
+  char16_t:          &cc_str_placeholder_char16,       \
+  char32_t:          &cc_str_placeholder_char32,       \
+  /* char, unsigned char, signed char, and char8_t: */ \
+  default:           &cc_str_placeholder_char8         \
+)                                                      \
+
+#endif
+
+// Easy header access function.
+static inline cc_str_hdr_ty *cc_str_hdr( void *cntr )
+{
+  return (cc_str_hdr_ty *)cntr;
+}
+
+static inline size_t cc_str_size( void *cntr )
+{
+  return cc_str_hdr( cntr )->size;
+}
+
+static inline size_t cc_str_cap( void *cntr )
+{
+  return cc_str_hdr( cntr )->cap;
+}
+
+static inline bool cc_str_is_placeholder( void *cntr )
+{
+  return cc_str_hdr( cntr )->cap == 0;
+}
+
+// Returns a pointer-iterator to the element at a specified index.
+static inline void *cc_str_get(
+  void *cntr,
+  void *key, // Pointer to a size_t index.
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( cc_cmpr_fnptr_ty, cmpr )
+)
+{
+  return (char *)cc_str_hdr( cntr )->data + el_size * *(size_t *)key;
+}
+
+// Ensures that the capacity is large enough to accommodate n elements without reallocation.
+// Returns a cc_allocing_fn_result_ty containing the new handle and a pointer that evaluates to true if the operation
+// was successful.
+static inline cc_allocing_fn_result_ty cc_str_reserve(
+  void *cntr,
+  size_t n,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( double, max_load ),
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  if( cc_str_cap( cntr ) >= n )
+    return cc_make_allocing_fn_result( cntr, cc_dummy_true_ptr );
+
+  bool is_placeholder = cc_str_is_placeholder( cntr );
+
+  cc_str_hdr_ty *new_cntr = (cc_str_hdr_ty *)realloc_(
+    is_placeholder ? NULL : cntr,
+    sizeof( cc_str_hdr_ty ) + el_size * n + el_size // Terminator.
+  );
+
+  if( CC_UNLIKELY( !new_cntr ) )
+    return cc_make_allocing_fn_result( cntr, NULL );
+
+  new_cntr->data = new_cntr + 1; // Set the internal pointer to point to the end of the header.
+
+  if( is_placeholder )
+  {
+    new_cntr->size = 0;
+    memset( new_cntr->data, 0, el_size ); // Ensure null termination.
+  }
+
+  new_cntr->cap = n;
+  return cc_make_allocing_fn_result( new_cntr, cc_dummy_true_ptr );
+}
+
+// Inserts elements at the specified index.
+// Returns a cc_allocing_fn_result_ty containing the new handle and a pointer-iterator to the newly inserted elements.
+// If the underlying storage needed to be expanded and an allocation failure occurred, or if n is zero, the latter
+// pointer will be NULL.
+static inline cc_allocing_fn_result_ty cc_str_insert_n(
+  void *cntr,
+  size_t index,
+  const void *els,
+  size_t n,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  if( n == 0 )
+    return cc_make_allocing_fn_result( cntr, NULL );
+
+  if( cc_str_size( cntr ) + n > cc_str_cap( cntr ) )
+  {
+    size_t cap = cc_str_cap( cntr );
+    if( !cap )
+      cap = 2;
+
+    while( cap < cc_str_size( cntr ) + n )
+      cap *= 2;
+
+    cc_allocing_fn_result_ty result = cc_str_reserve(
+      cntr,
+      cap,
+      el_size,
+      0,        // Dummy.
+      NULL,     // Dummy.
+      0.0,      // Dummy.
+      realloc_,
+      NULL      // Dummy.
+    );
+    if( CC_UNLIKELY( !result.other_ptr ) )
+      return result;
+
+    cntr = result.new_cntr;
+  }
+
+  char *new_els = (char *)cc_str_hdr( cntr )->data + el_size * index;
+  memmove( new_els + n * el_size, new_els, el_size * ( cc_str_hdr( cntr )->size - index ) + el_size /* Terminator */ );
+  memcpy( new_els, els, el_size * n );
+  cc_str_hdr( cntr )->size += n;
+
+  return cc_make_allocing_fn_result( cntr, new_els );
+}
+
+static inline cc_allocing_fn_result_ty cc_str_insert(
+  void *cntr,
+  void *el,
+  void *key, // Pointer to size_t index.
+  CC_UNUSED( bool, replace ),
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( cc_cmpr_fnptr_ty, cmpr ),
+  CC_UNUSED( double, max_load ),
+  CC_UNUSED( cc_dtor_fnptr_ty, el_dtor ),
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  return cc_str_insert_n( cntr, *(size_t *)key, el, 1, el_size, realloc_ );
+}
+
+static inline cc_allocing_fn_result_ty cc_str_push_n(
+  void *cntr,
+  const void *els,
+  size_t n,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  return cc_str_insert_n( cntr, cc_str_size( cntr ), els, n, el_size, realloc_ );
+}
+
+static inline cc_allocing_fn_result_ty cc_str_push(
+  void *cntr,
+  void *el,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  return cc_str_push_n( cntr, el, 1, el_size, realloc_ );
+}
+
+// Generic formatted insertion into strings requires that each argument provided to cc_str_insert_wrapped_fmt_args be
+// wrapped in a tagged union (cc_wrapped_str_fmt_arg_ty).
+// Format mode-modifying functions also return the same tagged-union type so that they can be passed in alongside other
+// insertion arguments.
+
+#define CC_STR_FMT_ARG_UNSIGNED_INTEGER       0
+#define CC_STR_FMT_ARG_INTEGER                1
+#define CC_STR_FMT_ARG_FLOATING               2
+#define CC_STR_FMT_ARG_C_STRING               3
+#define CC_STR_FMT_ARG_STR                    4
+#define CC_STR_FMT_ARG_VOID_POINTER           5
+#define CC_STR_FMT_ARG_MODE_INTEGER_DEC       6
+#define CC_STR_FMT_ARG_MODE_INTEGER_HEX       7
+#define CC_STR_FMT_ARG_MODE_INTEGER_OCT       8
+#define CC_STR_FMT_ARG_MODE_FLOATING_DEC      9
+#define CC_STR_FMT_ARG_MODE_FLOATING_HEX      10
+#define CC_STR_FMT_ARG_MODE_FLOATING_SCI      11
+#define CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST 12
+
+typedef struct
+{
+  unsigned char type;
+  bool is_final;
+  size_t formatted_length;
+
+  union
+  {
+    unsigned long long unsigned_integer;
+    long long integer;
+    double floating;
+    const void *pointer;
+  };
+} cc_wrapped_str_fmt_arg_ty;
+
+// CC_WRAP_STR_FMT_ARG macro to wrap an argument to be formatted and inserted into a string in a tagged union also
+// indicating the argument type and whether or not it is the final argument.
+// This macro also handles the type promotions described in the string API documentation for cc_push_fmt and
+// cc_insert_fmt.
+// In C++, the wrapping is achieved via template functions.
+// In C, we use a _Generic expression to dispatch the argument to the correct wrapping function.
+
+#ifdef __cplusplus
+
+template<
+  typename el_ty,
+  typename arg_ty,
+  typename std::enable_if<std::is_integral<arg_ty>::value && std::is_unsigned<arg_ty>::value, bool>::type = true
+>
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_UNSIGNED_INTEGER;
+  wrapped_arg.is_final = is_final;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.unsigned_integer = arg;
+  return wrapped_arg;
+}
+
+template<
+  typename el_ty,
+  typename arg_ty,
+  typename std::enable_if<std::is_integral<arg_ty>::value && std::is_signed<arg_ty>::value, bool>::type = true
+>
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_INTEGER;
+  wrapped_arg.is_final = is_final;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.integer = arg;
+  return wrapped_arg;
+}
+
+template<
+  typename el_ty,
+  typename arg_ty,
+  typename std::enable_if<std::is_floating_point<arg_ty>::value, bool>::type = true
+>
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_FLOATING;
+  wrapped_arg.is_final = is_final;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.floating = arg;
+  return wrapped_arg;
+}
+
+template<
+  typename el_ty,
+  typename arg_ty,
+  typename std::enable_if<
+    ( std::is_same<el_ty, char>::value && std::is_same<arg_ty, char *>::value)                          ||
+    ( std::is_same<el_ty, char>::value && std::is_same<arg_ty, const char *>::value)                    ||
+    ( std::is_same<el_ty, unsigned char>::value && std::is_same<arg_ty, unsigned char *>::value )       ||
+    ( std::is_same<el_ty, unsigned char>::value && std::is_same<arg_ty, const unsigned char *>::value ) ||
+    ( std::is_same<el_ty, signed char>::value && std::is_same<arg_ty, signed char *>::value )           ||
+    ( std::is_same<el_ty, signed char>::value && std::is_same<arg_ty, const signed char *>::value )     ||
+#if __cplusplus >= 202101L
+    ( std::is_same<el_ty, char16_t>::value && std::is_same<arg_ty, char8_t *>::value )                  ||
+    ( std::is_same<el_ty, char16_t>::value && std::is_same<arg_ty, const char8_t *>::value )            ||
+#endif
+    ( std::is_same<el_ty, char16_t>::value && std::is_same<arg_ty, char16_t *>::value )                 ||
+    ( std::is_same<el_ty, char16_t>::value && std::is_same<arg_ty, const char16_t *>::value )           ||
+    ( std::is_same<el_ty, char32_t>::value && std::is_same<arg_ty, char32_t *>::value )                 ||
+    ( std::is_same<el_ty, char32_t>::value && std::is_same<arg_ty, const char32_t *>::value )
+  , bool>::type = true
+>
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_C_STRING;
+  wrapped_arg.is_final = is_final;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.pointer = arg;
+  return wrapped_arg;
+}
+
+// For CC strings, we must specify the container type manually rather than relying on the CC_STR_RAW macro because of
+// template argument-deduction issues.
+template<
+  typename el_ty,
+  typename arg_ty,
+  typename std::enable_if<
+    std::is_same<arg_ty, el_ty (*(*)[ CC_STR ])( size_t * )>::value ||      // CC_STR_RAW( el_ty ) *.
+    std::is_same<arg_ty, el_ty (*(* const)[ CC_STR ])( size_t * )>::value,  // const CC_STR_RAW( el_ty ) *.
+    bool
+  >::type = true
+>
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_STR;
+  wrapped_arg.is_final = is_final;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.pointer = *arg;
+  return wrapped_arg;
+}
+
+template<
+  typename el_ty,
+  typename arg_ty,
+  typename std::enable_if<
+    std::is_same<arg_ty, void *>::value || std::is_same<arg_ty, const void *>::value,
+    bool
+  >::type = true
+>
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_VOID_POINTER;
+  wrapped_arg.is_final = is_final;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.pointer = arg;
+  return wrapped_arg;
+}
+
+template<
+  typename el_ty,
+  typename arg_ty,
+  typename std::enable_if<std::is_same<arg_ty, cc_wrapped_str_fmt_arg_ty>::value, bool>::type = true
+>
+cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
+{
+  arg.is_final = is_final;
+  return arg;
+}
+
+#define CC_WRAP_STR_FMT_ARG( el_ty, arg, is_final ) cc_wrap_str_fmt_arg<el_ty>( arg, is_final )
+
+#else
+
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_char( char arg, bool is_final )
+{
+  if( CHAR_MIN < 0 )
+    return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_INTEGER, is_final, .integer = (signed long long )arg };
+
+  return (cc_wrapped_str_fmt_arg_ty){
+    CC_STR_FMT_ARG_UNSIGNED_INTEGER, is_final, 0, .unsigned_integer = (unsigned long long)arg
+  };
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_unsigned_integer(
+  unsigned long long arg,
+  bool is_final
+)
+{
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_UNSIGNED_INTEGER, is_final, 0, .unsigned_integer = arg };
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_integer( long long arg, bool is_final )
+{
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_INTEGER, is_final, 0, .integer = arg };
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_floating( double arg, bool is_final )
+{
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_FLOATING, is_final, 0, .floating = arg };
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_cstring( const void *arg, bool is_final )
+{
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_C_STRING, is_final, 0, .pointer = arg };
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_str( const void *arg, bool is_final )
+{
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_STR, is_final, 0, .pointer = arg };
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_void_pointer( const void *arg, bool is_final )
+{
+  return (cc_wrapped_str_fmt_arg_ty){ CC_STR_FMT_ARG_VOID_POINTER, is_final, 0, .pointer = arg };
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_passthrough( cc_wrapped_str_fmt_arg_ty arg, bool is_final )
+{
+  arg.is_final = is_final;
+  return arg;
+}
+
+#define CC_WRAP_STR_FMT_ARG( el_ty, arg, is_final ) _Generic( (arg), \
+  bool:                      cc_wrap_str_fmt_arg_unsigned_integer,   \
+  cc_maybe_char:             cc_wrap_str_fmt_arg_char,               \
+  unsigned char:             cc_wrap_str_fmt_arg_unsigned_integer,   \
+  signed char:               cc_wrap_str_fmt_arg_integer,            \
+  unsigned short:            cc_wrap_str_fmt_arg_unsigned_integer,   \
+  short:                     cc_wrap_str_fmt_arg_integer,            \
+  unsigned int:              cc_wrap_str_fmt_arg_unsigned_integer,   \
+  int:                       cc_wrap_str_fmt_arg_integer,            \
+  unsigned long:             cc_wrap_str_fmt_arg_unsigned_integer,   \
+  long:                      cc_wrap_str_fmt_arg_integer,            \
+  unsigned long long:        cc_wrap_str_fmt_arg_unsigned_integer,   \
+  long long:                 cc_wrap_str_fmt_arg_integer,            \
+  cc_maybe_size_t:           cc_wrap_str_fmt_arg_unsigned_integer,   \
+  float:                     cc_wrap_str_fmt_arg_floating,           \
+  double:                    cc_wrap_str_fmt_arg_floating,           \
+  el_ty *:                   cc_wrap_str_fmt_arg_cstring,            \
+  const el_ty *:             cc_wrap_str_fmt_arg_cstring,            \
+  cc_wrapped_str_fmt_arg_ty: cc_wrap_str_fmt_arg_passthrough,        \
+  void *:                    cc_wrap_str_fmt_arg_void_pointer,       \
+  const void *:              cc_wrap_str_fmt_arg_void_pointer,       \
+  CC_STR_RAW( el_ty ):       cc_wrap_str_fmt_arg_str,                \
+  const CC_STR_RAW( el_ty ): cc_wrap_str_fmt_arg_str                 \
+)( arg, is_final )                                                   \
+
+#endif
+
+// CC_WRAPPED_STR_FMT_ARGS_ARRAY macro for transforming a __VA_ARGS__ of raw string formatted insertion arguments into
+// an array of wrapped arguments.
+
+#define CC_WRAPPED_STR_FMT_ARGS_1( el_ty, arg ) CC_WRAP_STR_FMT_ARG( el_ty, arg, true )
+
+#define CC_WRAPPED_STR_FMT_ARGS_2( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_1( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_3( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_2( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_4( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_3( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_5( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_4( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_6( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_5( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_7( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_6( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_8( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_7( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_9( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_8( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_10( el_ty, arg, ... )                                                       \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_9( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_11( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_10( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_12( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_11( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_13( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_12( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_14( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_13( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_15( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_14( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_16( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_15( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_17( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_16( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_18( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_17( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_19( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_18( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_20( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_19( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_21( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_20( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_22( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_21( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_23( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_22( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_24( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_23( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_25( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_24( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_26( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_25( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_27( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_26( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_28( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_27( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_29( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_28( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_30( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_29( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_31( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_30( el_ty, __VA_ARGS__ ) ) \
+
+#define CC_WRAPPED_STR_FMT_ARGS_32( el_ty, arg, ... )                                                        \
+CC_WRAP_STR_FMT_ARG( el_ty, arg, false ), CC_MSVC_PP_FIX( CC_WRAPPED_STR_FMT_ARGS_31( el_ty, __VA_ARGS__ ) ) \
+
+#ifdef __cplusplus
+
+#define CC_WRAPPED_STR_FMT_ARGS_ARRAY( el_ty, ... )                                    \
+decltype( std::declval<cc_wrapped_str_fmt_arg_ty[ CC_N_ARGS( __VA_ARGS__ ) ]>() ){     \
+  CC_CAT_2( CC_WRAPPED_STR_FMT_ARGS_, CC_N_ARGS( __VA_ARGS__ ) )( el_ty, __VA_ARGS__ ) \
+}                                                                                      \
+
+#else
+
+#define CC_WRAPPED_STR_FMT_ARGS_ARRAY( el_ty, ... )                                                      \
+(cc_wrapped_str_fmt_arg_ty[]){                                                                           \
+  CC_MSVC_PP_FIX( CC_CAT_2( CC_WRAPPED_STR_FMT_ARGS_, CC_N_ARGS( __VA_ARGS__ ) )( el_ty, __VA_ARGS__ ) ) \
+}                                                                                                        \
+
+#endif
+
+// Functions for setting the formatting mode of integer and floating-point arguments.
+
+static inline cc_wrapped_str_fmt_arg_ty cc_integer_dec( int min_digits )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_INTEGER_DEC;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.integer = min_digits;
+  return wrapped_arg;
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_integer_hex( int min_digits )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_INTEGER_HEX;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.integer = min_digits;
+  return wrapped_arg;
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_integer_oct( int min_digits )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_INTEGER_OCT;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.integer = min_digits;
+  return wrapped_arg;
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_float_dec( int precision )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_FLOATING_DEC;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.integer = precision;
+  return wrapped_arg;
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_float_hex( int precision )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_FLOATING_HEX;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.integer = precision;
+  return wrapped_arg;
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_float_sci( int precision )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_FLOATING_SCI;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.integer = precision;
+  return wrapped_arg;
+}
+
+static inline cc_wrapped_str_fmt_arg_ty cc_float_shortest( int significant_digits )
+{
+  cc_wrapped_str_fmt_arg_ty wrapped_arg;
+  wrapped_arg.type = CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST;
+  wrapped_arg.formatted_length = 0;
+  wrapped_arg.integer = significant_digits;
+  return wrapped_arg;
+}
+
+// Functions for determining the length of char16_t and char32_t C strings.
+
+static inline size_t cc_strlen_char16( const char16_t *string )
+{
+  const char16_t *index = string;
+  while( *index )
+    ++index;
+  return (size_t)( index - string );
+}
+
+static inline size_t cc_strlen_char32( const char32_t *string )
+{
+  const char32_t *index = string;
+  while( *index )
+    ++index;
+  return (size_t)( index - string );
+}
+
+// To avoid the need for a temporary buffer, formatted insertions into char16_t and char32_t strings initially print as
+// ASCII into the string's own buffer.
+// Hence, a post-print fix-up step is needed to distribute the characters properly.
+
+static inline void cc_snprintf_fixup_char32( char *first_char, size_t char_count )
+{
+  char *src_char = first_char + ( char_count - 1 );
+  char32_t *dest_char32 = (char32_t *)( first_char + sizeof( char32_t ) * ( char_count - 1 ) );
+  while( char_count > 0 )
+  {
+    *dest_char32 = (char32_t)*src_char;
+    --src_char;
+    --dest_char32;
+    --char_count;
+  }
+}
+
+static inline void cc_snprintf_fixup_char16( char *first_char, size_t char_count )
+{
+  char *src_char = first_char + ( char_count - 1 );
+  char16_t *dest_char32 = (char16_t *)( first_char + sizeof( char16_t ) * ( char_count - 1 ) );
+  while( char_count > 0 )
+  {
+    *dest_char32 = (char16_t)*src_char;
+    --src_char;
+    --dest_char32;
+    --char_count;
+  }
+}
+
+// Inserts formatted arguments into a string.
+// This requires:
+// * Iterating over the array of arguments and counting the number of characters that each one comprises when formatted.
+// * Growing the string's buffer to accommodate all the insertions, if necessary.
+// * Reiterating over the arguments again and performing the insertions.
+// Returns a cc_allocing_fn_result_ty containing the new handle and a pointer-iterator to the first newly inserted
+// element.
+// If the underlying storage needed to be expanded and an allocation failure occurred, the latter pointer will be NULL.
+static inline cc_allocing_fn_result_ty cc_str_insert_wrapped_fmt_args(
+  void *cntr,
+  cc_wrapped_str_fmt_arg_ty *wrapped_args,
+  size_t index,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  unsigned int integer_mode = CC_STR_FMT_ARG_MODE_INTEGER_DEC;
+  unsigned int floating_mode = CC_STR_FMT_ARG_MODE_FLOATING_DEC;
+  int integer_min_digits = 1;
+  int floating_precision_or_significant_digits = 2;
+
+  // First count the number of characters needed to complete all the insertions, along with the total.
+  size_t total = 0;
+  cc_wrapped_str_fmt_arg_ty *wrapped_arg = wrapped_args;
+  while( true )
+  {
+    switch( wrapped_arg->type )
+    {
+      case CC_STR_FMT_ARG_UNSIGNED_INTEGER:
+      {
+        int result = snprintf(
+          NULL,
+          0,
+          integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_DEC  ? "%.*llu" :
+          integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
+                       /* CC_STR_FMT_ARG_MODE_INTEGER_OCT */ "%.*llo" ,
+          integer_min_digits,
+          wrapped_arg->unsigned_integer
+        );
+
+        wrapped_arg->formatted_length = result > 0 ? (size_t)result : SIZE_MAX;
+      }
+      break;
+      case CC_STR_FMT_ARG_INTEGER:
+      {
+        int result;
+        if( integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_DEC )
+          result = snprintf( NULL, 0, "%.*lld", integer_min_digits, wrapped_arg->integer );
+        else
+          result = snprintf(
+            NULL,
+            0,
+            integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
+                         /* CC_STR_FMT_ARG_MODE_INTEGER_OCT */ "%.*llo",
+            integer_min_digits,
+            (unsigned long long)wrapped_arg->integer
+          );
+
+        wrapped_arg->formatted_length = result > 0 ? (size_t)result : SIZE_MAX;
+      }
+      break;
+      case CC_STR_FMT_ARG_FLOATING:
+      {
+        int result = snprintf(
+          NULL,
+          0,
+          floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_DEC       ? "%.*f" :
+          floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_HEX       ? "%.*a" :
+          floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_SCI       ? "%.*e" :
+                        /* CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST */ "%.*g",
+          floating_precision_or_significant_digits,
+          wrapped_arg->floating
+        );
+
+        wrapped_arg->formatted_length = result > 0 ? (size_t)result : SIZE_MAX;
+      }
+      break;
+      case CC_STR_FMT_ARG_C_STRING:
+      {
+        wrapped_arg->formatted_length = (
+          el_size == sizeof( char )     ? (size_t)strlen( (const char *)wrapped_arg->pointer ) :
+          el_size == sizeof( char16_t ) ? cc_strlen_char16( (char16_t *)wrapped_arg->pointer ) :
+                           /* char32_t */ cc_strlen_char32( (char32_t *)wrapped_arg->pointer )
+        );
+      }
+      break;
+      case CC_STR_FMT_ARG_VOID_POINTER:
+      {
+        int result = snprintf( NULL, 0, "%p", wrapped_arg->pointer );
+        wrapped_arg->formatted_length = result > 0 ? (size_t)result : SIZE_MAX;
+      }
+      break;
+      case CC_STR_FMT_ARG_STR:
+      {
+        wrapped_arg->formatted_length = cc_str_hdr( (void *)wrapped_arg->pointer )->size;
+      }
+      break;
+      case CC_STR_FMT_ARG_MODE_INTEGER_DEC:
+      case CC_STR_FMT_ARG_MODE_INTEGER_HEX:
+      case CC_STR_FMT_ARG_MODE_INTEGER_OCT:
+      {
+        integer_mode = wrapped_arg->type;
+        integer_min_digits = (int)wrapped_arg->integer;
+      }
+      break;
+      case CC_STR_FMT_ARG_MODE_FLOATING_DEC:
+      case CC_STR_FMT_ARG_MODE_FLOATING_HEX:
+      case CC_STR_FMT_ARG_MODE_FLOATING_SCI:
+      case CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST:
+      {
+        floating_mode = wrapped_arg->type;
+        floating_precision_or_significant_digits = (int)wrapped_arg->integer;
+      }
+      break;
+    }
+
+    if( wrapped_arg->formatted_length != SIZE_MAX ) // Check for encoding error.
+      total += wrapped_arg->formatted_length;
+
+    if( wrapped_arg->is_final )
+      break;
+    ++wrapped_arg;
+  }
+
+  // Make room.
+  if( cc_str_size( cntr ) + total > cc_str_cap( cntr ) )
+  {
+    size_t cap = cc_str_cap( cntr );
+    if( !cap )
+      cap = 2;
+
+    while( cap < cc_str_size( cntr ) + total )
+      cap *= 2;
+
+    cc_allocing_fn_result_ty result = cc_str_reserve(
+      cntr,
+      cap,
+      el_size,
+      0,        // Dummy.
+      NULL,     // Dummy.
+      0.0,      // Dummy.
+      realloc_,
+      NULL      // Dummy.
+    );
+    if( CC_UNLIKELY( !result.other_ptr ) )
+      return result;
+
+    cntr = result.new_cntr;
+  }
+
+  // Move the latter part of the string backwards.
+  char *new_els = (char *)cc_str_hdr( cntr )->data + el_size * index;
+  memmove(
+    new_els + total * el_size,
+    new_els,
+    el_size * ( cc_str_hdr( cntr )->size - index ) + el_size // Terminator.
+  );
+  cc_str_hdr( cntr )->size += total;
+
+  // Perform the insertions.
+  wrapped_arg = wrapped_args;
+  integer_mode = CC_STR_FMT_ARG_MODE_INTEGER_DEC;
+  floating_mode = CC_STR_FMT_ARG_MODE_FLOATING_DEC;
+  integer_min_digits = 1;
+  floating_precision_or_significant_digits = 2;
+  char *cursor = new_els;
+  while( true )
+  {
+    if( wrapped_arg->formatted_length != SIZE_MAX ) // Check for encoding error.
+      switch( wrapped_arg->type )
+      {
+        case CC_STR_FMT_ARG_UNSIGNED_INTEGER:
+        case CC_STR_FMT_ARG_INTEGER:
+        case CC_STR_FMT_ARG_FLOATING:
+        case CC_STR_FMT_ARG_VOID_POINTER:
+        {
+          // Save the char that snprintf will overwrite with a null terminator.
+          char overwritten_char = *( cursor + wrapped_arg->formatted_length );
+
+          // Use snprintf, rather than sprintf, to silence MSVC's intrusive warnings about the latter.
+          if( wrapped_arg->type == CC_STR_FMT_ARG_UNSIGNED_INTEGER )
+            snprintf(
+              cursor,
+              wrapped_arg->formatted_length + 1,
+              integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_DEC  ? "%.*llu" :
+              integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
+                           /* CC_STR_FMT_ARG_MODE_INTEGER_OCT */ "%.*llo" ,
+              integer_min_digits,
+              wrapped_arg->unsigned_integer
+            );
+          else if( wrapped_arg->type == CC_STR_FMT_ARG_INTEGER )
+          {
+            if( integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_DEC )
+              snprintf( cursor, wrapped_arg->formatted_length + 1, "%.*lld", integer_min_digits, wrapped_arg->integer );
+            else
+              snprintf(
+                cursor,
+                wrapped_arg->formatted_length + 1,
+                integer_mode == CC_STR_FMT_ARG_MODE_INTEGER_HEX  ? "%.*llx" :
+                             /* CC_STR_FMT_ARG_MODE_INTEGER_OCT */ "%.*llo",
+                integer_min_digits,
+                (unsigned long long)wrapped_arg->integer
+              );
+          }
+          else if( wrapped_arg->type == CC_STR_FMT_ARG_FLOATING )
+            snprintf(
+              cursor,
+              wrapped_arg->formatted_length + 1,
+              floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_DEC       ? "%.*f" :
+              floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_HEX       ? "%.*a" :
+              floating_mode == CC_STR_FMT_ARG_MODE_FLOATING_SCI       ? "%.*e" :
+                            /* CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST */ "%.*g",
+              floating_precision_or_significant_digits,
+              wrapped_arg->floating
+            );
+          else // CC_STR_FMT_ARG_VOID_POINTER.
+            snprintf( cursor, wrapped_arg->formatted_length + 1, "%p", wrapped_arg->pointer );
+
+          *( cursor + wrapped_arg->formatted_length ) = overwritten_char; // Restore the overwritten char.
+
+          if( el_size == sizeof( char16_t ) )
+            cc_snprintf_fixup_char16( cursor, wrapped_arg->formatted_length );
+          else if( el_size == sizeof( char32_t ) )
+            cc_snprintf_fixup_char32( cursor, wrapped_arg->formatted_length );
+
+          cursor += wrapped_arg->formatted_length * el_size;
+        }
+        break;
+        case CC_STR_FMT_ARG_C_STRING:
+        {
+          memcpy( cursor, wrapped_arg->pointer, wrapped_arg->formatted_length * el_size );
+          cursor += wrapped_arg->formatted_length * el_size;
+        }
+        break;
+        case CC_STR_FMT_ARG_STR:
+        {
+          memcpy( cursor, cc_str_hdr( (void *)wrapped_arg->pointer ) + 1, wrapped_arg->formatted_length * el_size );
+          cursor += wrapped_arg->formatted_length * el_size;
+        }
+        break;
+        case CC_STR_FMT_ARG_MODE_INTEGER_DEC:
+        case CC_STR_FMT_ARG_MODE_INTEGER_HEX:
+        case CC_STR_FMT_ARG_MODE_INTEGER_OCT:
+        {
+          integer_mode = wrapped_arg->type;
+          integer_min_digits = (int)wrapped_arg->integer;
+        }
+        break;
+        case CC_STR_FMT_ARG_MODE_FLOATING_DEC:
+        case CC_STR_FMT_ARG_MODE_FLOATING_HEX:
+        case CC_STR_FMT_ARG_MODE_FLOATING_SCI:
+        case CC_STR_FMT_ARG_MODE_FLOATING_SHORTEST:
+        {
+          floating_mode = wrapped_arg->type;
+          floating_precision_or_significant_digits = (int)wrapped_arg->integer;
+        }
+        break;
+      }
+
+    if( wrapped_arg->is_final )
+      break;
+    ++wrapped_arg;
+  }
+
+  return cc_make_allocing_fn_result( cntr, new_els );
+}
+
+static inline cc_allocing_fn_result_ty cc_str_push_fmt(
+  void *cntr,
+  cc_wrapped_str_fmt_arg_ty *insert_args,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  return cc_str_insert_wrapped_fmt_args( cntr, insert_args, cc_str_size( cntr ), el_size, realloc_ );
+}
+
+static inline cc_allocing_fn_result_ty cc_str_insert_fmt(
+  void *cntr,
+  cc_wrapped_str_fmt_arg_ty *insert_args,
+  size_t index,
+  size_t el_size,
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  return cc_str_insert_wrapped_fmt_args( cntr, insert_args, index, el_size, realloc_ );
+}
+
+// Erases n elements at the specified index.
+// Returns a pointer-iterator to the element after the erased elements, or an end pointer-iterator if there is no
+// subsequent element.
+static inline void *cc_str_erase_n(
+  void *cntr,
+  size_t index,
+  size_t n,
+  size_t el_size,
+  CC_UNUSED( cc_dtor_fnptr_ty, el_dtor ),
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  if( n == 0 )
+    return (char *)cc_str_hdr( cntr )->data + el_size * index;
+
+  memmove(
+    (char *)cc_str_hdr( cntr )->data + el_size * index,
+    (char *)cc_str_hdr( cntr )->data + el_size * ( index + n ),
+    ( cc_str_hdr( cntr )->size - n - index ) * el_size + el_size // Terminator.
+  );
+
+  cc_str_hdr( cntr )->size -= n;
+  return (char *)cc_str_hdr( cntr )->data + el_size * index;
+}
+
+static inline void *cc_str_erase(
+  void *cntr,
+  void *key, // Pointer to size_t index.
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( cc_cmpr_fnptr_ty, cmpr ),
+  CC_UNUSED( cc_dtor_fnptr_ty, el_dtor ),
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  return cc_str_erase_n( cntr, *(size_t *)key, 1, el_size, NULL /* Dummy */, NULL /* Dummy */ );
+}
+
+// Sets the number of elements in the string.
+// If n is above the current size, the new elements are initialized to fill_el.
+// Returns a cc_allocing_fn_result_ty containing new container handle and a pointer that evaluates to true if the
+// operation was successful or false in the case of allocation failure.
+static inline cc_allocing_fn_result_ty cc_str_resize(
+  void *cntr,
+  size_t n,
+  void *fill_el,
+  size_t el_size,
+  CC_UNUSED( cc_dtor_fnptr_ty, el_dtor ),
+  cc_realloc_fnptr_ty realloc_
+)
+{
+  // No resize necessary (also handles placeholder).
+  if( n == cc_str_size( cntr ) )
+    return cc_make_allocing_fn_result( cntr, cc_dummy_true_ptr );
+
+  // Downsizing.
+  if( n < cc_str_size( cntr ) )
+  {
+    cc_str_erase_n( cntr, n, cc_str_size( cntr ) - n, el_size, NULL /* Dummy */, NULL /* Dummy */ );
+    return cc_make_allocing_fn_result( cntr, cc_dummy_true_ptr );
+  }
+
+  // Up-sizing.
+  cc_allocing_fn_result_ty result = cc_str_reserve(
+    cntr,
+    n,
+    el_size,
+    0,        // Dummy.
+    NULL,     // Dummy.
+    0.0,      // Dummy.
+    realloc_,
+    NULL      // Dummy.
+  );
+  if( CC_UNLIKELY( !result.other_ptr ) )
+    return result;
+
+  char *new_el = (char *)cc_str_hdr( result.new_cntr )->data + el_size * cc_str_size( result.new_cntr );
+  for( size_t i = cc_str_hdr( result.new_cntr )->size; i < n; ++i, new_el += el_size )
+    memcpy( new_el, fill_el, el_size );
+
+  memset( new_el, 0, el_size ); // Terminator.
+
+  cc_str_hdr( result.new_cntr )->size = n;
+
+  return result;
+}
+
+// Erases all elements.
+static inline void cc_str_clear(
+  void *cntr,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_dtor_fnptr_ty, el_dtor ),
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  if( !cc_str_is_placeholder( cntr ) )
+  {
+    cc_str_hdr( cntr )->size = 0;
+    memset( cc_str_hdr( cntr )->data, 0, el_size ); // Terminator.
+  }
+}
+
+// Shrinks the string's capacity to its current size.
+// Returns a cc_allocing_fn_result_ty containing the new container handle and a pointer that evaluates to true if the
+// operation was successful or false in the case of allocation failure.
+static inline cc_allocing_fn_result_ty cc_str_shrink(
+  void *cntr,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_hash_fnptr_ty, hash ),
+  CC_UNUSED( double, max_load ),
+  cc_realloc_fnptr_ty realloc_,
+  cc_free_fnptr_ty free_
+)
+{
+  if( cc_str_size( cntr ) == cc_str_cap( cntr ) ) // Also handles placeholder.
+    return cc_make_allocing_fn_result( cntr, cc_dummy_true_ptr );
+
+  if( cc_str_size( cntr ) == 0 )
+  {
+    // Restore placeholder.
+    free_( cntr );
+    return cc_make_allocing_fn_result(
+      el_size == sizeof( char )     ? (void *)&cc_str_placeholder_char8  :
+      el_size == sizeof( char16_t ) ? (void *)&cc_str_placeholder_char16 :
+                      /* char32_t */  (void *)&cc_str_placeholder_char32,
+      cc_dummy_true_ptr
+    );
+  }
+
+  cc_str_hdr_ty *new_cntr = (cc_str_hdr_ty *)realloc_(
+    cntr, sizeof( cc_str_hdr_ty ) + el_size * cc_str_size( cntr ) + el_size // Terminator.
+  );
+  if( CC_UNLIKELY( !new_cntr ) )
+    return cc_make_allocing_fn_result( cntr, NULL );
+
+  cc_str_hdr( new_cntr )->cap = cc_str_size( new_cntr );
+  cc_str_hdr( new_cntr )->data = new_cntr + 1;
+  return cc_make_allocing_fn_result( new_cntr, cc_dummy_true_ptr );
+}
+
+// Initializes a shallow copy of the source string.
+// The capacity of the new string is the size of the source string, not its capacity.
+// Returns a pointer to the copy, or NULL in the case of allocation failure.
+// The return value is cast to bool in the corresponding macro.
+static inline void *cc_str_init_clone(
+  void *src,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout ),
+  cc_realloc_fnptr_ty realloc_,
+  CC_UNUSED( cc_free_fnptr_ty, free_ )
+)
+{
+  if( cc_str_size( src ) == 0 )
+    return
+      el_size == sizeof( char )     ? (void *)&cc_str_placeholder_char8  :
+      el_size == sizeof( char16_t ) ? (void *)&cc_str_placeholder_char16 :
+                      /* char32_t */  (void *)&cc_str_placeholder_char32;
+
+  cc_allocing_fn_result_ty result = cc_str_reserve(
+    el_size == sizeof( char )     ? (void *)&cc_str_placeholder_char8  :
+    el_size == sizeof( char16_t ) ? (void *)&cc_str_placeholder_char16 :
+                    /* char32_t */  (void *)&cc_str_placeholder_char32,
+    cc_str_size( src ),
+    el_size,
+    0,        // Dummy.
+    NULL,     // Dummy.
+    0.0,      // Dummy.
+    realloc_,
+    NULL      // Dummy.
+  );
+
+  if( CC_UNLIKELY( !result.other_ptr ) )
+    return NULL;
+
+  memcpy(
+    (char *)cc_str_hdr( result.new_cntr )->data,
+    (char *)cc_str_hdr( src )->data,
+    el_size * cc_str_size( src ) + el_size // Terminator.
+  );
+
+  cc_str_hdr( result.new_cntr )->size = cc_str_size( src );
+
+  return result.new_cntr;
+}
+
+// Clears the string and frees its memory if it is not a placeholder.
+static inline void cc_str_cleanup(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout ),
+  CC_UNUSED( cc_dtor_fnptr_ty, el_dtor ),
+  CC_UNUSED( cc_dtor_fnptr_ty, key_dtor ),
+  cc_free_fnptr_ty free_
+)
+{
+  if( !cc_str_is_placeholder( cntr ) )
+    free_( cntr );
+}
+
+static inline void *cc_str_end(
+  void *cntr,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return (char *)cc_str_hdr( cntr )->data + el_size * cc_str_size( cntr );
+}
+
+static inline void *cc_str_next(
+  CC_UNUSED( void *, cntr ),
+  void *itr,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return (char *)itr + el_size;
+}
+
+static inline void *cc_str_first(
+  void *cntr,
+  CC_UNUSED( size_t, el_size ),
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return (char *)cc_str_hdr( cntr )->data;
+}
+
+static inline void *cc_str_last(
+  void *cntr,
+  size_t el_size,
+  CC_UNUSED( uint64_t, layout )
+)
+{
+  return (char *)cc_str_hdr( cntr )->data + el_size * ( cc_str_size( cntr ) - 1 );
+}
+
+// Functions for converting a C string into a cc_str for heterogeneous insertion.
+// In the case of memory allocation failure, these functions return NULL.
+
+static inline void *cc_cstring_to_str_char8( const void *cstring, cc_realloc_fnptr_ty realloc_ )
+{
+  size_t length = strlen( (const char *)cstring );
+  if( !length )
+    return (void *)&cc_str_placeholder_char8;
+
+  cc_str_hdr_ty *hdr = (cc_str_hdr_ty *)realloc_( NULL, sizeof( cc_str_hdr_ty ) + length + 1 /* Terminator */ );
+  if( !hdr )
+    return NULL;
+
+  hdr->cap = length;
+  hdr->size = length;
+  hdr->data = hdr + 1;
+  memcpy( hdr->data, cstring, length + 1 );
+  return hdr;
+}
+
+static inline CC_STR_RAW( char16_t ) cc_cstring_to_str_char16( const char16_t *cstring, cc_realloc_fnptr_ty realloc_ )
+{
+  size_t length = cc_strlen_char16( cstring );
+  if( !length )
+    return (CC_STR_RAW( char16_t ))&cc_str_placeholder_char8;
+
+  cc_str_hdr_ty *hdr = (cc_str_hdr_ty *)realloc_(
+    NULL,
+    sizeof( cc_str_hdr_ty ) + sizeof( char16_t ) * length + sizeof( char16_t ) // Terminator.
+  );
+  if( !hdr )
+    return NULL;
+
+  hdr->cap = length;
+  hdr->size = length;
+  hdr->data = hdr + 1;
+  memcpy( hdr->data, cstring, sizeof( char16_t ) * length + sizeof( char16_t ) );
+  return (CC_STR_RAW( char16_t ))hdr;
+}
+
+static inline CC_STR_RAW( char32_t ) cc_cstring_to_str_char32( const char32_t *cstring, cc_realloc_fnptr_ty realloc_ )
+{
+  size_t length = cc_strlen_char32( cstring );
+  if( !length )
+    return (CC_STR_RAW( char32_t ))&cc_str_placeholder_char8;
+
+  cc_str_hdr_ty *hdr = (cc_str_hdr_ty *)realloc_(
+    NULL,
+    sizeof( cc_str_hdr_ty ) + sizeof( char32_t ) * length + sizeof( char32_t ) // Terminator.
+  );
+  if( !hdr )
+    return NULL;
+
+  hdr->cap = length;
+  hdr->size = length;
+  hdr->data = hdr + 1;
+  memcpy( hdr->data, cstring, sizeof( char32_t ) * length + sizeof( char32_t ) );
+  return (CC_STR_RAW( char32_t ))hdr;
+}
+
+// Functions for converting a C string into a temporary cc_str for heterogeneous lookup.
+// These functions take a second argument, namely a pointer to a stack-allocated header to use as the cc_str.
+
+static inline void *cc_cstring_to_temp_str_char8( const void *cstring, cc_str_hdr_ty *str_hdr )
+{
+  str_hdr->size = strlen( (const char *)cstring );
+  str_hdr->cap = str_hdr->size;
+  str_hdr->data = (void *)cstring;
+  return str_hdr;
+}
+
+static inline CC_STR_RAW( char16_t ) cc_cstring_to_temp_str_char16( const char16_t *cstring, cc_str_hdr_ty *str_hdr )
+{
+  str_hdr->size = cc_strlen_char16( cstring );
+  str_hdr->cap = str_hdr->size;
+  str_hdr->data = (void *)cstring;
+  return (CC_STR_RAW( char16_t ))str_hdr;
+}
+
+static inline CC_STR_RAW( char32_t ) cc_cstring_to_temp_str_char32( const char32_t *cstring, cc_str_hdr_ty *str_hdr )
+{
+  str_hdr->size = cc_strlen_char32( cstring );
+  str_hdr->cap = str_hdr->size;
+  str_hdr->data = (void *)cstring;
+  return (CC_STR_RAW( char32_t ))str_hdr;
+}
+
+/*--------------------------------------------------------------------------------------------------------------------*/
 /*                                                        API                                                         */
 /*--------------------------------------------------------------------------------------------------------------------*/
 
-#define cc_init( cntr )                                                                \
-(                                                                                      \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                              \
-  CC_STATIC_ASSERT(                                                                    \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                \
-    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                                                   \
-  ),                                                                                   \
-  *(cntr) = (                                                                          \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ? (CC_TYPEOF_XP( *(cntr) ))&cc_vec_placeholder  : \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ? (CC_TYPEOF_XP( *(cntr) ))&cc_list_placeholder : \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ? (CC_TYPEOF_XP( *(cntr) ))&cc_map_placeholder  : \
-    CC_CNTR_ID( *(cntr) ) == CC_SET  ? (CC_TYPEOF_XP( *(cntr) ))&cc_map_placeholder  : \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP ? (CC_TYPEOF_XP( *(cntr) ))&cc_omap_placeholder : \
-                         /* CC_OSET */ (CC_TYPEOF_XP( *(cntr) ))&cc_omap_placeholder   \
-  ),                                                                                   \
-  (void)0                                                                              \
-)                                                                                      \
+#define cc_initialized( cntr )                                                       \
+(                                                                                    \
+  CC_STATIC_ASSERT(                                                                  \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                              \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                              \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                              \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                              \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                              \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                                              \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                  \
+  ),                                                                                 \
+  CC_CNTR_ID( *(cntr) ) == CC_VEC  ? (CC_TYPEOF_XP( *(cntr) ))&cc_vec_placeholder  : \
+  CC_CNTR_ID( *(cntr) ) == CC_LIST ? (CC_TYPEOF_XP( *(cntr) ))&cc_list_placeholder : \
+  CC_CNTR_ID( *(cntr) ) == CC_MAP  ? (CC_TYPEOF_XP( *(cntr) ))&cc_map_placeholder  : \
+  CC_CNTR_ID( *(cntr) ) == CC_SET  ? (CC_TYPEOF_XP( *(cntr) ))&cc_map_placeholder  : \
+  CC_CNTR_ID( *(cntr) ) == CC_OMAP ? (CC_TYPEOF_XP( *(cntr) ))&cc_omap_placeholder : \
+  CC_CNTR_ID( *(cntr) ) == CC_OSET ? (CC_TYPEOF_XP( *(cntr) ))&cc_omap_placeholder : \
+     /* CC_STR */ (CC_TYPEOF_XP( *(cntr) ))CC_STR_PLACEHOLDER( CC_EL_TY( *(cntr) ) ) \
+)                                                                                    \
+
+#define cc_init( cntr )                   \
+(                                         \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ), \
+  *(cntr) = cc_initialized( (cntr) ),     \
+  (void)0                                 \
+)                                         \
 
 #define cc_size( cntr )                               \
 (                                                     \
@@ -4640,7 +6469,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||               \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||               \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||               \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                  \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||               \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                   \
   ),                                                  \
   /* Function select */                               \
   (                                                   \
@@ -4649,7 +6479,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_size  : \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_size  : \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_size : \
-                         /* CC_OSET */ cc_oset_size   \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_size : \
+                          /* CC_STR */ cc_str_size    \
   )                                                   \
   /* Function arguments */                            \
   (                                                   \
@@ -4663,13 +6494,15 @@ static inline void *cc_oset_next(
   CC_STATIC_ASSERT(                                 \
     CC_CNTR_ID( *(cntr) ) == CC_VEC ||              \
     CC_CNTR_ID( *(cntr) ) == CC_MAP ||              \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                 \
+    CC_CNTR_ID( *(cntr) ) == CC_SET ||              \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                 \
   ),                                                \
   /* Function select */                             \
   (                                                 \
     CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_cap : \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_cap : \
-                          /* CC_SET */ cc_set_cap   \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_cap : \
+                          /* CC_STR */ cc_str_cap   \
   )                                                 \
   /* Function arguments */                          \
   (                                                 \
@@ -4683,7 +6516,8 @@ static inline void *cc_oset_next(
   CC_STATIC_ASSERT(                                                                          \
     CC_CNTR_ID( *(cntr) ) == CC_VEC ||                                                       \
     CC_CNTR_ID( *(cntr) ) == CC_MAP ||                                                       \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_SET ||                                                       \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
   ),                                                                                         \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
     *(cntr),                                                                                 \
@@ -4691,7 +6525,8 @@ static inline void *cc_oset_next(
     (                                                                                        \
       CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_reserve :                                    \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_reserve :                                    \
-                            /* CC_SET */ cc_set_reserve                                      \
+      CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_reserve :                                    \
+                            /* CC_STR */ cc_str_reserve                                      \
     )                                                                                        \
     /* Function arguments */                                                                 \
     (                                                                                        \
@@ -4708,106 +6543,124 @@ static inline void *cc_oset_next(
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
 
-#define cc_insert( ... ) CC_SELECT_ON_NUM_ARGS( cc_insert, __VA_ARGS__ )
+#define cc_insert( ... ) CC_SELECT_ON_NUM_ARGS( cc_insert_, __VA_ARGS__ )
 
-#define cc_insert_2( cntr, key )                                                             \
-(                                                                                            \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
-  CC_STATIC_ASSERT(                                                                          \
-    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                                                         \
-  ),                                                                                         \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
-    *(cntr),                                                                                 \
-    /* Function select */                                                                    \
-    (                                                                                        \
-      CC_CNTR_ID( *(cntr) ) == CC_SET ? cc_set_insert  :                                     \
-                          /* CC_OSET */ cc_oset_insert                                       \
-    )                                                                                        \
-    /* Function arguments */                                                                 \
-    (                                                                                        \
-      *(cntr),                                                                               \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
-      true,                                                                                  \
-      CC_LAYOUT( *(cntr) ),                                                                  \
-      CC_KEY_HASH( *(cntr) ),                                                                \
-      CC_KEY_CMPR( *(cntr) ),                                                                \
-      CC_KEY_LOAD( *(cntr) ),                                                                \
-      CC_EL_DTOR( *(cntr) ),                                                                 \
-      CC_REALLOC_FN,                                                                         \
-      CC_FREE_FN                                                                             \
-    )                                                                                        \
-  ),                                                                                         \
-  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
-)                                                                                            \
+#define cc_insert_2( cntr, el )                                                                                \
+(                                                                                                              \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                                      \
+  CC_STATIC_ASSERT(                                                                                            \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                                        \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                                                                           \
+  ),                                                                                                           \
+  CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_ONLY( *(cntr), CC_EL_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ) ),  \
+  !CC_CHECK_HETEROINSERT_EL_CONVERSION(                                                                        \
+    *(cntr),                                                                                                   \
+    (el),                                                                                                      \
+    ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el                                              \
+  ) ||                                                                                                         \
+  !( ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->result =                                                 \
+    /* Function select */                                                                                      \
+    (                                                                                                          \
+      CC_CNTR_ID( *(cntr) ) == CC_SET   ? cc_set_insert  :                                                     \
+                            /* CC_OSET */ cc_oset_insert                                                       \
+    )                                                                                                          \
+    /* Function arguments */                                                                                   \
+    (                                                                                                          \
+      ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->result.new_cntr,                                        \
+      ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el,                                           \
+      true,                                                                                                    \
+      CC_LAYOUT( *(cntr) ),                                                                                    \
+      CC_KEY_HASH( *(cntr) ),                                                                                  \
+      CC_KEY_CMPR( *(cntr) ),                                                                                  \
+      CC_KEY_LOAD( *(cntr) ),                                                                                  \
+      CC_EL_DTOR( *(cntr) ),                                                                                   \
+      CC_REALLOC_FN,                                                                                           \
+      CC_FREE_FN                                                                                               \
+    )                                                                                                          \
+  ).other_ptr ?                                                                                                \
+    CC_CLEANUP_HETEROINSERT_EL( *(cntr), (el), ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el ) \
+  : (void)0,                                                                                                   \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) )                   \
+)                                                                                                              \
 
-#define cc_insert_3( cntr, key, el )                                                         \
-(                                                                                            \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
-  CC_STATIC_ASSERT(                                                                          \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP                                                         \
-  ),                                                                                         \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
-    *(cntr),                                                                                 \
-    /* Function select */                                                                    \
-    (                                                                                        \
-      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_insert  :                                    \
-      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_insert :                                    \
-      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_insert  :                                    \
-                           /* CC_OMAP */ cc_omap_insert                                      \
-    )                                                                                        \
-    /* Function arguments */                                                                 \
-    (                                                                                        \
-      *(cntr),                                                                               \
-      &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
-      true,                                                                                  \
-      CC_EL_SIZE( *(cntr) ),                                                                 \
-      CC_LAYOUT( *(cntr) ),                                                                  \
-      CC_KEY_HASH( *(cntr) ),                                                                \
-      CC_KEY_CMPR( *(cntr) ),                                                                \
-      CC_KEY_LOAD( *(cntr) ),                                                                \
-      CC_EL_DTOR( *(cntr) ),                                                                 \
-      CC_KEY_DTOR( *(cntr) ),                                                                \
-      CC_REALLOC_FN,                                                                         \
-      CC_FREE_FN                                                                             \
-    )                                                                                        \
-  ),                                                                                         \
-  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
-)                                                                                            \
+#define cc_insert_3( cntr, key, el )                                                                              \
+(                                                                                                                 \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                                         \
+  CC_STATIC_ASSERT(                                                                                               \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                                           \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                                           \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                                           \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                                           \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                                               \
+  ),                                                                                                              \
+  CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_KEY(                                                                    \
+    *(cntr),                                                                                                      \
+    CC_EL_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ),                                                            \
+    CC_KEY_CONVERTED_FOR_HETEROINSERT( *(cntr), (key) )                                                           \
+  ),                                                                                                              \
+  !CC_CHECK_HETEROINSERT_EL_CONVERSION(                                                                           \
+    *(cntr),                                                                                                      \
+    (el),                                                                                                         \
+    ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_el                                                 \
+  ) ||                                                                                                            \
+  !CC_CHECK_HETEROINSERT_KEY_CONVERSION(                                                                          \
+    *(cntr),                                                                                                      \
+    (key),                                                                                                        \
+    ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_key                                                \
+  ) ||                                                                                                            \
+  !( ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->result =                                                    \
+    /* Function select */                                                                                         \
+    (                                                                                                             \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_insert  :                                                         \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_insert :                                                         \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_insert  :                                                         \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_insert :                                                         \
+                            /* CC_STR */ cc_str_insert                                                            \
+    )                                                                                                             \
+    /* Function arguments */                                                                                      \
+    (                                                                                                             \
+      ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->result.new_cntr,                                           \
+      ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_el,                                              \
+      ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_key,                                             \
+      true,                                                                                                       \
+      CC_EL_SIZE( *(cntr) ),                                                                                      \
+      CC_LAYOUT( *(cntr) ),                                                                                       \
+      CC_KEY_HASH( *(cntr) ),                                                                                     \
+      CC_KEY_CMPR( *(cntr) ),                                                                                     \
+      CC_KEY_LOAD( *(cntr) ),                                                                                     \
+      CC_EL_DTOR( *(cntr) ),                                                                                      \
+      CC_KEY_DTOR( *(cntr) ),                                                                                     \
+      CC_REALLOC_FN,                                                                                              \
+      CC_FREE_FN                                                                                                  \
+    )                                                                                                             \
+  ).other_ptr ?                                                                                                   \
+  (                                                                                                               \
+    CC_CLEANUP_HETEROINSERT_EL( *(cntr), (el), ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_el ),   \
+    CC_CLEANUP_HETEROINSERT_KEY( *(cntr), (key), ( (cc_heteroinsert_helper_el_key_ty *)*(cntr) )->converted_key ) \
+  ) : (void)0,                                                                                                    \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) )                      \
+)                                                                                                                 \
 
 #define cc_insert_n( cntr, index, els, n )                                                   \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ),                                       \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
-    *(cntr),                                                                                 \
-    cc_vec_insert_n( *(cntr), (index), (els), (n), CC_EL_SIZE( *(cntr) ), CC_REALLOC_FN )    \
-  ),                                                                                         \
-  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
-)                                                                                            \
-
-#define cc_push( cntr, el )                                                                  \
-(                                                                                            \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
   CC_STATIC_ASSERT(                                                                          \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST                                                         \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC ||                                                       \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
   ),                                                                                         \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
     *(cntr),                                                                                 \
     /* Function select */                                                                    \
     (                                                                                        \
-      CC_CNTR_ID( *(cntr) ) == CC_VEC  ?  cc_vec_push  :                                     \
-                            /* CC_LIST */ cc_list_push                                       \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_insert_n :                                   \
+                            /* CC_STR */ cc_str_insert_n                                     \
     )                                                                                        \
     /* Function arguments */                                                                 \
     (                                                                                        \
       *(cntr),                                                                               \
-      &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
+      (index),                                                                               \
+      CC_CHECKED_EL_TY_PTR( *(cntr), (els) ),                                                \
+      (n),                                                                                   \
       CC_EL_SIZE( *(cntr) ),                                                                 \
       CC_REALLOC_FN                                                                          \
     )                                                                                        \
@@ -4815,49 +6668,150 @@ static inline void *cc_oset_next(
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
 
-#define cc_push_n( cntr, els, n )                                                            \
+#define cc_insert_fmt( cntr, index, ... )                                                    \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ),                                       \
+  CC_STATIC_ASSERT(                                                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
+  ),                                                                                         \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
     *(cntr),                                                                                 \
-    cc_vec_push_n( *(cntr), (els), (n), CC_EL_SIZE( *(cntr) ), CC_REALLOC_FN )               \
+    cc_str_insert_fmt(                                                                       \
+      *(cntr),                                                                               \
+      CC_WRAPPED_STR_FMT_ARGS_ARRAY( CC_EL_TY( *(cntr) ), __VA_ARGS__ ),                     \
+      index,                                                                                 \
+      CC_EL_SIZE( *(cntr) ),                                                                 \
+      CC_REALLOC_FN                                                                          \
+    )                                                                                        \
   ),                                                                                         \
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
 
-#define cc_get_or_insert( ... ) CC_SELECT_ON_NUM_ARGS( cc_get_or_insert, __VA_ARGS__ )
+#define cc_push( cntr, el )                                                                                    \
+(                                                                                                              \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                                      \
+  CC_STATIC_ASSERT(                                                                                            \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                                        \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                                        \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                                            \
+  ),                                                                                                           \
+  CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_ONLY( *(cntr), CC_EL_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ) ),  \
+  !CC_CHECK_HETEROINSERT_EL_CONVERSION(                                                                        \
+    *(cntr),                                                                                                   \
+    (el),                                                                                                      \
+    ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el                                              \
+  ) ||                                                                                                         \
+  !( ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->result =                                                 \
+    /* Function select */                                                                                      \
+    (                                                                                                          \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_push  :                                                        \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_push :                                                        \
+                            /* CC_STR */ cc_str_push                                                           \
+    )                                                                                                          \
+    /* Function arguments */                                                                                   \
+    (                                                                                                          \
+      ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->result.new_cntr,                                        \
+      ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el,                                           \
+      CC_EL_SIZE( *(cntr) ),                                                                                   \
+      CC_REALLOC_FN                                                                                            \
+    )                                                                                                          \
+  ).other_ptr ?                                                                                                \
+    CC_CLEANUP_HETEROINSERT_EL( *(cntr), (el), ( (cc_heterinsert_helper_el_only_ty *)*(cntr) )->converted_el ) \
+  : (void)0,                                                                                                   \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) )                   \
+)                                                                                                              \
 
-#define cc_get_or_insert_2( cntr, key )                                                      \
+#define cc_push_n( cntr, els, n )                                                            \
 (                                                                                            \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
   CC_STATIC_ASSERT(                                                                          \
-    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                                                         \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC ||                                                       \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
   ),                                                                                         \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
     *(cntr),                                                                                 \
     /* Function select */                                                                    \
     (                                                                                        \
-      CC_CNTR_ID( *(cntr) ) == CC_SET ? cc_set_insert  :                                     \
-                          /* CC_OSET */ cc_oset_insert                                       \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_push_n :                                     \
+                            /* CC_STR */ cc_str_push_n                                       \
     )                                                                                        \
     /* Function arguments */                                                                 \
     (                                                                                        \
       *(cntr),                                                                               \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
-      false,                                                                                 \
-      CC_LAYOUT( *(cntr) ),                                                                  \
-      CC_KEY_HASH( *(cntr) ),                                                                \
-      CC_KEY_CMPR( *(cntr) ),                                                                \
-      CC_KEY_LOAD( *(cntr) ),                                                                \
-      CC_EL_DTOR( *(cntr) ),                                                                 \
-      CC_REALLOC_FN,                                                                         \
-      CC_FREE_FN                                                                             \
+      CC_CHECKED_EL_TY_PTR( *(cntr), (els) ),                                                \
+      (n),                                                                                   \
+      CC_EL_SIZE( *(cntr) ),                                                                 \
+      CC_REALLOC_FN                                                                          \
     )                                                                                        \
   ),                                                                                         \
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
+
+#define cc_push_fmt( cntr, ... )                                                             \
+(                                                                                            \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                    \
+  CC_STATIC_ASSERT(                                                                          \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                          \
+  ),                                                                                         \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+    *(cntr),                                                                                 \
+    cc_str_push_fmt(                                                                         \
+      *(cntr),                                                                               \
+      CC_WRAPPED_STR_FMT_ARGS_ARRAY( CC_EL_TY( *(cntr) ), __VA_ARGS__ ),                     \
+      CC_EL_SIZE( *(cntr) ),                                                                 \
+      CC_REALLOC_FN                                                                          \
+    )                                                                                        \
+  ),                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                                            \
+
+#define cc_get_or_insert( ... ) CC_SELECT_ON_NUM_ARGS( cc_get_or_insert_, __VA_ARGS__ )
+
+#define cc_get_or_insert_2( cntr, el )                                                                               \
+(                                                                                                                    \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                                            \
+  CC_STATIC_ASSERT(                                                                                                  \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                                              \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                                                                                 \
+  ),                                                                                                                 \
+  CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_AND_CNTR_SIZE(                                                             \
+    *(cntr),                                                                                                         \
+    CC_EL_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ),                                                               \
+    ( CC_CNTR_ID( *(cntr) ) == CC_SET ? cc_set_size : cc_oset_size )( *(cntr) )                                      \
+  ),                                                                                                                 \
+                                                                                                                     \
+  !CC_CHECK_HETEROINSERT_EL_CONVERSION(                                                                              \
+    *(cntr),                                                                                                         \
+    (el),                                                                                                            \
+    ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->converted_el                                              \
+  ) ||                                                                                                               \
+  ( CC_CNTR_ID( *(cntr) ) == CC_SET ? cc_set_size : cc_oset_size )(                                                  \
+    (                                                                                                                \
+      ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->result =                                                \
+      /* Function select */                                                                                          \
+      (                                                                                                              \
+        CC_CNTR_ID( *(cntr) ) == CC_SET   ? cc_set_insert  :                                                         \
+                              /* CC_OSET */ cc_oset_insert                                                           \
+      )                                                                                                              \
+      /* Function arguments */                                                                                       \
+      (                                                                                                              \
+        ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->result.new_cntr,                                      \
+        ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->converted_el,                                         \
+        false,                                                                                                       \
+        CC_LAYOUT( *(cntr) ),                                                                                        \
+        CC_KEY_HASH( *(cntr) ),                                                                                      \
+        CC_KEY_CMPR( *(cntr) ),                                                                                      \
+        CC_KEY_LOAD( *(cntr) ),                                                                                      \
+        CC_EL_DTOR( *(cntr) ),                                                                                       \
+        CC_REALLOC_FN,                                                                                               \
+        CC_FREE_FN                                                                                                   \
+      )                                                                                                              \
+    ).new_cntr                                                                                                       \
+  ) == ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->cntr_size ?                                            \
+    CC_CLEANUP_HETEROINSERT_EL( *(cntr), (el), ( (cc_heteroinsert_helper_el_cntr_size_ty *)*(cntr) )->converted_el ) \
+  : (void)0,                                                                                                         \
+  CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) )                         \
+)                                                                                                                    \
 
 #define cc_get_or_insert_3( cntr, key, el )                                                  \
 (                                                                                            \
@@ -4866,64 +6820,96 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                      \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP                                                         \
   ),                                                                                         \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                       \
+  CC_POINT_HNDL_TO_HETEROINSERT_HELPER_EL_KEY_CNTR_SIZE(                                     \
     *(cntr),                                                                                 \
-    /* Function select */                                                                    \
-    (                                                                                        \
-      CC_CNTR_ID( *(cntr) ) == CC_MAP ? cc_map_insert  :                                     \
-                          /* CC_OMAP */ cc_omap_insert                                       \
-    )                                                                                        \
-    /* Function arguments */                                                                 \
-    (                                                                                        \
-      *(cntr),                                                                               \
-      &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), (el) ),                                       \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                                     \
-      false,                                                                                 \
-      CC_EL_SIZE( *(cntr) ),                                                                 \
-      CC_LAYOUT( *(cntr) ),                                                                  \
-      CC_KEY_HASH( *(cntr) ),                                                                \
-      CC_KEY_CMPR( *(cntr) ),                                                                \
-      CC_KEY_LOAD( *(cntr) ),                                                                \
-      CC_EL_DTOR( *(cntr) ),                                                                 \
-      CC_KEY_DTOR( *(cntr) ),                                                                \
-      CC_REALLOC_FN,                                                                         \
-      CC_FREE_FN                                                                             \
-    )                                                                                        \
+    CC_EL_CONVERTED_FOR_HETEROINSERT( *(cntr), (el) ),                                       \
+    CC_KEY_CONVERTED_FOR_HETEROINSERT( *(cntr), (key) ),                                     \
+    ( CC_CNTR_ID( *(cntr) ) == CC_MAP ? cc_map_size : cc_omap_size )( *(cntr) )              \
   ),                                                                                         \
+  !CC_CHECK_HETEROINSERT_EL_CONVERSION(                                                      \
+    *(cntr),                                                                                 \
+    (el),                                                                                    \
+    ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_el                  \
+  ) ||                                                                                       \
+  !CC_CHECK_HETEROINSERT_KEY_CONVERSION(                                                     \
+    *(cntr),                                                                                 \
+    (key),                                                                                   \
+    ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_key                 \
+  ) ||                                                                                       \
+  ( CC_CNTR_ID( *(cntr) ) == CC_MAP ? cc_map_size : cc_omap_size )(                          \
+    (                                                                                        \
+      ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->result =                    \
+      /* Function select */                                                                  \
+      (                                                                                      \
+        CC_CNTR_ID( *(cntr) ) == CC_MAP ? cc_map_insert  :                                   \
+                            /* CC_OMAP */ cc_omap_insert                                     \
+      )                                                                                      \
+      /* Function arguments */                                                               \
+      (                                                                                      \
+      ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->result.new_cntr,            \
+      ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_el,               \
+      ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_key,              \
+        false,                                                                               \
+        CC_EL_SIZE( *(cntr) ),                                                               \
+        CC_LAYOUT( *(cntr) ),                                                                \
+        CC_KEY_HASH( *(cntr) ),                                                              \
+        CC_KEY_CMPR( *(cntr) ),                                                              \
+        CC_KEY_LOAD( *(cntr) ),                                                              \
+        CC_EL_DTOR( *(cntr) ),                                                               \
+        CC_KEY_DTOR( *(cntr) ),                                                              \
+        CC_REALLOC_FN,                                                                       \
+        CC_FREE_FN                                                                           \
+      )                                                                                      \
+    ).new_cntr                                                                               \
+  ) == ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->cntr_size ?                \
+  (                                                                                          \
+    CC_CLEANUP_HETEROINSERT_EL(                                                              \
+      *(cntr),                                                                               \
+      (el),                                                                                  \
+      ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_el                \
+    ),                                                                                       \
+    CC_CLEANUP_HETEROINSERT_KEY(                                                             \
+      *(cntr),                                                                               \
+      (key),                                                                                 \
+      ( (cc_heteroinsert_helper_el_key_cntr_size_ty *)*(cntr) )->converted_key               \
+    )                                                                                        \
+  ) : (void)0,                                                                               \
   CC_CAST_MAYBE_UNUSED( CC_EL_TY( *(cntr) ) *, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                                            \
 
-#define cc_get( cntr, key )                              \
-(                                                        \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                \
-  CC_STATIC_ASSERT(                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                     \
-  ),                                                     \
-  CC_CAST_MAYBE_UNUSED(                                  \
-    CC_EL_TY( *(cntr) ) *,                               \
-    /* Function select */                                \
-    (                                                    \
-      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_get  :   \
-      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_get  :   \
-      CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_get  :   \
-      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_get :   \
-                           /* CC_OSET */ cc_oset_get     \
-    )                                                    \
-    /* Function arguments */                             \
-    (                                                    \
-      *(cntr),                                           \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ), \
-      CC_EL_SIZE( *(cntr) ),                             \
-      CC_LAYOUT( *(cntr) ),                              \
-      CC_KEY_HASH( *(cntr) ),                            \
-      CC_KEY_CMPR( *(cntr) )                             \
-    )                                                    \
-  )                                                      \
-)                                                        \
+#define cc_get( cntr, key )                                                                            \
+(                                                                                                      \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                              \
+  CC_STATIC_ASSERT(                                                                                    \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                                    \
+  ),                                                                                                   \
+  CC_CAST_MAYBE_UNUSED(                                                                                \
+    CC_EL_TY( *(cntr) ) *,                                                                             \
+    /* Function select */                                                                              \
+    (                                                                                                  \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_get  :                                                 \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_get  :                                                 \
+      CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_get  :                                                 \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_get :                                                 \
+      CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_get :                                                 \
+                            /* CC_STR */ cc_str_get                                                    \
+    )                                                                                                  \
+    /* Function arguments */                                                                           \
+    (                                                                                                  \
+      *(cntr),                                                                                         \
+      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), CC_KEY_CONVERTED_FOR_HETEROLOOKUP( *(cntr), (key) ) ), \
+      CC_EL_SIZE( *(cntr) ),                                                                           \
+      CC_LAYOUT( *(cntr) ),                                                                            \
+      CC_KEY_HASH( *(cntr) ),                                                                          \
+      CC_KEY_CMPR( *(cntr) )                                                                           \
+    )                                                                                                  \
+  )                                                                                                    \
+)                                                                                                      \
 
 #define cc_key_for( cntr, itr )                            \
 (                                                          \
@@ -4948,89 +6934,107 @@ static inline void *cc_oset_next(
   )                                                        \
 )                                                          \
 
-#define cc_erase( cntr, key )                                           \
-(                                                                       \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                               \
-  CC_STATIC_ASSERT(                                                     \
-    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                                    \
-  ),                                                                    \
-  CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2(                                  \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET,                                   \
-    bool,                                                               \
-    CC_EL_TY( *(cntr) ) *,                                              \
-    /* Function select */                                               \
-    (                                                                   \
-      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_erase  :                \
-      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_erase :                \
-      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_erase  :                \
-      CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_erase  :                \
-      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_erase :                \
-                           /* CC_OSET */ cc_oset_erase                  \
-    )                                                                   \
-    /* Function arguments */                                            \
-    (                                                                   \
-      *(cntr),                                                          \
-      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), (key) ),                \
-      CC_EL_SIZE( *(cntr) ),                                            \
-      CC_LAYOUT( *(cntr) ),                                             \
-      CC_KEY_HASH( *(cntr) ),                                           \
-      CC_KEY_CMPR( *(cntr) ),                                           \
-      CC_EL_DTOR( *(cntr) ),                                            \
-      CC_KEY_DTOR( *(cntr) ),                                           \
-      CC_FREE_FN                                                        \
-    )                                                                   \
-  )                                                                     \
-)                                                                       \
+#define cc_erase( cntr, key )                                                                          \
+(                                                                                                      \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                              \
+  CC_STATIC_ASSERT(                                                                                    \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                                                    \
+  ),                                                                                                   \
+  CC_IF_THEN_CAST_TY_1_ELSE_CAST_TY_2(                                                                 \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                                                                \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET,                                                                  \
+    bool,                                                                                              \
+    CC_EL_TY( *(cntr) ) *,                                                                             \
+    /* Function select */                                                                              \
+    (                                                                                                  \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_erase  :                                               \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_erase :                                               \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_erase  :                                               \
+      CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_erase  :                                               \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_erase :                                               \
+      CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_erase :                                               \
+                            /* CC_STR */ cc_str_erase                                                  \
+    )                                                                                                  \
+    /* Function arguments */                                                                           \
+    (                                                                                                  \
+      *(cntr),                                                                                         \
+      &CC_MAKE_LVAL_COPY( CC_KEY_TY( *(cntr) ), CC_KEY_CONVERTED_FOR_HETEROLOOKUP( *(cntr), (key) ) ), \
+      CC_EL_SIZE( *(cntr) ),                                                                           \
+      CC_LAYOUT( *(cntr) ),                                                                            \
+      CC_KEY_HASH( *(cntr) ),                                                                          \
+      CC_KEY_CMPR( *(cntr) ),                                                                          \
+      CC_EL_DTOR( *(cntr) ),                                                                           \
+      CC_KEY_DTOR( *(cntr) ),                                                                          \
+      CC_FREE_FN                                                                                       \
+    )                                                                                                  \
+  )                                                                                                    \
+)                                                                                                      \
 
-#define cc_erase_n( cntr, index, n )                                                      \
-(                                                                                         \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                 \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ),                                    \
-  CC_CAST_MAYBE_UNUSED(                                                                   \
-    CC_EL_TY( *(cntr) ) *,                                                                \
-    cc_vec_erase_n( *(cntr), (index), (n), CC_EL_SIZE( *(cntr) ), CC_EL_DTOR( *(cntr) ) ) \
-  )                                                                                       \
-)                                                                                         \
+#define cc_erase_n( cntr, index, n )                      \
+(                                                         \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                 \
+  CC_STATIC_ASSERT(                                       \
+    CC_CNTR_ID( *(cntr) ) == CC_VEC ||                    \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                       \
+  ),                                                      \
+  CC_CAST_MAYBE_UNUSED(                                   \
+    CC_EL_TY( *(cntr) ) *,                                \
+    /* Function select */                                 \
+    (                                                     \
+      CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_erase_n : \
+                            /* CC_STR */ cc_str_erase_n   \
+    )                                                     \
+    /* Function arguments */                              \
+    (                                                     \
+      *(cntr),                                            \
+      (index),                                            \
+      (n),                                                \
+      CC_EL_SIZE( *(cntr) ),                              \
+      CC_EL_DTOR( *(cntr) ),                              \
+      CC_FREE_FN                                          \
+    )                                                     \
+  )                                                       \
+)                                                         \
 
-#define cc_erase_itr( cntr, itr )                            \
-(                                                            \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                    \
-  CC_STATIC_ASSERT(                                          \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                      \
-    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                      \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                      \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                         \
-  ),                                                         \
-  CC_CAST_MAYBE_UNUSED(                                      \
-    CC_EL_TY( *(cntr) ) *,                                   \
-    /* Function select */                                    \
-    (                                                        \
-      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_erase_itr  : \
-      CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_erase_itr  : \
-      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_erase_itr : \
-                           /* CC_OSET */ cc_oset_erase_itr   \
-    )                                                        \
-    /* Function arguments */                                 \
-    (                                                        \
-      *(cntr),                                               \
-      (itr),                                                 \
-      CC_EL_SIZE( *(cntr) ),                                 \
-      CC_LAYOUT( *(cntr) ),                                  \
-      CC_KEY_HASH( *(cntr) ),                                \
-      CC_EL_DTOR( *(cntr) ),                                 \
-      CC_KEY_DTOR( *(cntr) ),                                \
-      CC_FREE_FN                                             \
-    )                                                        \
-  )                                                          \
-)                                                            \
+#define cc_erase_itr( cntr, itr )                             \
+(                                                             \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                     \
+  CC_STATIC_ASSERT(                                           \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                       \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                       \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                       \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                          \
+  ),                                                          \
+  CC_CAST_MAYBE_UNUSED(                                       \
+    CC_EL_TY( *(cntr) ) *,                                    \
+    /* Function select */                                     \
+    (                                                         \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP   ? cc_map_erase_itr  : \
+      CC_CNTR_ID( *(cntr) ) == CC_SET   ? cc_set_erase_itr  : \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP  ? cc_omap_erase_itr : \
+                            /* CC_OSET */ cc_oset_erase_itr   \
+    )                                                         \
+    /* Function arguments */                                  \
+    (                                                         \
+      *(cntr),                                                \
+      (itr),                                                  \
+      CC_EL_SIZE( *(cntr) ),                                  \
+      CC_LAYOUT( *(cntr) ),                                   \
+      CC_KEY_HASH( *(cntr) ),                                 \
+      CC_EL_DTOR( *(cntr) ),                                  \
+      CC_KEY_DTOR( *(cntr) ),                                 \
+      CC_FREE_FN                                              \
+    )                                                         \
+  )                                                           \
+)                                                             \
 
 #define cc_splice( cntr, itr, src, src_itr )                                \
 (                                                                           \
@@ -5044,16 +7048,36 @@ static inline void *cc_oset_next(
   CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
 )                                                                           \
 
-#define cc_resize( cntr, n )                                                                   \
-(                                                                                              \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                      \
-  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ),                                         \
-  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                         \
-    *(cntr),                                                                                   \
-    cc_vec_resize( *(cntr), (n), CC_EL_SIZE( *(cntr) ), CC_EL_DTOR( *(cntr) ), CC_REALLOC_FN ) \
-  ),                                                                                           \
-  CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) )                    \
-)                                                                                              \
+#define cc_resize( ... ) CC_SELECT_ON_NUM_ARGS( cc_resize_, __VA_ARGS__ )
+
+#define cc_resize_2( cntr, n )                                                                             \
+(                                                                                                          \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                                                  \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_VEC ),                                                     \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                                                     \
+    *(cntr),                                                                                               \
+    cc_vec_resize( *(cntr), (n), CC_EL_SIZE( *(cntr) ), CC_EL_DTOR( *(cntr) ), CC_REALLOC_FN, CC_FREE_FN ) \
+  ),                                                                                                       \
+  CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) )                                \
+)                                                                                                          \
+
+#define cc_resize_3( cntr, n, fill_el )                                     \
+(                                                                           \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                   \
+  CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_STR ),                      \
+  CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                      \
+    *(cntr),                                                                \
+    cc_str_resize(                                                          \
+      *(cntr),                                                              \
+      (n),                                                                  \
+      &CC_MAKE_LVAL_COPY( CC_EL_TY( *(cntr) ), fill_el ),                   \
+      CC_EL_SIZE( *(cntr) ),                                                \
+      CC_EL_DTOR( *(cntr) ),                                                \
+      CC_REALLOC_FN                                                         \
+    )                                                                       \
+  ),                                                                        \
+  CC_CAST_MAYBE_UNUSED( bool, CC_FIX_HNDL_AND_RETURN_OTHER_PTR( *(cntr) ) ) \
+)                                                                           \
 
 #define cc_shrink( cntr )                                                   \
 (                                                                           \
@@ -5062,7 +7086,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_VEC  ||                                     \
     CC_CNTR_ID( *(cntr) ) == CC_LIST ||                                     \
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                                     \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                                         \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                                     \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                                         \
   ),                                                                        \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                      \
     *(cntr),                                                                \
@@ -5070,7 +7095,8 @@ static inline void *cc_oset_next(
     (                                                                       \
       CC_CNTR_ID( *(cntr) ) == CC_VEC  ? cc_vec_shrink :                    \
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_shrink :                    \
-                            /* CC_SET */ cc_set_shrink                      \
+      CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_shrink :                    \
+                            /* CC_STR */ cc_str_shrink                      \
     )                                                                       \
     /* Function arguments */                                                \
     (                                                                       \
@@ -5095,7 +7121,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                       \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                       \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                       \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                          \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                       \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                           \
   ),                                                          \
   CC_STATIC_ASSERT( CC_IS_SAME_TY( *(cntr), *(src) ) ),       \
   CC_CAST_MAYBE_UNUSED(                                       \
@@ -5108,7 +7135,8 @@ static inline void *cc_oset_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_init_clone  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_init_clone  : \
       CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_init_clone : \
-                           /* CC_OSET */ cc_oset_init_clone   \
+      CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_init_clone : \
+                            /* CC_STR */ cc_str_init_clone    \
     )                                                         \
     /* Function arguments */                                  \
     (                                                         \
@@ -5130,7 +7158,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                   \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                    \
   ),                                                   \
   /* Function select */                                \
   (                                                    \
@@ -5139,7 +7168,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_clear  : \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_clear  : \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_clear : \
-                         /* CC_OSET */ cc_oset_clear   \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_clear : \
+                          /* CC_STR */ cc_str_clear    \
   )                                                    \
   /* Function arguments */                             \
   (                                                    \
@@ -5161,7 +7191,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                     \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                      \
   ),                                                     \
   /* Function select */                                  \
   (                                                      \
@@ -5170,7 +7201,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_cleanup  : \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_cleanup  : \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_cleanup : \
-                         /* CC_OSET */ cc_oset_cleanup   \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_cleanup : \
+                          /* CC_STR */ cc_str_cleanup    \
   )                                                      \
   /* Function arguments */                               \
   (                                                      \
@@ -5184,36 +7216,36 @@ static inline void *cc_oset_next(
   cc_init( cntr )                                        \
 )                                                        \
 
-#define cc_r_end( cntr )                                 \
-(                                                        \
-  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                \
-  CC_WARN_DEPRECATED_IF(                                 \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_SET                      \
-  ),                                                     \
-  CC_STATIC_ASSERT(                                      \
-    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                     \
-  ),                                                     \
-  CC_CAST_MAYBE_UNUSED(                                  \
-    CC_EL_TY( *(cntr) ) *,                               \
-    /* Function select */                                \
-    (                                                    \
-      CC_CNTR_ID( *(cntr) ) == CC_LIST ? cc_list_r_end : \
-      CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_r_end  : \
-      CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_r_end  : \
-      CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_r_end : \
-                           /* CC_OSET */ cc_oset_r_end   \
-    )                                                    \
-    /* Function arguments */                             \
-    (                                                    \
-      *(cntr)                                            \
-    )                                                    \
-  )                                                      \
-)                                                        \
+#define cc_r_end( cntr )                                  \
+(                                                         \
+  CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                 \
+  CC_WARN_DEPRECATED_IF(                                  \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                   \
+    CC_CNTR_ID( *(cntr) ) == CC_SET                       \
+  ),                                                      \
+  CC_STATIC_ASSERT(                                       \
+    CC_CNTR_ID( *(cntr) ) == CC_LIST ||                   \
+    CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                   \
+    CC_CNTR_ID( *(cntr) ) == CC_SET  ||                   \
+    CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                   \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET                      \
+  ),                                                      \
+  CC_CAST_MAYBE_UNUSED(                                   \
+    CC_EL_TY( *(cntr) ) *,                                \
+    /* Function select */                                 \
+    (                                                     \
+      CC_CNTR_ID( *(cntr) ) == CC_LIST  ? cc_list_r_end : \
+      CC_CNTR_ID( *(cntr) ) == CC_MAP   ? cc_map_r_end  : \
+      CC_CNTR_ID( *(cntr) ) == CC_SET   ? cc_set_r_end  : \
+      CC_CNTR_ID( *(cntr) ) == CC_OMAP  ? cc_omap_r_end : \
+                            /* CC_OSET */ cc_oset_r_end   \
+    )                                                     \
+    /* Function arguments */                              \
+    (                                                     \
+      *(cntr)                                             \
+    )                                                     \
+  )                                                       \
+)                                                         \
 
 #define cc_end( cntr )                                 \
 (                                                      \
@@ -5224,7 +7256,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                   \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                    \
   ),                                                   \
   CC_CAST_MAYBE_UNUSED(                                \
     CC_EL_TY( *(cntr) ) *,                             \
@@ -5235,7 +7268,8 @@ static inline void *cc_oset_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_end  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_end  : \
       CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_end : \
-                           /* CC_OSET */ cc_oset_end   \
+      CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_end : \
+                            /* CC_STR */ cc_str_end    \
     )                                                  \
     /* Function arguments */                           \
     (                                                  \
@@ -5246,7 +7280,7 @@ static inline void *cc_oset_next(
   )                                                    \
 )                                                      \
 
-#define cc_first( ... ) CC_SELECT_ON_NUM_ARGS( cc_first, __VA_ARGS__ )
+#define cc_first( ... ) CC_SELECT_ON_NUM_ARGS( cc_first_, __VA_ARGS__ )
 
 #define cc_first_1( cntr )                               \
 (                                                        \
@@ -5257,7 +7291,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                  \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                  \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                     \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                  \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                      \
   ),                                                     \
   CC_CAST_MAYBE_UNUSED(                                  \
     CC_EL_TY( *(cntr) ) *,                               \
@@ -5268,7 +7303,8 @@ static inline void *cc_oset_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_first  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_first  : \
       CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_first : \
-                           /* CC_OSET */ cc_oset_first   \
+      CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_first : \
+                            /* CC_STR */ cc_str_first    \
     )                                                    \
     /* Function arguments */                             \
     (                                                    \
@@ -5305,7 +7341,7 @@ static inline void *cc_oset_next(
   )                                                                      \
 )                                                                        \
 
-#define cc_last( ... ) CC_SELECT_ON_NUM_ARGS( cc_last, __VA_ARGS__ )
+#define cc_last( ... ) CC_SELECT_ON_NUM_ARGS( cc_last_, __VA_ARGS__ )
 
 #define cc_last_1( cntr )                               \
 (                                                       \
@@ -5320,7 +7356,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                 \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                    \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                     \
   ),                                                    \
   CC_CAST_MAYBE_UNUSED(                                 \
     CC_EL_TY( *(cntr) ) *,                              \
@@ -5331,7 +7368,8 @@ static inline void *cc_oset_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_last  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_last  : \
       CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_last : \
-                           /* CC_OSET */ cc_oset_last   \
+      CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_last : \
+                            /* CC_STR */ cc_str_last    \
     )                                                   \
     /* Function arguments */                            \
     (                                                   \
@@ -5377,7 +7415,8 @@ static inline void *cc_oset_next(
     CC_CNTR_ID( *(cntr) ) == CC_MAP  ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_SET  ||                 \
     CC_CNTR_ID( *(cntr) ) == CC_OMAP ||                 \
-    CC_CNTR_ID( *(cntr) ) == CC_OSET                    \
+    CC_CNTR_ID( *(cntr) ) == CC_OSET ||                 \
+    CC_CNTR_ID( *(cntr) ) == CC_STR                     \
   ),                                                    \
   CC_CAST_MAYBE_UNUSED(                                 \
     CC_EL_TY( *(cntr) ) *,                              \
@@ -5388,7 +7427,8 @@ static inline void *cc_oset_next(
       CC_CNTR_ID( *(cntr) ) == CC_MAP  ? cc_map_next  : \
       CC_CNTR_ID( *(cntr) ) == CC_SET  ? cc_set_next  : \
       CC_CNTR_ID( *(cntr) ) == CC_OMAP ? cc_omap_next : \
-                          /* CC_OSET */  cc_oset_next   \
+      CC_CNTR_ID( *(cntr) ) == CC_OSET ? cc_oset_next : \
+                            /* CC_STR */ cc_str_next    \
     )                                                   \
     /* Function arguments */                            \
     (                                                   \
@@ -5434,7 +7474,7 @@ static inline void *cc_oset_next(
   )                                                     \
 )                                                       \
 
-#define cc_for_each( ... ) CC_SELECT_ON_NUM_ARGS( cc_for_each, __VA_ARGS__ )
+#define cc_for_each( ... ) CC_SELECT_ON_NUM_ARGS( cc_for_each_, __VA_ARGS__ )
 
 #define cc_for_each_2( cntr, i_name )                 \
   for(                                                \
@@ -5451,7 +7491,7 @@ static inline void *cc_oset_next(
   )                                                                                                                   \
     for( const CC_KEY_TY( *(cntr) ) *key_ptr_name = cc_key_for( (cntr), i_name ); key_ptr_name; key_ptr_name = NULL ) \
 
-#define cc_r_for_each( ... ) CC_SELECT_ON_NUM_ARGS( cc_r_for_each, __VA_ARGS__ )
+#define cc_r_for_each( ... ) CC_SELECT_ON_NUM_ARGS( cc_r_for_each_, __VA_ARGS__ )
 
 #define cc_r_for_each_2( cntr, i_name )              \
   for(                                               \
@@ -5467,6 +7507,665 @@ static inline void *cc_oset_next(
     i_name = cc_prev( (cntr), i_name )                                                                           \
   )                                                                                                              \
     for( const CC_KEY_TY( *(cntr) ) *key_ptr_name = cc_key_for( (cntr), i ); key_ptr_name; key_ptr_name = NULL ) \
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/*                                Heterogeneous string insertion and lookup conversion                                */
+/*--------------------------------------------------------------------------------------------------------------------*/
+
+// This section defines the macros used to support the passing of C strings into API macros that perform insertions,
+// lookups, and related operations on containers with cc_str key and/or element types.
+// API macros that perform lookups must convert the supplied C string into a temporary string that uses
+// the C string as its buffer.
+// API macros that perform insertions, on the other hand, must do the following:
+//
+// * Convert the C string into a real, allocated cc_str.
+// * Check that the conversion did not fail due to memory exhaustion.
+// * Free the allocated cc_str if the conversion failed or the container operation did not actually insert it because of
+//   memory exhaustion or some other condition.
+//
+// The auxiliary macros defined here achieve these things by identifying a heterogeneous insertion or lookup condition
+// based on the container's key or element type and the type of the key or element to be inserted or looked up and then
+// performing the necessary action. Here, the C++ macros rely on template functions, whereas the C macros use _Generic
+// expressions.
+
+// CC_EL_CONVERTED_FOR_HETEROINSERT and CC_KEY_CONVERTED_FOR_HETEROINSERT for converting a C-string key or element for
+// heterogeneous insertion.
+// If no heterogeneous insertion condition exists, these macros return the key or element unmodified.
+
+#ifdef __cplusplus
+
+template<
+  typename cntr_key_or_el_ty,
+  typename arg_key_or_el_ty,
+  typename std::enable_if<
+    CC_IF_CPP20(
+      (
+        std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char8_t )>::value &&
+        ( std::is_same<arg_key_or_el_ty, char8_t *>::value || std::is_same<arg_key_or_el_ty, const char8_t *>::value )
+      ) ||
+    )
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char *>::value || std::is_same<arg_key_or_el_ty, const char *>::value )
+    ) ||
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( unsigned char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, unsigned char *>::value ||
+        std::is_same<arg_key_or_el_ty, const unsigned char *>::value
+      )
+    ) ||
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( signed char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, signed char *>::value ||
+        std::is_same<arg_key_or_el_ty, const signed char *>::value
+      )
+    ),
+    bool
+  >::type = true
+>
+cntr_key_or_el_ty cc_key_or_el_converted_for_heteroinsert( const void *cstring, cc_realloc_fnptr_ty realloc_ )
+{
+  return (cntr_key_or_el_ty)cc_cstring_to_str_char8( cstring, realloc_ );
+}
+
+template<
+  typename cntr_key_or_el_ty,
+  typename arg_key_or_el_ty,
+  typename std::enable_if<
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char16_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char16_t *>::value || std::is_same<arg_key_or_el_ty, const char16_t *>::value )
+    ),
+    bool
+  >::type = true
+>
+CC_STR_RAW( char16_t ) cc_key_or_el_converted_for_heteroinsert( const char16_t *cstring, cc_realloc_fnptr_ty realloc_ )
+{
+  return cc_cstring_to_str_char16( cstring, realloc_ );
+}
+
+template<
+  typename cntr_key_or_el_ty,
+  typename arg_key_or_el_ty,
+  typename std::enable_if<
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char32_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char32_t *>::value || std::is_same<arg_key_or_el_ty, const char32_t *>::value )
+    ),
+    bool
+  >::type = true
+>
+CC_STR_RAW( char32_t ) cc_key_or_el_converted_for_heteroinsert( const char32_t *cstring, cc_realloc_fnptr_ty realloc_ )
+{
+  return cc_cstring_to_str_char32( cstring, realloc_ );
+}
+
+template<
+  typename cntr_key_or_el_ty,
+  typename arg_key_or_el_ty,
+  typename std::enable_if<
+    CC_IF_CPP20(
+      !(
+        std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char8_t )>::value &&
+        ( std::is_same<arg_key_or_el_ty, char8_t *>::value || std::is_same<arg_key_or_el_ty, const char8_t *>::value )
+      ) &&
+    )
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char *>::value || std::is_same<arg_key_or_el_ty, const char *>::value )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( unsigned char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, unsigned char *>::value ||
+        std::is_same<arg_key_or_el_ty, const unsigned char *>::value
+      )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( signed char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, signed char *>::value ||
+        std::is_same<arg_key_or_el_ty, const signed char *>::value
+      )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char16_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char16_t *>::value || std::is_same<arg_key_or_el_ty, const char16_t *>::value )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char32_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char32_t *>::value || std::is_same<arg_key_or_el_ty, const char32_t *>::value )
+    )
+    ,
+    bool
+  >::type = true
+>
+arg_key_or_el_ty cc_key_or_el_converted_for_heteroinsert(
+  arg_key_or_el_ty arg,
+  CC_UNUSED( cc_realloc_fnptr_ty, realloc_ )
+)
+{
+  return arg;
+}
+
+#define CC_EL_CONVERTED_FOR_HETEROINSERT( cntr, el )                                                   \
+( cc_key_or_el_converted_for_heteroinsert<CC_EL_TY( cntr ), CC_TYPEOF_XP( el )>( el, CC_REALLOC_FN ) ) \
+
+#define CC_KEY_CONVERTED_FOR_HETEROINSERT( cntr, key )                                                    \
+( cc_key_or_el_converted_for_heteroinsert<CC_KEY_TY( cntr ), CC_TYPEOF_XP( key )>( key, CC_REALLOC_FN ) ) \
+
+#else
+
+// In C, to detect a condition that calls for an element conversion, we must perform a generic selection on two types:
+// the container's element type, and the type of the element supplied for insertion.
+// To do so, we construct a function pointer whose return type is the container's element type and whose argument type
+// is the type of the supplied element, and then test that against all possible conversion conditions.
+
+#define CC_EL_CONVERTED_FOR_HETEROINSERT( cntr, el )                                                    \
+_Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },                                          \
+  CC_STR_RAW( cc_maybe_char ) (*)( char * ):                                                            \
+    cc_cstring_to_str_char8( _Generic( el, char *: el, default: NULL ), CC_REALLOC_FN ),                \
+  CC_STR_RAW( cc_maybe_char ) (*)( const char * ):                                                      \
+    cc_cstring_to_str_char8( _Generic( el, const char *: el, default: NULL ), CC_REALLOC_FN ),          \
+  CC_STR_RAW( unsigned char ) (*)( unsigned char * ):                                                   \
+    cc_cstring_to_str_char8( _Generic( el, unsigned char *: el, default: NULL ), CC_REALLOC_FN ),       \
+  CC_STR_RAW( unsigned char ) (*)( const unsigned char * ):                                             \
+    cc_cstring_to_str_char8( _Generic( el, const unsigned char *: el, default: NULL ), CC_REALLOC_FN ), \
+  CC_STR_RAW( signed char ) (*)( signed char * ):                                                       \
+    cc_cstring_to_str_char8( _Generic( el, signed char *: el, default: NULL ), CC_REALLOC_FN ),         \
+  CC_STR_RAW( signed char ) (*)( const signed char * ):                                                 \
+    cc_cstring_to_str_char8( _Generic( el, const signed char *: el, default: NULL ), CC_REALLOC_FN ),   \
+  CC_STR_RAW( char16_t ) (*)( char16_t * ):                                                             \
+    cc_cstring_to_str_char16( _Generic( el, char16_t *: el, default: NULL ), CC_REALLOC_FN ),           \
+  CC_STR_RAW( char16_t ) (*)( const char16_t * ):                                                       \
+    cc_cstring_to_str_char16( _Generic( el, const char16_t *: el, default: NULL ), CC_REALLOC_FN ),     \
+  CC_STR_RAW( char32_t ) (*)( char32_t * ):                                                             \
+    cc_cstring_to_str_char32( _Generic( el, char32_t *: el, default: NULL ), CC_REALLOC_FN ),           \
+  CC_STR_RAW( char32_t ) (*)( const char32_t * ):                                                       \
+    cc_cstring_to_str_char32( _Generic( el, const char32_t *: el, default: NULL ), CC_REALLOC_FN ),     \
+  default: el                                                                                           \
+)                                                                                                       \
+
+// The same goes for key conversion, except the constructed function pointer's return type is the container's base
+// function pointer type rather than its key type specifically.
+// This is more efficient, in terms of compile speed, than using CC_KEY_TY to deduce the container's key type here.
+
+#define CC_KEY_CONVERTED_FOR_HETEROINSERT( cntr, key )                                                    \
+_Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },                                     \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( char * ):                   \
+    cc_cstring_to_str_char8( _Generic( key, char *: key, default: NULL ), CC_REALLOC_FN ),                \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( const char * ):             \
+    cc_cstring_to_str_char8( _Generic( key, const char *: key, default: NULL ), CC_REALLOC_FN ),          \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( unsigned char * ):          \
+    cc_cstring_to_str_char8( _Generic( key, unsigned char *: key, default: NULL ), CC_REALLOC_FN ),       \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( const unsigned char * ):    \
+    cc_cstring_to_str_char8( _Generic( key, const unsigned char *: key, default: NULL ), CC_REALLOC_FN ), \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( signed char * ):              \
+    cc_cstring_to_str_char8( _Generic( key, signed char *: key, default: NULL ), CC_REALLOC_FN ),         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( const signed char * ):        \
+    cc_cstring_to_str_char8( _Generic( key, const signed char *: key, default: NULL ), CC_REALLOC_FN ),   \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( char16_t * ):                    \
+    cc_cstring_to_str_char16( _Generic( key, char16_t *: key, default: NULL ), CC_REALLOC_FN ),           \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( const char16_t * ):              \
+    cc_cstring_to_str_char16( _Generic( key, const char16_t *: key, default: NULL ), CC_REALLOC_FN ),     \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( char32_t * ):                    \
+    cc_cstring_to_str_char32( _Generic( key, char32_t *: key, default: NULL ), CC_REALLOC_FN ),           \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( const char32_t * ):              \
+    cc_cstring_to_str_char32( _Generic( key, const char32_t *: key, default: NULL ), CC_REALLOC_FN ),     \
+  default: key                                                                                            \
+)                                                                                                         \
+
+#endif
+
+// CC_CHECK_HETEROINSERT_EL_CONVERSION and CC_CHECK_HETEROINSERT_KEY_CONVERSION macros for checking that the above
+// conversions succeeded.
+// This requires checking that the provided void pointer to the converted key or element is not NULL.
+// If no conversion was necessary, these macros simply return true.
+
+#ifdef __cplusplus
+
+template<
+  typename cntr_key_or_el_ty,
+  typename arg_key_or_el_ty,
+  typename std::enable_if<
+    CC_IF_CPP20(
+      (
+        std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char8_t )>::value &&
+        ( std::is_same<arg_key_or_el_ty, char8_t *>::value || std::is_same<arg_key_or_el_ty, const char8_t *>::value )
+      ) ||
+    )
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char *>::value || std::is_same<arg_key_or_el_ty, const char *>::value )
+    ) ||
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( unsigned char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, unsigned char *>::value ||
+        std::is_same<arg_key_or_el_ty, const unsigned char *>::value
+      )
+    ) ||
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( signed char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, signed char *>::value ||
+        std::is_same<arg_key_or_el_ty, const signed char *>::value
+      )
+    ) ||
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char16_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char16_t *>::value || std::is_same<arg_key_or_el_ty, const char16_t *>::value )
+    ) ||
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char32_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char32_t *>::value || std::is_same<arg_key_or_el_ty, const char32_t *>::value )
+    )
+    ,
+    bool
+  >::type = true
+>
+bool cc_check_heteroinsert_key_or_el_conversion( void *converted_key_or_el )
+{
+  return *(cntr_key_or_el_ty *)converted_key_or_el;
+}
+
+template<
+  typename cntr_key_or_el_ty,
+  typename arg_key_or_el_ty,
+  typename std::enable_if<
+    CC_IF_CPP20(
+      !(
+        std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char8_t )>::value &&
+        ( std::is_same<arg_key_or_el_ty, char8_t *>::value || std::is_same<arg_key_or_el_ty, const char8_t *>::value )
+      ) &&
+    )
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char *>::value || std::is_same<arg_key_or_el_ty, const char *>::value )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( unsigned char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, unsigned char *>::value ||
+        std::is_same<arg_key_or_el_ty, const unsigned char *>::value
+      )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( signed char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, signed char *>::value ||
+        std::is_same<arg_key_or_el_ty, const signed char *>::value
+      )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char16_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char16_t *>::value || std::is_same<arg_key_or_el_ty, const char16_t *>::value )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char32_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char32_t *>::value || std::is_same<arg_key_or_el_ty, const char32_t *>::value )
+    )
+    ,
+    bool
+  >::type = true
+>
+bool cc_check_heteroinsert_key_or_el_conversion( CC_UNUSED( void *, converted_key_or_el ) )
+{
+  return true;
+}
+
+#define CC_CHECK_HETEROINSERT_EL_CONVERSION( cntr, el, converted_el )                            \
+cc_check_heteroinsert_key_or_el_conversion<CC_EL_TY( cntr ), CC_TYPEOF_XP( el )>( converted_el ) \
+
+#define CC_CHECK_HETEROINSERT_KEY_CONVERSION( cntr, key, converted_key )                            \
+cc_check_heteroinsert_key_or_el_conversion<CC_KEY_TY( cntr ), CC_TYPEOF_XP( key )>( converted_key ) \
+
+#else
+
+#define CC_CHECK_HETEROINSERT_EL_CONVERSION( cntr, el, converted_el ) \
+_Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },        \
+  CC_STR_RAW( cc_maybe_char ) (*)( char * ):                          \
+    (bool)*(CC_STR_RAW( char ) *)converted_el,                        \
+  CC_STR_RAW( cc_maybe_char ) (*)( const char * ):                    \
+    (bool)*(CC_STR_RAW( char ) *)converted_el,                        \
+  CC_STR_RAW( unsigned char ) (*)( unsigned char * ):                 \
+    (bool)*(CC_STR_RAW( unsigned char ) *)converted_el,               \
+  CC_STR_RAW( unsigned char ) (*)( const unsigned char * ):           \
+    (bool)*(CC_STR_RAW( unsigned char ) *)converted_el,               \
+  CC_STR_RAW( signed char ) (*)( signed char * ):                     \
+    (bool)*(CC_STR_RAW( signed char ) *)converted_el,                 \
+  CC_STR_RAW( signed char ) (*)( const signed char * ):               \
+    (bool)*(CC_STR_RAW( signed char ) *)converted_el,                 \
+  CC_STR_RAW( char16_t ) (*)( char16_t * ):                           \
+    (bool)*(CC_STR_RAW( char16_t ) *)converted_el,                    \
+  CC_STR_RAW( char16_t ) (*)( const char16_t * ):                     \
+    (bool)*(CC_STR_RAW( char16_t ) *)converted_el,                    \
+  CC_STR_RAW( char32_t ) (*)( char32_t * ):                           \
+    (bool)*(CC_STR_RAW( char32_t ) *)converted_el,                    \
+  CC_STR_RAW( char32_t ) (*)( const char32_t * ):                     \
+    (bool)*(CC_STR_RAW( char32_t ) *)converted_el,                    \
+  default: true                                                       \
+)                                                                     \
+
+#define CC_CHECK_HETEROINSERT_KEY_CONVERSION( cntr, key, converted_key )                               \
+_Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },                                  \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( char * ):                \
+    (bool)*(CC_STR_RAW( char ) *)converted_key,                                                        \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( const char * ):          \
+    (bool)*(CC_STR_RAW( char ) *)converted_key,                                                        \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( unsigned char * ):       \
+    (bool)*(CC_STR_RAW( unsigned char ) *)converted_key,                                               \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( const unsigned char * ): \
+    (bool)*(CC_STR_RAW( unsigned char ) *)converted_key,                                               \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( signed char * ):           \
+    (bool)*(CC_STR_RAW( signed char ) *)converted_key,                                                 \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( const signed char * ):     \
+    (bool)*(CC_STR_RAW( signed char ) *)converted_key,                                                 \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( char16_t * ):                 \
+    (bool)*(CC_STR_RAW( char16_t ) *)converted_key,                                                    \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( const char16_t * ):           \
+    (bool)*(CC_STR_RAW( char16_t ) *)converted_key,                                                    \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( char32_t * ):                 \
+    (bool)*(CC_STR_RAW( char32_t ) *)converted_key,                                                    \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( const char32_t * ):           \
+    (bool)*(CC_STR_RAW( char32_t ) *)converted_key,                                                    \
+  default: true                                                                                        \
+)                                                                                                      \
+
+#endif
+
+// CC_CLEANUP_HETEROINSERT_EL and CC_CLEANUP_HETEROINSERT_KEY macros for freeing a converted key or element in the case
+// of allocation failure or no need for insertion (a condition that can occur in cc_get_or_insert).
+// If no conversion was necessary, these macros are effectively no-ops.
+
+#ifdef __cplusplus
+
+template<
+  typename cntr_key_or_el_ty,
+  typename arg_key_or_el_ty,
+  typename std::enable_if<
+    CC_IF_CPP20(
+      (
+        std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char8_t )>::value &&
+        ( std::is_same<arg_key_or_el_ty, char8_t *>::value || std::is_same<arg_key_or_el_ty, const char8_t *>::value )
+      ) ||
+    )
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char *>::value || std::is_same<arg_key_or_el_ty, const char *>::value )
+    ) ||
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( unsigned char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, unsigned char *>::value ||
+        std::is_same<arg_key_or_el_ty, const unsigned char *>::value
+      )
+    ) ||
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( signed char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, signed char *>::value ||
+        std::is_same<arg_key_or_el_ty, const signed char *>::value
+      )
+    ) ||
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char16_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char16_t *>::value || std::is_same<arg_key_or_el_ty, const char16_t *>::value )
+    ) ||
+    (
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char32_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char32_t *>::value || std::is_same<arg_key_or_el_ty, const char32_t *>::value )
+    )
+    ,
+    bool
+  >::type = true
+>
+void cc_cleanup_heteroinsert_key_or_el( void *converted_key_or_el, cc_free_fnptr_ty free_ )
+{
+  free_( *(cntr_key_or_el_ty *)converted_key_or_el );
+}
+
+template<
+  typename cntr_key_or_el_ty,
+  typename arg_key_or_el_ty,
+  typename std::enable_if<
+    CC_IF_CPP20(
+      !(
+        std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char8_t )>::value &&
+        ( std::is_same<arg_key_or_el_ty, char8_t *>::value || std::is_same<arg_key_or_el_ty, const char8_t *>::value )
+      ) &&
+    )
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char *>::value || std::is_same<arg_key_or_el_ty, const char *>::value )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( unsigned char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, unsigned char *>::value ||
+        std::is_same<arg_key_or_el_ty, const unsigned char *>::value
+      )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( signed char )>::value &&
+      (
+        std::is_same<arg_key_or_el_ty, signed char *>::value ||
+        std::is_same<arg_key_or_el_ty, const signed char *>::value
+      )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char16_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char16_t *>::value || std::is_same<arg_key_or_el_ty, const char16_t *>::value )
+    ) &&
+    !(
+      std::is_same<cntr_key_or_el_ty, CC_STR_RAW( char32_t )>::value &&
+      ( std::is_same<arg_key_or_el_ty, char32_t *>::value || std::is_same<arg_key_or_el_ty, const char32_t *>::value )
+    )
+    ,
+    bool
+  >::type = true
+>
+void cc_cleanup_heteroinsert_key_or_el( CC_UNUSED( void *, converted_key_or_el ), CC_UNUSED( cc_free_fnptr_ty, free_ ) )
+{
+  // Do nothing.
+}
+
+#define CC_CLEANUP_HETEROINSERT_EL( cntr, el, converted_el )                                        \
+cc_cleanup_heteroinsert_key_or_el<CC_EL_TY( cntr ), CC_TYPEOF_XP( el )>( converted_el, CC_FREE_FN ) \
+
+#define CC_CLEANUP_HETEROINSERT_KEY( cntr, key, converted_key )                                        \
+cc_cleanup_heteroinsert_key_or_el<CC_KEY_TY( cntr ), CC_TYPEOF_XP( key )>( converted_key, CC_FREE_FN ) \
+
+#else
+
+#define CC_CLEANUP_HETEROINSERT_EL( cntr, el, converted_el )    \
+_Generic( ( CC_EL_TY( cntr ) (*)( CC_TYPEOF_XP( el ) ) ){ 0 },  \
+  CC_STR_RAW( cc_maybe_char ) (*)( char * ):                    \
+    CC_FREE_FN( *(CC_STR_RAW( char ) *)converted_el ),          \
+  CC_STR_RAW( cc_maybe_char ) (*)( const char * ):              \
+    CC_FREE_FN( *(CC_STR_RAW( char ) *)converted_el ),          \
+  CC_STR_RAW( unsigned char ) (*)( unsigned char * ):           \
+    CC_FREE_FN( *(CC_STR_RAW( unsigned char ) *)converted_el ), \
+  CC_STR_RAW( unsigned char ) (*)( const unsigned char * ):     \
+    CC_FREE_FN( *(CC_STR_RAW( unsigned char ) *)converted_el ), \
+  CC_STR_RAW( signed char ) (*)( signed char * ):               \
+    CC_FREE_FN( *(CC_STR_RAW( signed char ) *)converted_el ),   \
+  CC_STR_RAW( signed char ) (*)( const signed char * ):         \
+    CC_FREE_FN( *(CC_STR_RAW( signed char ) *)converted_el ),   \
+  CC_STR_RAW( char16_t ) (*)( char16_t * ):                     \
+    CC_FREE_FN( *(CC_STR_RAW( char16_t ) *)converted_el ),      \
+  CC_STR_RAW( char16_t ) (*)( const char16_t * ):               \
+    CC_FREE_FN( *(CC_STR_RAW( char16_t ) *)converted_el ),      \
+  CC_STR_RAW( char32_t ) (*)( char32_t * ):                     \
+    CC_FREE_FN( *(CC_STR_RAW( char32_t ) *)converted_el ),      \
+  CC_STR_RAW( char32_t ) (*)( const char32_t * ):               \
+    CC_FREE_FN( *(CC_STR_RAW( char32_t ) *)converted_el ),      \
+  default: (void)0                                              \
+)                                                               \
+
+#define CC_CLEANUP_HETEROINSERT_KEY( cntr, key, converted_key )                                        \
+_Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },                                  \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( char * ):                \
+    CC_FREE_FN( *(CC_STR_RAW( char ) *)converted_key ),                                                \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( const char * ):          \
+    CC_FREE_FN( *(CC_STR_RAW( char ) *)converted_key ),                                                \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( unsigned char * ):       \
+    CC_FREE_FN( *(CC_STR_RAW( unsigned char ) *)converted_key ),                                       \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( const unsigned char * ): \
+    CC_FREE_FN( *(CC_STR_RAW( unsigned char ) *)converted_key ),                                       \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( signed char * ):           \
+    CC_FREE_FN( *(CC_STR_RAW( signed char ) *)converted_key ),                                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( const signed char * ):     \
+    CC_FREE_FN( *(CC_STR_RAW( signed char ) *)converted_key ),                                         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( char16_t * ):                 \
+    CC_FREE_FN( *(CC_STR_RAW( char16_t ) *)converted_key ),                                            \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( const char16_t * ):           \
+    CC_FREE_FN( *(CC_STR_RAW( char16_t ) *)converted_key ),                                            \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( char32_t * ):                 \
+    CC_FREE_FN( *(CC_STR_RAW( char32_t ) *)converted_key ),                                            \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( const char32_t * ):           \
+    CC_FREE_FN( *(CC_STR_RAW( char32_t ) *)converted_key ),                                            \
+  default: (void)0                                                                                     \
+)                                                                                                      \
+
+#endif
+
+// CC_KEY_CONVERTED_FOR_HETEROLOOKUP macro for wrapping a supplied C-string key (or element, in the case of set and
+// oset) inside a temporary cc_str for heterogeneous lookup.
+// If no heterogeneous lookup is being performed, these macros return the key unmodified.
+
+#ifdef __cplusplus
+
+template<
+  typename cntr_key_ty,
+  typename arg_key_ty,
+  typename std::enable_if<
+    CC_IF_CPP20(
+      (
+        std::is_same<cntr_key_ty, CC_STR_RAW( char8_t )>::value &&
+        ( std::is_same<cntr_key_ty, char8_t *>::value || std::is_same<arg_key_ty, const char8_t *>::value )
+      ) ||
+    )
+    (
+      std::is_same<cntr_key_ty, CC_STR_RAW( char )>::value &&
+      ( std::is_same<arg_key_ty, char *>::value || std::is_same<arg_key_ty, const char *>::value )
+    ) ||
+    (
+      std::is_same<cntr_key_ty, CC_STR_RAW( unsigned char )>::value &&
+      ( std::is_same<arg_key_ty, unsigned char *>::value || std::is_same<arg_key_ty, const unsigned char *>::value )
+    ) ||
+    (
+      std::is_same<cntr_key_ty, CC_STR_RAW( signed char )>::value &&
+      ( std::is_same<arg_key_ty, signed char *>::value || std::is_same<arg_key_ty, const signed char *>::value )
+    ),
+    bool
+  >::type = true
+>
+cntr_key_ty cc_key_converted_for_heterolookup( const void *cstring, cc_str_hdr_ty *str_hdr )
+{
+  return (cntr_key_ty)cc_cstring_to_temp_str_char8( cstring, str_hdr );
+}
+
+template<
+  typename key_ty,
+  typename arg_key_ty,
+  typename std::enable_if<
+    std::is_same<key_ty, CC_STR_RAW( char16_t )>::value &&
+    ( std::is_same<arg_key_ty, char16_t *>::value || std::is_same<arg_key_ty, const char16_t *>::value ),
+    bool
+  >::type = true
+>
+CC_STR_RAW( char16_t ) cc_key_converted_for_heterolookup( const char16_t *cstring, cc_str_hdr_ty *str_hdr )
+{
+  return cc_cstring_to_temp_str_char16( cstring, str_hdr );
+}
+
+template<
+  typename cntr_key_ty,
+  typename arg_key_ty,
+  typename std::enable_if<
+    std::is_same<cntr_key_ty, CC_STR_RAW( char32_t )>::value
+    && ( std::is_same<arg_key_ty, char32_t *>::value || std::is_same<arg_key_ty, const char32_t *>::value ),
+    bool
+  >::type = true
+>
+CC_STR_RAW( char32_t ) cc_key_converted_for_heterolookup( const char32_t *cstring, cc_str_hdr_ty *str_hdr )
+{
+  return cc_cstring_to_temp_str_char32( cstring, str_hdr );
+}
+
+template<
+  typename cntr_key_ty,
+  typename arg_key_ty,
+  typename std::enable_if<
+    CC_IF_CPP20(
+      !(
+        std::is_same<cntr_key_ty, CC_STR_RAW( char8_t )>::value &&
+        ( std::is_same<arg_key_ty, char8_t *>::value || std::is_same<arg_key_ty, const char8_t *>::value )
+      ) &&
+    )
+    !(
+      std::is_same<cntr_key_ty, CC_STR_RAW( char )>::value &&
+      ( std::is_same<arg_key_ty, char *>::value || std::is_same<arg_key_ty, const char *>::value )
+    ) &&
+    !(
+      std::is_same<cntr_key_ty, CC_STR_RAW( unsigned char )>::value &&
+      ( std::is_same<arg_key_ty, unsigned char *>::value || std::is_same<arg_key_ty, const unsigned char *>::value )
+    ) &&
+    !(
+      std::is_same<cntr_key_ty, CC_STR_RAW( signed char )>::value &&
+      ( std::is_same<arg_key_ty, signed char *>::value || std::is_same<arg_key_ty, const signed char *>::value )
+    ) &&
+    !(
+      std::is_same<cntr_key_ty, CC_STR_RAW( char16_t )>::value &&
+      ( std::is_same<arg_key_ty, char16_t *>::value || std::is_same<arg_key_ty, const char16_t *>::value )
+    ) &&
+    !(
+      std::is_same<cntr_key_ty, CC_STR_RAW( char32_t )>::value &&
+      ( std::is_same<arg_key_ty, char32_t *>::value || std::is_same<arg_key_ty, const char32_t *>::value )
+    )
+    ,
+    bool
+  >::type = true
+>
+arg_key_ty cc_key_converted_for_heterolookup( arg_key_ty arg, CC_UNUSED( cc_str_hdr_ty *, str_hdr ) )
+{
+  return arg;
+}
+
+#define CC_KEY_CONVERTED_FOR_HETEROLOOKUP( cntr, key )                                                          \
+cc_key_converted_for_heterolookup<CC_KEY_TY( cntr ), CC_TYPEOF_XP( key )>( key, &cc_unmove( cc_str_hdr_ty() ) ) \
+
+#else
+
+#define CC_KEY_CONVERTED_FOR_HETEROLOOKUP( cntr, key )                                                                 \
+_Generic( ( CC_TYPEOF_XP( **cntr ) (*)( CC_TYPEOF_XP( key ) ) ){ 0 },                                                  \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( char * ):                                \
+    cc_cstring_to_temp_str_char8( _Generic( key, char *: key, default: NULL ), &(cc_str_hdr_ty){ 0 } ),                \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ) (*)( const char * ):                          \
+    cc_cstring_to_temp_str_char8( _Generic( key, const char *: key, default: NULL ), &(cc_str_hdr_ty){ 0 } ),          \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( unsigned char * ):                       \
+    cc_cstring_to_temp_str_char8( _Generic( key, unsigned char *: key, default: NULL ), &(cc_str_hdr_ty){ 0 } ),       \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ) (*)( const unsigned char * ):                 \
+    cc_cstring_to_temp_str_char8( _Generic( key, const unsigned char *: key, default: NULL ), &(cc_str_hdr_ty){ 0 } ), \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( signed char * ):                           \
+    cc_cstring_to_temp_str_char8( _Generic( key, signed char *: key, default: NULL ), &(cc_str_hdr_ty){ 0 } ),         \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ) (*)( const signed char * ):                     \
+    cc_cstring_to_temp_str_char8( _Generic( key, const signed char *: key, default: NULL ), &(cc_str_hdr_ty){ 0 } ),   \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( char16_t * ):                                 \
+    cc_cstring_to_temp_str_char16( _Generic( key, char16_t *: key, default: NULL ), &(cc_str_hdr_ty){ 0 } ),           \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ) (*)( const char16_t * ):                           \
+    cc_cstring_to_temp_str_char16( _Generic( key, const char16_t *: key, default: NULL ), &(cc_str_hdr_ty){ 0 } ),     \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( char32_t * ):                                 \
+    cc_cstring_to_temp_str_char32( _Generic( key, char32_t *: key, default: NULL ), &(cc_str_hdr_ty){ 0 } ),           \
+  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ) (*)( const char32_t * ):                           \
+    cc_cstring_to_temp_str_char32( _Generic( key, const char32_t *: key, default: NULL ), &(cc_str_hdr_ty){ 0 } ),     \
+  default: key                                                                                                         \
+)                                                                                                                      \
+
+#endif
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /*                         Destructor, comparison, and hash functions and custom load factors                         */
@@ -5557,137 +8256,199 @@ CC_CAT_2( CC_R3_, d3 )( m, arg )               \
 #ifdef __cplusplus
 
 #define CC_EL_DTOR_SLOT( n, arg ) std::is_same<arg, cc_dtor_##n##_ty>::value ? cc_dtor_##n##_fn :
-#define CC_EL_DTOR( cntr )                              \
-(                                                       \
-  CC_FOR_EACH_DTOR( CC_EL_DTOR_SLOT, CC_EL_TY( cntr ) ) \
-  (cc_dtor_fnptr_ty)NULL                                \
-)                                                       \
+#define CC_EL_DTOR( cntr )                                                                                     \
+(                                                                                                              \
+  CC_FOR_EACH_DTOR( CC_EL_DTOR_SLOT, CC_EL_TY( cntr ) )                                                        \
+  std::is_same<CC_EL_TY( cntr ), CC_STR_RAW( char )>::value                 ? cc_destroy_str_char          :   \
+  std::is_same<CC_EL_TY( cntr ), CC_STR_RAW( unsigned char )>::value        ? cc_destroy_str_unsigned_char :   \
+  std::is_same<CC_EL_TY( cntr ), CC_STR_RAW( signed char )>::value          ? cc_destroy_str_signed_char   :   \
+  CC_IF_CPP20( std::is_same<CC_EL_TY( cntr ), CC_STR_RAW( char8_t )>::value ? cc_destroy_str_char8         : ) \
+  std::is_same<CC_EL_TY( cntr ), CC_STR_RAW( char16_t )>::value             ? cc_destroy_str_char16        :   \
+  std::is_same<CC_EL_TY( cntr ), CC_STR_RAW( char32_t )>::value             ? cc_destroy_str_char32        :   \
+  (cc_dtor_fnptr_ty)NULL                                                                                       \
+)                                                                                                              \
 
-#define CC_KEY_DTOR_SLOT( n, arg )                           \
-std::is_same<                                                \
-  CC_TYPEOF_XP(**arg),                                       \
-  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( arg ), cc_dtor_##n##_ty ) \
->::value ? cc_dtor_##n##_fn :                                \
+#define CC_KEY_DTOR_SLOT( n, arg )                                                                      \
+std::is_same<CC_TYPEOF_XP(**arg), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( arg ), cc_dtor_##n##_ty ) >::value ? \
+  cc_dtor_##n##_fn                                                                                    : \
 
-#define CC_KEY_DTOR( cntr )                  \
-(                                            \
-  CC_FOR_EACH_DTOR( CC_KEY_DTOR_SLOT, cntr ) \
-  (cc_dtor_fnptr_ty)NULL                     \
-)                                            \
+#define CC_KEY_DTOR( cntr )                                                                                           \
+(                                                                                                                     \
+  CC_FOR_EACH_DTOR( CC_KEY_DTOR_SLOT, cntr )                                                                          \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) )>::value          ? \
+    cc_destroy_str_char                                                                                             : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) )>::value ? \
+    cc_destroy_str_unsigned_char                                                                                    : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) )>::value   ? \
+    cc_destroy_str_signed_char                                                                                      : \
+  CC_IF_CPP20(                                                                                                        \
+    std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char8_t ) )>::value     ? \
+      cc_destroy_str_char8                                                                                          : \
+  )                                                                                                                   \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) )>::value      ? \
+    cc_destroy_str_char16                                                                                           : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) )>::value      ? \
+    cc_destroy_str_char32                                                                                           : \
+  (cc_dtor_fnptr_ty)NULL                                                                                              \
+)                                                                                                                     \
 
 #define CC_KEY_CMPR_SLOT( n, arg )                                                                      \
 std::is_same<CC_TYPEOF_XP(**arg), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( arg ), cc_cmpr_##n##_ty ) >::value ? \
   cc_cmpr_##n##_fn_select                                                                             : \
 
-#define CC_KEY_CMPR( cntr )                                                                                  \
-(                                                                                                            \
-  CC_FOR_EACH_CMPR( CC_KEY_CMPR_SLOT, cntr )                                                                 \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char )>::value               ? \
-    cc_cmpr_char_select                                                                                    : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char )>::value      ? \
-    cc_cmpr_unsigned_char_select                                                                           : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char )>::value        ? \
-    cc_cmpr_signed_char_select                                                                             : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short )>::value     ? \
-    cc_cmpr_unsigned_short_select                                                                          : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short )>::value              ? \
-    cc_cmpr_short_select                                                                                   : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int )>::value       ? \
-    cc_cmpr_unsigned_int_select                                                                            : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int )>::value                ? \
-    cc_cmpr_int_select                                                                                     : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long )>::value      ? \
-    cc_cmpr_unsigned_long_select                                                                           : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long )>::value               ? \
-    cc_cmpr_long_select                                                                                    : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long )>::value ? \
-    cc_cmpr_unsigned_long_long_select                                                                      : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long )>::value          ? \
-    cc_cmpr_long_long_select                                                                               : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), size_t )>::value             ? \
-    cc_cmpr_size_t_select                                                                                  : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * )>::value             ? \
-    cc_cmpr_c_string_select                                                                                : \
-  cc_cmpr_dummy_select                                                                                       \
-)( CC_CNTR_ID( cntr ) )                                                                                      \
+#define CC_KEY_CMPR( cntr )                                                                                           \
+(                                                                                                                     \
+  CC_FOR_EACH_CMPR( CC_KEY_CMPR_SLOT, cntr )                                                                          \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char )>::value                        ? \
+    cc_cmpr_char_select                                                                                             : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char )>::value               ? \
+    cc_cmpr_unsigned_char_select                                                                                    : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char )>::value                 ? \
+    cc_cmpr_signed_char_select                                                                                      : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short )>::value              ? \
+    cc_cmpr_unsigned_short_select                                                                                   : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short )>::value                       ? \
+    cc_cmpr_short_select                                                                                            : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int )>::value                ? \
+    cc_cmpr_unsigned_int_select                                                                                     : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int )>::value                         ? \
+    cc_cmpr_int_select                                                                                              : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long )>::value               ? \
+    cc_cmpr_unsigned_long_select                                                                                    : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long )>::value                        ? \
+    cc_cmpr_long_select                                                                                             : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long )>::value          ? \
+    cc_cmpr_unsigned_long_long_select                                                                               : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long )>::value                   ? \
+    cc_cmpr_long_long_select                                                                                        : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), size_t )>::value                      ? \
+    cc_cmpr_size_t_select                                                                                           : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * )>::value                      ? \
+    cc_cmpr_cstring_select                                                                                          : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * )>::value                ? \
+    cc_cmpr_cstring_select                                                                                          : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) )>::value          ? \
+    cc_cmpr_str_char_select                                                                                         : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) )>::value ? \
+    cc_cmpr_str_unsigned_char_select                                                                                : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) )>::value   ? \
+    cc_cmpr_str_signed_char_select                                                                                  : \
+  CC_IF_CPP20(                                                                                                        \
+    std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char8_t ) )>::value     ? \
+      cc_cmpr_str_char8_select                                                                                      : \
+  )                                                                                                                   \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) )>::value      ? \
+    cc_cmpr_str_char16_select                                                                                       : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) )>::value      ? \
+    cc_cmpr_str_char32_select                                                                                       : \
+  cc_cmpr_dummy_select                                                                                                \
+)( CC_CNTR_ID( cntr ) )                                                                                               \
 
-#define CC_KEY_HASH_SLOT( n, arg )                           \
-std::is_same<                                                \
-  CC_TYPEOF_XP(**arg),                                       \
-  CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( arg ), cc_hash_##n##_ty ) \
->::value ? cc_hash_##n##_fn :                                \
+#define CC_KEY_HASH_SLOT( n, arg )                                                                     \
+std::is_same<CC_TYPEOF_XP(**arg), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( arg ), cc_hash_##n##_ty )>::value ? \
+  cc_hash_##n##_fn                                                                                   : \
 
-#define CC_KEY_HASH( cntr )                                                                                  \
-(                                                                                                            \
-  CC_FOR_EACH_HASH( CC_KEY_HASH_SLOT, cntr )                                                                 \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char )>::value               ? \
-    cc_hash_char                                                                                           : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char )>::value      ? \
-    cc_hash_unsigned_char                                                                                  : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char )>::value        ? \
-    cc_hash_signed_char                                                                                    : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short )>::value     ? \
-    cc_hash_unsigned_short                                                                                 : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short )>::value              ? \
-    cc_hash_short                                                                                          : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int )>::value       ? \
-    cc_hash_unsigned_int                                                                                   : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int )>::value                ? \
-    cc_hash_int                                                                                            : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long )>::value      ? \
-    cc_hash_unsigned_long                                                                                  : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long )>::value               ? \
-    cc_hash_long                                                                                           : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long )>::value ? \
-    cc_hash_unsigned_long_long                                                                             : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long )>::value          ? \
-    cc_hash_long_long                                                                                      : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), size_t )>::value             ? \
-    cc_hash_size_t                                                                                         : \
-  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * )>::value             ? \
-    cc_hash_c_string                                                                                       : \
-  (cc_hash_fnptr_ty)NULL                                                                                     \
-)                                                                                                            \
+#define CC_KEY_HASH( cntr )                                                                                           \
+(                                                                                                                     \
+  CC_FOR_EACH_HASH( CC_KEY_HASH_SLOT, cntr )                                                                          \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char )>::value                        ? \
+    cc_hash_char                                                                                                    : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char )>::value               ? \
+    cc_hash_unsigned_char                                                                                           : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char )>::value                 ? \
+    cc_hash_signed_char                                                                                             : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short )>::value              ? \
+    cc_hash_unsigned_short                                                                                          : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short )>::value                       ? \
+    cc_hash_short                                                                                                   : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int )>::value                ? \
+    cc_hash_unsigned_int                                                                                            : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int )>::value                         ? \
+    cc_hash_int                                                                                                     : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long )>::value               ? \
+    cc_hash_unsigned_long                                                                                           : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long )>::value                        ? \
+    cc_hash_long                                                                                                    : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long )>::value          ? \
+    cc_hash_unsigned_long_long                                                                                      : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long )>::value                   ? \
+    cc_hash_long_long                                                                                               : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), size_t )>::value                      ? \
+    cc_hash_size_t                                                                                                  : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * )>::value                      ? \
+    cc_hash_cstring                                                                                                 : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * )>::value                ? \
+    cc_hash_cstring                                                                                                 : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char ) )>::value          ? \
+    cc_hash_str_char                                                                                                : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) )>::value ? \
+    cc_hash_str_unsigned_char                                                                                       : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) )>::value   ? \
+    cc_hash_str_signed_char                                                                                         : \
+  CC_IF_CPP20(                                                                                                        \
+    std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char8_t ) )>::value     ? \
+      cc_hash_str_char8                                                                                             : \
+  )                                                                                                                   \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) )>::value      ? \
+    cc_hash_str_char16                                                                                              : \
+  std::is_same<CC_TYPEOF_XP(**cntr), CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) )>::value      ? \
+    cc_hash_str_char32                                                                                              : \
+  (cc_hash_fnptr_ty)NULL                                                                                              \
+)                                                                                                                     \
 
 #define CC_HAS_CMPR_SLOT( n, arg ) std::is_same<arg, cc_cmpr_##n##_ty>::value ? true :
-#define CC_HAS_CMPR( ty )                              \
-(                                                      \
-  std::is_same<ty, char>::value               ? true : \
-  std::is_same<ty, unsigned char>::value      ? true : \
-  std::is_same<ty, signed char>::value        ? true : \
-  std::is_same<ty, unsigned short>::value     ? true : \
-  std::is_same<ty, signed short>::value       ? true : \
-  std::is_same<ty, unsigned int>::value       ? true : \
-  std::is_same<ty, signed int>::value         ? true : \
-  std::is_same<ty, unsigned long>::value      ? true : \
-  std::is_same<ty, signed long>::value        ? true : \
-  std::is_same<ty, unsigned long long>::value ? true : \
-  std::is_same<ty, signed long long>::value   ? true : \
-  std::is_same<ty, size_t>::value             ? true : \
-  std::is_same<ty, char *>::value             ? true : \
-  CC_FOR_EACH_CMPR( CC_HAS_CMPR_SLOT, ty )             \
-  false                                                \
-)                                                      \
+#define CC_HAS_CMPR( ty )                                                \
+(                                                                        \
+  std::is_same<ty, char>::value                               ? true :   \
+  std::is_same<ty, unsigned char>::value                      ? true :   \
+  std::is_same<ty, signed char>::value                        ? true :   \
+  std::is_same<ty, unsigned short>::value                     ? true :   \
+  std::is_same<ty, signed short>::value                       ? true :   \
+  std::is_same<ty, unsigned int>::value                       ? true :   \
+  std::is_same<ty, signed int>::value                         ? true :   \
+  std::is_same<ty, unsigned long>::value                      ? true :   \
+  std::is_same<ty, signed long>::value                        ? true :   \
+  std::is_same<ty, unsigned long long>::value                 ? true :   \
+  std::is_same<ty, signed long long>::value                   ? true :   \
+  std::is_same<ty, size_t>::value                             ? true :   \
+  std::is_same<ty, char *>::value                             ? true :   \
+  std::is_same<ty, const char *>::value                       ? true :   \
+  std::is_same<ty, CC_STR_RAW( char )>::value                 ? true :   \
+  std::is_same<ty, CC_STR_RAW( unsigned char )>::value        ? true :   \
+  std::is_same<ty, CC_STR_RAW( signed char )>::value          ? true :   \
+  CC_IF_CPP20( std::is_same<ty, CC_STR_RAW( char8_t )>::value ? true : ) \
+  std::is_same<ty, CC_STR_RAW( char16_t )>::value             ? true :   \
+  std::is_same<ty, CC_STR_RAW( char32_t )>::value             ? true :   \
+  CC_FOR_EACH_CMPR( CC_HAS_CMPR_SLOT, ty )                               \
+  false                                                                  \
+)                                                                        \
 
 #define CC_HAS_HASH_SLOT( n, arg ) std::is_same<arg, cc_hash_##n##_ty>::value ? true :
-#define CC_HAS_HASH( ty )                              \
-(                                                      \
-  std::is_same<ty, char>::value               ? true : \
-  std::is_same<ty, unsigned char>::value      ? true : \
-  std::is_same<ty, signed char>::value        ? true : \
-  std::is_same<ty, unsigned short>::value     ? true : \
-  std::is_same<ty, signed short>::value       ? true : \
-  std::is_same<ty, unsigned int>::value       ? true : \
-  std::is_same<ty, signed int>::value         ? true : \
-  std::is_same<ty, unsigned long>::value      ? true : \
-  std::is_same<ty, signed long>::value        ? true : \
-  std::is_same<ty, unsigned long long>::value ? true : \
-  std::is_same<ty, signed long long>::value   ? true : \
-  std::is_same<ty, size_t>::value             ? true : \
-  std::is_same<ty, char *>::value             ? true : \
-  CC_FOR_EACH_HASH( CC_HAS_HASH_SLOT, ty )             \
-  false                                                \
-)                                                      \
+#define CC_HAS_HASH( ty )                                                \
+(                                                                        \
+  std::is_same<ty, char>::value                               ? true :   \
+  std::is_same<ty, unsigned char>::value                      ? true :   \
+  std::is_same<ty, signed char>::value                        ? true :   \
+  std::is_same<ty, unsigned short>::value                     ? true :   \
+  std::is_same<ty, signed short>::value                       ? true :   \
+  std::is_same<ty, unsigned int>::value                       ? true :   \
+  std::is_same<ty, signed int>::value                         ? true :   \
+  std::is_same<ty, unsigned long>::value                      ? true :   \
+  std::is_same<ty, signed long>::value                        ? true :   \
+  std::is_same<ty, unsigned long long>::value                 ? true :   \
+  std::is_same<ty, signed long long>::value                   ? true :   \
+  std::is_same<ty, size_t>::value                             ? true :   \
+  std::is_same<ty, char *>::value                             ? true :   \
+  std::is_same<ty, const char *>::value                       ? true :   \
+  std::is_same<ty, CC_STR_RAW( char )>::value                 ? true :   \
+  std::is_same<ty, CC_STR_RAW( unsigned char )>::value        ? true :   \
+  std::is_same<ty, CC_STR_RAW( signed char )>::value          ? true :   \
+  CC_IF_CPP20( std::is_same<ty, CC_STR_RAW( char8_t )>::value ? true : ) \
+  std::is_same<ty, CC_STR_RAW( char16_t )>::value             ? true :   \
+  std::is_same<ty, CC_STR_RAW( char32_t )>::value             ? true :   \
+  CC_FOR_EACH_HASH( CC_HAS_HASH_SLOT, ty )                               \
+  false                                                                  \
+)                                                                        \
 
 #define CC_KEY_LOAD_SLOT( n, arg )                           \
 std::is_same<                                                \
@@ -5712,82 +8473,114 @@ cc_layout(                                                                      
 #else
 
 #define CC_EL_DTOR_SLOT( n, arg ) cc_dtor_##n##_ty: cc_dtor_##n##_fn,
-#define CC_EL_DTOR( cntr )             \
-_Generic( (CC_EL_TY( cntr )){ 0 },     \
-  CC_FOR_EACH_DTOR( CC_EL_DTOR_SLOT, ) \
-  default: (cc_dtor_fnptr_ty)NULL      \
-)                                      \
+#define CC_EL_DTOR( cntr )                                     \
+_Generic( (CC_EL_TY( cntr )){ 0 },                             \
+  CC_FOR_EACH_DTOR( CC_EL_DTOR_SLOT, )                         \
+  default: _Generic( (CC_EL_TY( cntr )){ 0 },                  \
+    CC_STR_RAW( cc_maybe_char ): cc_destroy_str_char,          \
+    CC_STR_RAW( unsigned char ): cc_destroy_str_unsigned_char, \
+    CC_STR_RAW( signed char ): cc_destroy_str_signed_char,     \
+    CC_STR_RAW( char16_t ): cc_destroy_str_char16,             \
+    CC_STR_RAW( char32_t ): cc_destroy_str_char32,             \
+    default: (cc_dtor_fnptr_ty)NULL                            \
+  )                                                            \
+)                                                              \
 
 #define CC_KEY_DTOR_SLOT( n, arg ) CC_MAKE_BASE_FNPTR_TY( arg, cc_dtor_##n##_ty ): cc_dtor_##n##_fn,
-#define CC_KEY_DTOR( cntr )                              \
-_Generic( (**cntr),                                      \
-  CC_FOR_EACH_DTOR( CC_KEY_DTOR_SLOT, CC_EL_TY( cntr ) ) \
-  default: (cc_dtor_fnptr_ty)NULL                        \
-)                                                        \
+#define CC_KEY_DTOR( cntr )                                                                               \
+_Generic( (**cntr),                                                                                       \
+  CC_FOR_EACH_DTOR( CC_KEY_DTOR_SLOT, CC_EL_TY( cntr ) )                                                  \
+  default: _Generic( (**cntr),                                                                            \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ): cc_destroy_str_char,          \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ): cc_destroy_str_unsigned_char, \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ): cc_destroy_str_signed_char,     \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ): cc_destroy_str_char16,             \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ): cc_destroy_str_char32,             \
+    default: (cc_dtor_fnptr_ty)NULL                                                                       \
+  )                                                                                                       \
+)                                                                                                         \
 
 #define CC_KEY_CMPR_SLOT( n, arg ) CC_MAKE_BASE_FNPTR_TY( arg, cc_cmpr_##n##_ty ): cc_cmpr_##n##_fn_select,
-#define CC_KEY_CMPR( cntr )                                                                           \
-_Generic( (**cntr),                                                                                   \
-  CC_FOR_EACH_CMPR( CC_KEY_CMPR_SLOT, CC_EL_TY( cntr ) )                                              \
-  default: _Generic( (**cntr),                                                                        \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):      cc_cmpr_char_select,               \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_cmpr_unsigned_char_select,      \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_cmpr_signed_char_select,        \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_cmpr_unsigned_short_select,     \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              cc_cmpr_short_select,              \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       cc_cmpr_unsigned_int_select,       \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int ):                cc_cmpr_int_select,                \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long ):      cc_cmpr_unsigned_long_select,      \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long ):               cc_cmpr_long_select,               \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long ): cc_cmpr_unsigned_long_long_select, \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_cmpr_long_long_select,          \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_cmpr_size_t_select,             \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_cmpr_c_string_select,           \
-    default: cc_cmpr_dummy_select                                                                     \
-  )                                                                                                   \
-)( CC_CNTR_ID( cntr ) )                                                                               \
+#define CC_KEY_CMPR( cntr )                                                                                    \
+_Generic( (**cntr),                                                                                            \
+  CC_FOR_EACH_CMPR( CC_KEY_CMPR_SLOT, CC_EL_TY( cntr ) )                                                       \
+  default: _Generic( (**cntr),                                                                                 \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):               cc_cmpr_char_select,               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):               cc_cmpr_unsigned_char_select,      \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):                 cc_cmpr_signed_char_select,        \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):              cc_cmpr_unsigned_short_select,     \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):                       cc_cmpr_short_select,              \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):                cc_cmpr_unsigned_int_select,       \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int ):                         cc_cmpr_int_select,                \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long ):               cc_cmpr_unsigned_long_select,      \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long ):                        cc_cmpr_long_select,               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long ):          cc_cmpr_unsigned_long_long_select, \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):                   cc_cmpr_long_long_select,          \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):             cc_cmpr_size_t_select,             \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):                      cc_cmpr_cstring_select,            \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * ):                cc_cmpr_cstring_select,            \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ): cc_cmpr_str_char_select,           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ): cc_cmpr_str_unsigned_char_select,  \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ):   cc_cmpr_str_signed_char_select,    \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ):      cc_cmpr_str_char16_select,         \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ):      cc_cmpr_str_char32_select,         \
+    default: cc_cmpr_dummy_select                                                                              \
+  )                                                                                                            \
+)( CC_CNTR_ID( cntr ) )                                                                                        \
 
 #define CC_KEY_HASH_SLOT( n, arg ) CC_MAKE_BASE_FNPTR_TY( arg, cc_hash_##n##_ty ): cc_hash_##n##_fn,
-#define CC_KEY_HASH( cntr )                                                                    \
-_Generic( (**cntr),                                                                            \
-  CC_FOR_EACH_HASH( CC_KEY_HASH_SLOT, CC_EL_TY( cntr ) )                                       \
-  default: _Generic( (**cntr),                                                                 \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):      cc_hash_char,               \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):      cc_hash_unsigned_char,      \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):        cc_hash_signed_char,        \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):     cc_hash_unsigned_short,     \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):              cc_hash_short,              \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):       cc_hash_unsigned_int,       \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int ):                cc_hash_int,                \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long ):      cc_hash_unsigned_long,      \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long ):               cc_hash_long,               \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long ): cc_hash_unsigned_long_long, \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):          cc_hash_long_long,          \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):    cc_hash_size_t,             \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):             cc_hash_c_string,           \
-    default: (cc_hash_fnptr_ty)NULL                                                            \
-  )                                                                                            \
-)                                                                                              \
+#define CC_KEY_HASH( cntr )                                                                             \
+_Generic( (**cntr),                                                                                     \
+  CC_FOR_EACH_HASH( CC_KEY_HASH_SLOT, CC_EL_TY( cntr ) )                                                \
+  default: _Generic( (**cntr),                                                                          \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):               cc_hash_char,               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ):               cc_hash_unsigned_char,      \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ):                 cc_hash_signed_char,        \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ):              cc_hash_unsigned_short,     \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ):                       cc_hash_short,              \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ):                cc_hash_unsigned_int,       \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int ):                         cc_hash_int,                \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long ):               cc_hash_unsigned_long,      \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long ):                        cc_hash_long,               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long ):          cc_hash_unsigned_long_long, \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):                   cc_hash_long_long,          \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):             cc_hash_size_t,             \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):                      cc_hash_cstring,            \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * ):                cc_hash_cstring,            \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ): cc_hash_str_char,           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ): cc_hash_str_unsigned_char,  \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ):   cc_hash_str_signed_char,    \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ):      cc_hash_str_char16,         \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ):      cc_hash_str_char32,         \
+    default: (cc_hash_fnptr_ty)NULL                                                                     \
+  )                                                                                                     \
+)                                                                                                       \
 
 #define CC_HAS_CMPR_SLOT( n, arg ) cc_cmpr_##n##_ty: true,
 #define CC_HAS_CMPR( ty )               \
 _Generic( (ty){ 0 },                    \
   CC_FOR_EACH_CMPR( CC_HAS_CMPR_SLOT, ) \
   default: _Generic( (ty){ 0 },         \
-    cc_maybe_char:      true,           \
-    unsigned char:      true,           \
-    signed char:        true,           \
-    unsigned short:     true,           \
-    short:              true,           \
-    unsigned int:       true,           \
-    int:                true,           \
-    unsigned long:      true,           \
-    long:               true,           \
-    unsigned long long: true,           \
-    long long:          true,           \
-    cc_maybe_size_t:    true,           \
-    char *:             true,           \
-    default:            false           \
+    cc_maybe_char:               true,  \
+    unsigned char:               true,  \
+    signed char:                 true,  \
+    unsigned short:              true,  \
+    short:                       true,  \
+    unsigned int:                true,  \
+    int:                         true,  \
+    unsigned long:               true,  \
+    long:                        true,  \
+    unsigned long long:          true,  \
+    long long:                   true,  \
+    cc_maybe_size_t:             true,  \
+    char *:                      true,  \
+    const char *:                true,  \
+    CC_STR_RAW( cc_maybe_char ): true,  \
+    CC_STR_RAW( unsigned char ): true,  \
+    CC_STR_RAW( signed char ):   true,  \
+    CC_STR_RAW( char16_t ):      true,  \
+    CC_STR_RAW( char32_t ):      true,  \
+    default:                     false  \
   )                                     \
 )                                       \
 
@@ -5796,20 +8589,26 @@ _Generic( (ty){ 0 },                    \
 _Generic( (ty){ 0 },                    \
   CC_FOR_EACH_HASH( CC_HAS_HASH_SLOT, ) \
   default: _Generic( (ty){ 0 },         \
-    cc_maybe_char:      true,           \
-    unsigned char:      true,           \
-    signed char:        true,           \
-    unsigned short:     true,           \
-    short:              true,           \
-    unsigned int:       true,           \
-    int:                true,           \
-    unsigned long:      true,           \
-    long:               true,           \
-    unsigned long long: true,           \
-    long long:          true,           \
-    cc_maybe_size_t:    true,           \
-    char *:             true,           \
-    default:            false           \
+    cc_maybe_char:               true,  \
+    unsigned char:               true,  \
+    signed char:                 true,  \
+    unsigned short:              true,  \
+    short:                       true,  \
+    unsigned int:                true,  \
+    int:                         true,  \
+    unsigned long:               true,  \
+    long:                        true,  \
+    unsigned long long:          true,  \
+    long long:                   true,  \
+    cc_maybe_size_t:             true,  \
+    char *:                      true,  \
+    const char *:                true,  \
+    CC_STR_RAW( cc_maybe_char ): true,  \
+    CC_STR_RAW( unsigned char ): true,  \
+    CC_STR_RAW( signed char ):   true,  \
+    CC_STR_RAW( char16_t ):      true,  \
+    CC_STR_RAW( char32_t ):      true,  \
+    default:                     false  \
   )                                     \
 )                                       \
 
@@ -5824,39 +8623,51 @@ _Generic( (**cntr),                                      \
 CC_MAKE_BASE_FNPTR_TY( arg, cc_cmpr_##n##_ty ):                                     \
   ( cc_key_details_ty ){ sizeof( cc_cmpr_##n##_ty ), alignof( cc_cmpr_##n##_ty ) }, \
 
-#define CC_KEY_DETAILS( cntr )                                                              \
-_Generic( (**cntr),                                                                         \
-  CC_FOR_EACH_CMPR( CC_KEY_DETAILS_SLOT, CC_EL_TY( cntr ) )                                 \
-  default: _Generic( (**cntr),                                                              \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):                               \
-      ( cc_key_details_ty ){ sizeof( char ), alignof( char ) },                             \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ) :                              \
-      ( cc_key_details_ty ){ sizeof( unsigned char ), alignof( unsigned char ) },           \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ) :                                \
-      ( cc_key_details_ty ){ sizeof( signed char ), alignof( signed char ) },               \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ) :                             \
-      ( cc_key_details_ty ){ sizeof( unsigned short ), alignof( unsigned short ) },         \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ) :                                      \
-      ( cc_key_details_ty ){ sizeof( short ), alignof( short ) },                           \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ) :                               \
-      ( cc_key_details_ty ){ sizeof( unsigned int ), alignof( unsigned int ) },             \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int ) :                                        \
-      ( cc_key_details_ty ){ sizeof( int ), alignof( int ) },                               \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long ):                               \
-      ( cc_key_details_ty ){ sizeof( unsigned long ), alignof( unsigned long ) },           \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long ):                                        \
-      ( cc_key_details_ty ){ sizeof( long ), alignof( long ) },                             \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long ):                          \
-      ( cc_key_details_ty ){ sizeof( unsigned long long ), alignof( unsigned long long ) }, \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):                                   \
-      ( cc_key_details_ty ){ sizeof( long long ), alignof( long long ) },                   \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):                             \
-      ( cc_key_details_ty ){ sizeof( size_t ), alignof( size_t ) },                         \
-    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):                                      \
-      ( cc_key_details_ty ){ sizeof( char * ), alignof( char * ) },                         \
-    default: ( cc_key_details_ty ){ 0 }                                                     \
-  )                                                                                         \
-)                                                                                           \
+#define CC_KEY_DETAILS( cntr )                                                                                \
+_Generic( (**cntr),                                                                                           \
+  CC_FOR_EACH_CMPR( CC_KEY_DETAILS_SLOT, CC_EL_TY( cntr ) )                                                   \
+  default: _Generic( (**cntr),                                                                                \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_char ):                                                 \
+      ( cc_key_details_ty ){ sizeof( char ), alignof( char ) },                                               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned char ) :                                                \
+      ( cc_key_details_ty ){ sizeof( unsigned char ), alignof( unsigned char ) },                             \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), signed char ) :                                                  \
+      ( cc_key_details_ty ){ sizeof( signed char ), alignof( signed char ) },                                 \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned short ) :                                               \
+      ( cc_key_details_ty ){ sizeof( unsigned short ), alignof( unsigned short ) },                           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), short ) :                                                        \
+      ( cc_key_details_ty ){ sizeof( short ), alignof( short ) },                                             \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned int ) :                                                 \
+      ( cc_key_details_ty ){ sizeof( unsigned int ), alignof( unsigned int ) },                               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), int ) :                                                          \
+      ( cc_key_details_ty ){ sizeof( int ), alignof( int ) },                                                 \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long ):                                                 \
+      ( cc_key_details_ty ){ sizeof( unsigned long ), alignof( unsigned long ) },                             \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long ):                                                          \
+      ( cc_key_details_ty ){ sizeof( long ), alignof( long ) },                                               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), unsigned long long ):                                            \
+      ( cc_key_details_ty ){ sizeof( unsigned long long ), alignof( unsigned long long ) },                   \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), long long ):                                                     \
+      ( cc_key_details_ty ){ sizeof( long long ), alignof( long long ) },                                     \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), cc_maybe_size_t ):                                               \
+      ( cc_key_details_ty ){ sizeof( size_t ), alignof( size_t ) },                                           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), char * ):                                                        \
+      ( cc_key_details_ty ){ sizeof( char * ), alignof( char * ) },                                           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), const char * ):                                                  \
+      ( cc_key_details_ty ){ sizeof( const char * ), alignof( const char * ) },                               \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( cc_maybe_char ) ):                                   \
+      ( cc_key_details_ty ){ sizeof( CC_STR_RAW( char ) ), alignof( CC_STR_RAW( char ) ) },                   \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( unsigned char ) ):                                   \
+      ( cc_key_details_ty ){ sizeof( CC_STR_RAW( unsigned char ) ), alignof( CC_STR_RAW( unsigned char ) ) }, \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( signed char ) ):                                     \
+      ( cc_key_details_ty ){ sizeof( CC_STR_RAW( signed char ) ), alignof( CC_STR_RAW( signed char ) ) },     \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char16_t ) ):                                        \
+      ( cc_key_details_ty ){ sizeof( CC_STR_RAW( char16_t ) ), alignof( CC_STR_RAW( char16_t ) ) },           \
+    CC_MAKE_BASE_FNPTR_TY( CC_EL_TY( cntr ), CC_STR_RAW( char32_t ) ):                                        \
+      ( cc_key_details_ty ){ sizeof( CC_STR_RAW( char32_t ) ), alignof( CC_STR_RAW( char32_t ) ) },           \
+    default: ( cc_key_details_ty ){ 0 }                                                                       \
+  )                                                                                                           \
+)                                                                                                             \
 
 #define CC_LAYOUT( cntr )                                                                                \
 cc_layout( CC_CNTR_ID( cntr ), CC_EL_SIZE( cntr ), alignof( CC_EL_TY( cntr ) ), CC_KEY_DETAILS( cntr ) ) \
@@ -5933,107 +8744,467 @@ CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( unsigned long long, unsigned_long_long )
 CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( long long, long_long )
 CC_DEFAULT_INTEGER_CMPR_HASH_FUNCTIONS( size_t, size_t )
 
-// In MSVC under C, char is an alias for unsigned char or signed char, contrary to the C Standard, which requires all
-// three to be distinct types.
-// To accommodate this bug, we have to ensure that char doesn't clash with either of the other two types in _Generic
-// statements.
-// If char is an alias, cc_maybe_char will be a dummy type used in no other context.
-// Otherwise, it will be an alias for char.
+// For hashing both CC strings and regular C strings, we use the public-domain Wyhash
+// (https://github.com/wangyi-fudan/wyhash) with the following modifications:
+// * We use a fixed seed and secret (the defaults suggested in the Wyhash repository).
+// * We do not handle endianness, so the result will differ depending on the platform.
+// * We omit the code optimized for 32-bit platforms.
 
-// size_t needs to be handled in a similar way because it could be an alias for a fundamental integer type or a distinct
-// builtin type.
-
-#ifndef __cplusplus
-
-typedef struct { char nothing; } cc_char_dummy;
-
-typedef CC_TYPEOF_XP(
-  _Generic( (char){ 0 },
-    unsigned char: (cc_char_dummy){ 0 },
-    signed char:   (cc_char_dummy){ 0 },
-    default:       (char){ 0 }
-  )
-) cc_maybe_char;
-
-typedef struct { char nothing; } cc_size_t_dummy;
-
-typedef CC_TYPEOF_XP(
-  _Generic( (size_t){ 0 },
-    unsigned short:     (cc_size_t_dummy){ 0 },
-    short:              (cc_size_t_dummy){ 0 },
-    unsigned int:       (cc_size_t_dummy){ 0 },
-    int:                (cc_size_t_dummy){ 0 },
-    unsigned long:      (cc_size_t_dummy){ 0 },
-    long:               (cc_size_t_dummy){ 0 },
-    unsigned long long: (cc_size_t_dummy){ 0 },
-    long long:          (cc_size_t_dummy){ 0 },
-    default:            (size_t){ 0 }
-  )
-) cc_maybe_size_t;
-
+static inline void cc_wymum( uint64_t *a, uint64_t *b )
+{
+#if defined( __SIZEOF_INT128__ )
+  __uint128_t r = *a;
+  r *= *b; 
+  *a = (uint64_t)r;
+  *b = (uint64_t)( r >> 64 );
+#elif defined( _MSC_VER ) && defined( _M_X64 )
+  *a = _umul128( *a, *b, b );
+#else
+  uint64_t ha = *a >> 32;
+  uint64_t hb = *b >> 32;
+  uint64_t la = (uint32_t)*a;
+  uint64_t lb = (uint32_t)*b;
+  uint64_t rh = ha * hb;
+  uint64_t rm0 = ha * lb;
+  uint64_t rm1 = hb * la;
+  uint64_t rl = la * lb;
+  uint64_t t = rl + ( rm0 << 32 );
+  uint64_t c = t < rl;
+  uint64_t lo = t + ( rm1 << 32 );
+  c += lo < t;
+  uint64_t hi = rh + ( rm0 >> 32 ) + ( rm1 >> 32 ) + c;
+  *a = lo;
+  *b = hi;
 #endif
+}
+
+static inline uint64_t cc_wymix( uint64_t a, uint64_t b )
+{
+  cc_wymum( &a, &b );
+  return a ^ b;
+}
+
+static inline uint64_t cc_wyr8( const unsigned char *p )
+{
+  uint64_t v;
+  memcpy( &v, p, 8 );
+  return v;
+}
+
+static inline uint64_t cc_wyr4( const unsigned char *p )
+{
+  uint32_t v;
+  memcpy( &v, p, 4 );
+  return v;
+}
+
+static inline uint64_t cc_wyr3( const unsigned char *p, size_t k )
+{
+  return ( ( (uint64_t)p[ 0 ] ) << 16 ) | ( ( (uint64_t)p[ k >> 1 ] ) << 8 ) | p[ k - 1 ];
+}
+
+static inline size_t cc_wyhash( const void *key, size_t len )
+{
+  const unsigned char *p = (const unsigned char *)key;
+  uint64_t seed = 0xCA813BF4C7ABF0A9ULL;
+  uint64_t a;
+  uint64_t b;
+  if( CC_LIKELY( len <= 16 ) )
+  {
+    if( CC_LIKELY( len >= 4 ) )
+    {
+      a = ( cc_wyr4( p ) << 32 ) | cc_wyr4( p + ( ( len >> 3 ) << 2 ) );
+      b = ( cc_wyr4( p + len - 4 ) << 32 ) | cc_wyr4( p + len - 4 - ( ( len >> 3 ) << 2 ) );
+    }
+    else if( CC_LIKELY( len > 0 ) )
+    {
+      a = cc_wyr3( p, len );
+      b = 0;
+    }
+    else
+    {
+      a = 0;
+      b = 0;
+    }
+  }
+  else
+  {
+    size_t i = len; 
+    if( CC_UNLIKELY( i >= 48 ) )
+    {
+      uint64_t see1 = seed;
+      uint64_t see2 = seed;
+      do{
+        seed = cc_wymix( cc_wyr8( p ) ^ 0x8BB84B93962EACC9ULL, cc_wyr8( p + 8 ) ^ seed );
+        see1 = cc_wymix( cc_wyr8( p + 16 ) ^ 0x4B33A62ED433D4A3ULL, cc_wyr8( p + 24 ) ^ see1 );
+        see2 = cc_wymix( cc_wyr8( p + 32 ) ^ 0x4D5A2DA51DE1AA47ULL, cc_wyr8( p + 40 ) ^ see2 );
+        p += 48;
+        i -= 48;
+      }
+      while( CC_LIKELY( i >= 48 ) );
+      seed ^= see1 ^ see2;
+    }
+
+    while( CC_UNLIKELY( i > 16 ) )
+    {
+      seed = cc_wymix( cc_wyr8( p ) ^ 0x8BB84B93962EACC9ULL, cc_wyr8( p + 8 ) ^ seed );
+      i -= 16;
+      p += 16;
+    }
+
+    a = cc_wyr8( p + i - 16 );
+    b = cc_wyr8( p + i - 8 );
+  }
+
+  a ^= 0x8BB84B93962EACC9ULL;
+  b ^= seed;
+  cc_wymum( &a, &b );
+  return (size_t)cc_wymix( a ^ 0x2D358DCCAA6C78A5ULL ^ len, b ^ 0x8BB84B93962EACC9ULL );
+}
 
 // Null-terminated C strings.
-// We use FNV-1a because newer, faster alternatives that process word-sized chunks require prior knowledge of the
-// string's length.
 
-static inline int cc_cmpr_c_string_three_way( void *void_val_1, void *void_val_2 )
+static inline int cc_cmpr_cstring_three_way( void *void_val_1, void *void_val_2 )
 {
   return strcmp( *(char **)void_val_1, *(char **)void_val_2 );
 }
 
-static inline int cc_cmpr_c_string_equal( void *void_val_1, void *void_val_2 )
+static inline int cc_cmpr_cstring_equal( void *void_val_1, void *void_val_2 )
 {
   return strcmp( *(char **)void_val_1, *(char **)void_val_2 ) == 0;
 }
 
-static inline cc_cmpr_fnptr_ty cc_cmpr_c_string_select( size_t cntr_id )                               \
-{                                                                                                      \
-  return cntr_id == CC_MAP || cntr_id == CC_SET ? cc_cmpr_c_string_equal : cc_cmpr_c_string_three_way; \
-}                                                                                                      \
-
-#if SIZE_MAX == 0xFFFFFFFF // 32-bit size_t.
-
-static inline size_t cc_hash_c_string( void *void_val )
+static inline cc_cmpr_fnptr_ty cc_cmpr_cstring_select( size_t cntr_id )
 {
-    char *val = *(char **)void_val;
-    size_t hash = 0x01000193;
-    while( *val )
-      hash = ( (unsigned char)*val++ ^ hash ) * 0x811C9DC5;
-
-    return hash;
+  return cntr_id == CC_MAP || cntr_id == CC_SET ? cc_cmpr_cstring_equal : cc_cmpr_cstring_three_way;
 }
 
-#elif SIZE_MAX == 0xFFFFFFFFFFFFFFFF // 64-bit size_t.
-
-static inline size_t cc_hash_c_string( void *void_val )
+static inline size_t cc_hash_cstring( void *void_val )
 {
-    char *val = *(char **)void_val;
-    size_t hash = 0xCBF29CE484222325;
-    while( *val )
-      hash = ( (unsigned char)*val++ ^ hash ) * 0x100000001B3;
-
-    return hash;
+  const char *val = *(const char **)void_val;
+  return cc_wyhash( val, strlen( val ) );
 }
 
-#else // Strange size_t.
+// CC strings.
 
-static inline size_t cc_hash_c_string( void *void_val )
+static inline int cc_cmpr_str_char_three_way( void *void_val_1, void *void_val_2 )
 {
-    char *val = *(char **)void_val;
-    size_t hash = 0;
-    while( *val )
-        hash = hash * 131 + (unsigned char)*val++;
-
-    return hash;
+  return strcmp(
+    (const char *)cc_str_first( *(CC_STR_RAW( char ) *)void_val_1, 0 /* Dummy */, 0 /* Dummy */ ),
+    (const char *)cc_str_first( *(CC_STR_RAW( char ) *)void_val_2, 0 /* Dummy */, 0 /* Dummy */ )
+  );
 }
 
+static inline int cc_cmpr_str_unsigned_char_three_way( void *void_val_1, void *void_val_2 )
+{
+  return strcmp(
+    (const char *)cc_str_first( *(CC_STR_RAW( unsigned char ) *)void_val_1, 0 /* Dummy */, 0 /* Dummy */ ),
+    (const char *)cc_str_first( *(CC_STR_RAW( unsigned char ) *)void_val_2, 0 /* Dummy */, 0 /* Dummy */ )
+  );
+}
+
+static inline int cc_cmpr_str_signed_char_three_way( void *void_val_1, void *void_val_2 )
+{
+  return strcmp(
+    (const char *)cc_str_first( *(CC_STR_RAW( signed char ) *)void_val_1, 0 /* Dummy */, 0 /* Dummy */ ),
+    (const char *)cc_str_first( *(CC_STR_RAW( signed char ) *)void_val_2, 0 /* Dummy */, 0 /* Dummy */ )
+  );
+}
+
+#if defined( __cplusplus ) && __cplusplus >= 202101L
+static inline int cc_cmpr_str_char8_three_way( void *void_val_1, void *void_val_2 )
+{
+  return strcmp(
+    (const char *)cc_str_first( *(CC_STR_RAW( char8_t ) *)void_val_1, 0 /* Dummy */, 0 /* Dummy */ ),
+    (const char *)cc_str_first( *(CC_STR_RAW( char8_t ) *)void_val_2, 0 /* Dummy */, 0 /* Dummy */ )
+  );
+}
 #endif
+
+static inline int cc_cmpr_str_char16_three_way( void *void_val_1, void *void_val_2 )
+{
+  char16_t *els_1 = (char16_t *)cc_str_first( *(CC_STR_RAW( char16_t ) *)void_val_1, 0 /* Dummy */, 0 /* Dummy */ );
+  char16_t *els_2 = (char16_t *)cc_str_first( *(CC_STR_RAW( char16_t ) *)void_val_2, 0 /* Dummy */, 0 /* Dummy */ );
+
+  while( true )
+  {
+    if( *els_1 < *els_2 )
+      return -1;
+
+    if( *els_1 > *els_2 )
+      return 1;
+
+    if( !*els_1 )
+      return 0;
+
+    ++els_1;
+    ++els_2;
+  }
+}
+
+static inline int cc_cmpr_str_char32_three_way( void *void_val_1, void *void_val_2 )
+{
+  char32_t *els_1 = (char32_t *)cc_str_first( *(CC_STR_RAW( char32_t ) *)void_val_1, 0 /* Dummy */, 0 /* Dummy */ );
+  char32_t *els_2 = (char32_t *)cc_str_first( *(CC_STR_RAW( char32_t ) *)void_val_2, 0 /* Dummy */, 0 /* Dummy */ );
+
+  while( true )
+  {
+    if( *els_1 < *els_2 )
+      return -1;
+
+    if( *els_1 > *els_2 )
+      return 1;
+
+    if( !*els_1 )
+      return 0;
+
+    ++els_1;
+    ++els_2;
+  }
+}
+
+static inline int cc_cmpr_str_char_equal( void *void_val_1, void *void_val_2 )
+{
+  CC_STR_RAW( char ) val_1 = *(CC_STR_RAW( char ) *)void_val_1;
+  CC_STR_RAW( char ) val_2 = *(CC_STR_RAW( char ) *)void_val_2;
+
+  if( cc_str_size( val_1 ) != cc_str_size( val_2 ) )
+    return false;
+
+  return memcmp(
+    cc_str_first( val_1, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_first( val_2, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_size( val_1 )
+  ) == 0;
+}
+
+static inline int cc_cmpr_str_unsigned_char_equal( void *void_val_1, void *void_val_2 )
+{
+  CC_STR_RAW( unsigned char ) val_1 = *(CC_STR_RAW( unsigned char ) *)void_val_1;
+  CC_STR_RAW( unsigned char ) val_2 = *(CC_STR_RAW( unsigned char ) *)void_val_2;
+
+  if( cc_str_size( val_1 ) != cc_str_size( val_2 ) )
+    return false;
+
+  return memcmp(
+    cc_str_first( val_1, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_first( val_2, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_size( val_1 )
+  ) == 0;
+}
+
+static inline int cc_cmpr_str_signed_char_equal( void *void_val_1, void *void_val_2 )
+{
+  CC_STR_RAW( signed char ) val_1 = *(CC_STR_RAW( signed char ) *)void_val_1;
+  CC_STR_RAW( signed char ) val_2 = *(CC_STR_RAW( signed char ) *)void_val_2;
+
+  if( cc_str_size( val_1 ) != cc_str_size( val_2 ) )
+    return false;
+
+  return memcmp(
+    cc_str_first( val_1, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_first( val_2, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_size( val_1 )
+  ) == 0;
+}
+
+#if defined( __cplusplus ) && __cplusplus >= 202101L
+static inline int cc_cmpr_str_char8_equal( void *void_val_1, void *void_val_2 )
+{
+  CC_STR_RAW( char8_t ) val_1 = *(CC_STR_RAW( char8_t ) *)void_val_1;
+  CC_STR_RAW( char8_t ) val_2 = *(CC_STR_RAW( char8_t ) *)void_val_2;
+
+  if( cc_str_size( val_1 ) != cc_str_size( val_2 ) )
+    return false;
+
+  return memcmp(
+    cc_str_first( val_1, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_first( val_2, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_size( val_1 )
+  ) == 0;
+}
+#endif
+
+static inline int cc_cmpr_str_char16_equal( void *void_val_1, void *void_val_2 )
+{
+  CC_STR_RAW( char16_t ) val_1 = *(CC_STR_RAW( char16_t ) *)void_val_1;
+  CC_STR_RAW( char16_t ) val_2 = *(CC_STR_RAW( char16_t ) *)void_val_2;
+
+  if( cc_str_size( val_1 ) != cc_str_size( val_2 ) )
+    return false;
+
+  return memcmp(
+    cc_str_first( val_1, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_first( val_2, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_size( val_1 )
+  ) == 0;
+}
+
+static inline int cc_cmpr_str_char32_equal( void *void_val_1, void *void_val_2 )
+{
+  CC_STR_RAW( char32_t ) val_1 = *(CC_STR_RAW( char32_t ) *)void_val_1;
+  CC_STR_RAW( char32_t ) val_2 = *(CC_STR_RAW( char32_t ) *)void_val_2;
+
+  if( cc_str_size( val_1 ) != cc_str_size( val_2 ) )
+    return false;
+
+  return memcmp(
+    cc_str_first( val_1, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_first( val_2, 0 /* Dummy */, 0 /* Dummy */ ),
+    cc_str_size( val_1 )
+  ) == 0;
+}
+
+static inline cc_cmpr_fnptr_ty cc_cmpr_str_char_select( size_t cntr_id )
+{
+  return cntr_id == CC_MAP || cntr_id == CC_SET ? cc_cmpr_str_char_equal : cc_cmpr_str_char_three_way;
+}
+
+static inline cc_cmpr_fnptr_ty cc_cmpr_str_unsigned_char_select( size_t cntr_id )
+{
+  return cntr_id == CC_MAP || cntr_id == CC_SET ? cc_cmpr_str_unsigned_char_equal : cc_cmpr_str_unsigned_char_three_way;
+}
+
+static inline cc_cmpr_fnptr_ty cc_cmpr_str_signed_char_select( size_t cntr_id )
+{
+  return cntr_id == CC_MAP || cntr_id == CC_SET ? cc_cmpr_str_signed_char_equal : cc_cmpr_str_signed_char_three_way;
+}
+
+#if defined( __cplusplus ) && __cplusplus >= 202101L
+static inline cc_cmpr_fnptr_ty cc_cmpr_str_char8_select( size_t cntr_id )
+{
+  return cntr_id == CC_MAP || cntr_id == CC_SET ? cc_cmpr_str_char8_equal : cc_cmpr_str_char8_three_way;
+}
+#endif
+
+static inline cc_cmpr_fnptr_ty cc_cmpr_str_char16_select( size_t cntr_id )
+{
+  return cntr_id == CC_MAP || cntr_id == CC_SET ? cc_cmpr_str_char16_equal : cc_cmpr_str_char16_three_way;
+}
+
+static inline cc_cmpr_fnptr_ty cc_cmpr_str_char32_select( size_t cntr_id )
+{
+  return cntr_id == CC_MAP || cntr_id == CC_SET ? cc_cmpr_str_char32_equal : cc_cmpr_str_char32_three_way;
+}
+
+static inline size_t cc_hash_str_char( void *void_val )
+{
+  CC_STR_RAW( char ) val = *(CC_STR_RAW( char ) *)void_val;
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
+}
+
+static inline size_t cc_hash_str_unsigned_char( void *void_val )
+{
+  CC_STR_RAW( unsigned char ) val = *(CC_STR_RAW( unsigned char ) *)void_val;
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
+}
+
+static inline size_t cc_hash_str_signed_char( void *void_val )
+{
+  CC_STR_RAW( signed char ) val = *(CC_STR_RAW( signed char ) *)void_val;
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
+}
+
+#if defined( __cplusplus ) && __cplusplus >= 202101L
+static inline size_t cc_hash_str_char8( void *void_val )
+{
+  CC_STR_RAW( char8_t ) val = *(CC_STR_RAW( char8_t ) *)void_val;
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) );
+}
+#endif
+
+static inline size_t cc_hash_str_char16( void *void_val )
+{
+  CC_STR_RAW( char16_t ) val = *(CC_STR_RAW( char16_t ) *)void_val;
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) * sizeof( char16_t ) );
+}
+
+static inline size_t cc_hash_str_char32( void *void_val )
+{
+  CC_STR_RAW( char32_t ) val = *(CC_STR_RAW( char32_t ) *)void_val;
+  return cc_wyhash( cc_str_first( val, 0 /* Dummy */, 0 /* Dummy */ ), cc_str_size( val ) * sizeof( char32_t ) );
+}
 
 // Dummy for containers with no comparison function.
 static inline CC_ALWAYS_INLINE cc_cmpr_fnptr_ty cc_cmpr_dummy_select( CC_UNUSED( size_t, cntr_id ) )
 {
   return NULL;
+}
+
+// Default destructors for CC strings.
+
+static inline void cc_destroy_str_char( void *void_val, cc_free_fnptr_ty free_ )
+{
+  cc_str_cleanup(
+    *(CC_STR_RAW( char ) *)void_val,
+    sizeof( char ),
+    0,    // Dummy.
+    NULL, // Dummy.
+    NULL, // Dummy.
+    free_
+  );
+}
+
+static inline void cc_destroy_str_unsigned_char( void *void_val, cc_free_fnptr_ty free_ )
+{
+  cc_str_cleanup(
+    *(CC_STR_RAW( unsigned char ) *)void_val,
+    sizeof( char ),
+    0,    // Dummy.
+    NULL, // Dummy.
+    NULL, // Dummy.
+    free_
+  );
+}
+
+static inline void cc_destroy_str_signed_char( void *void_val, cc_free_fnptr_ty free_ )
+{
+  cc_str_cleanup(
+    *(CC_STR_RAW( signed char ) *)void_val,
+    sizeof( char ),
+    0,    // Dummy.
+    NULL, // Dummy.
+    NULL, // Dummy.
+    free_
+  );
+}
+
+#if defined( __cplusplus ) && __cplusplus >= 202101L
+static inline void cc_destroy_str_char8( void *void_val, cc_free_fnptr_ty free_ )
+{
+  cc_str_cleanup(
+    *(CC_STR_RAW( char8_t ) *)void_val,
+    sizeof( char ),
+    0,    // Dummy.
+    NULL, // Dummy.
+    NULL, // Dummy.
+    free_
+  );
+}
+#endif
+
+static inline void cc_destroy_str_char16( void *void_val, cc_free_fnptr_ty free_ )
+{
+  cc_str_cleanup(
+    *(CC_STR_RAW( char16_t ) *)void_val,
+    sizeof( char ),
+    0,    // Dummy.
+    NULL, // Dummy.
+    NULL, // Dummy.
+    free_
+  );
+}
+
+static inline void cc_destroy_str_char32( void *void_val, cc_free_fnptr_ty free_ )
+{
+  cc_str_cleanup(
+    *(CC_STR_RAW( char32_t ) *)void_val,
+    sizeof( char ),
+    0,    // Dummy.
+    NULL, // Dummy.
+    NULL, // Dummy.
+    free_
+  );
 }
 
 #endif
@@ -6051,7 +9222,7 @@ static inline CC_ALWAYS_INLINE cc_cmpr_fnptr_ty cc_cmpr_dummy_select( CC_UNUSED(
 
 typedef CC_TYPEOF_TY( CC_1ST_ARG( CC_DTOR ) ) CC_CAT_3( cc_dtor_, CC_N_DTORS, _ty );
 
-static inline void CC_CAT_3( cc_dtor_, CC_N_DTORS, _fn )( void *void_val )
+static inline void CC_CAT_3( cc_dtor_, CC_N_DTORS, _fn )( void *void_val, CC_UNUSED( cc_free_fnptr_ty, free_ ) )
 {
   CC_CAT_3( cc_dtor_, CC_N_DTORS, _ty ) val = *(CC_CAT_3( cc_dtor_, CC_N_DTORS, _ty ) *)void_val;
   CC_OTHER_ARGS( CC_DTOR )
@@ -6145,7 +9316,7 @@ typedef CC_TYPEOF_TY( CC_1ST_ARG( CC_CMPR ) ) CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _t
 // This allows the compiler to optimize the comparison for best performance in both cases without burdening the user
 // with having to define two separate comparison functions for a single type.
 
-static inline CC_ALWAYS_INLINE int CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_three_way )( void *void_val_1, void *void_val_2 )
+static inline int CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _fn_three_way )( void *void_val_1, void *void_val_2 )
 {
   CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) val_1 = *(CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) *)void_val_1;
   CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) val_2 = *(CC_CAT_3( cc_cmpr_, CC_N_CMPRS, _ty ) *)void_val_2;
