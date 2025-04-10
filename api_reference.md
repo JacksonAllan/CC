@@ -1059,7 +1059,7 @@ el_ty *insert_fmt( str( el_ty ) *cntr, size_t i, ... )
 <dl><dd>
 
 Inserts up to 32 formatted values, provided as variadic arguments, at index `i`.  
-Each variadic argument must be one of the possibilities listed in the above documentation for `push`, and the same type-promotions and encoding assumptions apply.  
+Each variadic argument must be one of the possibilities listed in the above documentation for `push_fmt`, and the same type-promotions and encoding assumptions apply.  
 Returns a pointer-iterator to the first new element, or `NULL` in the case of memory allocation failure.
 </dd></dl>
 
@@ -1080,7 +1080,7 @@ el_ty *erase( str( el_ty ) *cntr, size_t i )
 <dl><dd>
 
 Erases the element at index `i`.  
-No destructor is called for erased element, even if a destructor for the element type has been defined.  
+No destructor is called for the erased element, even if a destructor for the element type has been defined.  
 Returns a pointer-iterator to the element after the erased element, or an end pointer-iterator if there is no subsequent element.
 </dd></dl>
 
