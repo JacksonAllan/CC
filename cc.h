@@ -1332,9 +1332,15 @@ CC_CAST_MAYBE_UNUSED(                                               \
 
 // Macro used with CC_STATIC_ASSERT to provide type safety in cc_init_clone and cc_splice calls.
 #ifdef __cplusplus
-#define CC_IS_SAME_TY( a, b ) std::is_same<CC_TYPEOF_XP( a ), CC_TYPEOF_XP( b )>::value
+
+#define CC_IS_SAME_TY( a, b )                                     \
+(                                                                 \
+  std::is_same<CC_TYPEOF_XP( b ), CC_TYPEOF_XP( a )>::value ||    \
+  std::is_same<CC_TYPEOF_XP( b ), const CC_TYPEOF_XP( a )>::value \
+)                                                                 \
+
 #else
-#define CC_IS_SAME_TY( a, b ) _Generic( (a), CC_TYPEOF_XP( b ): true, default: false )
+#define CC_IS_SAME_TY( a, b ) _Generic( (b), CC_TYPEOF_XP( a ): true, const CC_TYPEOF_XP( a ): true, default: false )
 #endif
 
 // Returns arg but generates a warning or error if it is not a pointer to the container's element type.
