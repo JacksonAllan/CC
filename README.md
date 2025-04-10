@@ -868,7 +868,7 @@ MSVC
 
 ### What's next?
 
-For a discussion of **CC**'s future direction, see [here](TODO: add link).
+For a discussion of **CC**'s future direction, see [here](https://github.com/JacksonAllan/CC/discussions/19).
 
 ## Support and Contribute
 
