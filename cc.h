@@ -1010,7 +1010,7 @@ API:
 
     When CC strings are used as the key and/or element type of another container, most API macros that operate on the
     container may alternatively take, as their key and/or element argument, a regular C string of the corresponding
-    character type. In this case, CC automatically converts the C string into a CC string.
+    character type. In this case, the library automatically converts the C string into a CC string.
     The API macros that support heterogeneous insertion are:
       * push
       * insert

@@ -700,7 +700,7 @@ int main( void )
 
 To this end, **CC** defines default hash, comparison, and memory-freeing destructor functions for all **CC** string types.
 
-Additionally, when **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, **CC** automatically converts the C string into a **CC** string. This functionality is called "heterogeneous" insertion and lookup. The API macros that support heterogeneous insertion are `push`, `insert`, and `get_or_insert`, while those that support heterogeneous lookup are `get` and `erase`. In the lookup case, **CC** performs no memory allocations.
+Additionally, when **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, the library automatically converts the C string into a **CC** string. This functionality is called "heterogeneous" insertion and lookup. The API macros that support heterogeneous insertion are `push`, `insert`, and `get_or_insert`, while those that support heterogeneous lookup are `get` and `erase`. In the lookup case, **CC** performs no memory allocations.
 
 The following example demonstrates how **CC** strings can be used with a map:
 

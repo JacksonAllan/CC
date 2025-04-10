@@ -891,9 +891,9 @@ It is equivalent to `for( el_ty *i_name = last( cntr ); i_name != r_end( cntr );
 
 An `str` is a dynamic, null-terminated array representing a sequence of characters.
 
-Default hash, comparison, and memory-freeing destructor functions for all **CC** string types.
+Default hash, comparison, and memory-freeing destructor functions exist for all **CC** string types.
 
-When **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. For more details, see *Heterogeneous string insertion and lookup](#Heterogeneous-string-insertion-and-lookup)* below.
+When **CC** strings are used as the key and/or element type of another container, many API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. For more details, see [*Heterogeneous string insertion and lookup*](#Heterogeneous-string-insertion-and-lookup) below.
 
 String pointer-iterators (including `end`) are invalidated by any API calls that cause memory reallocation.
 
@@ -980,7 +980,7 @@ Returns a pointer-iterator to the first new element, or `NULL` in the case of me
 Each variadic argument must be one of the following:
 
 * A null-terminated array of elements of the same type as `el_ty` (i.e. a C string).
-* A CC string with the same element type.
+* A **CC** string with the same element type.
 * A fundamental integer type (`bool`, `char`, `unsigned char`, `signed char`, `unsigned short`, `short`, `unsigned int`, `int`, `unsigned long`, `long`, `unsigned long long`, or `long long`) or alias for such a type.
 * A fundamental floating-point type (`float` or `double`).
 * A `void` pointer (to be formatted as a memory address).
@@ -1021,14 +1021,15 @@ Each variadic argument must be one of the following:
     Causes subsequent floating-point arguments to be formatted as decimal floating-point numbers or using scientific notation, depending on which representation is shorter.  
     `significant_digits` specifies the maximum number of significant digits to include.
 
-  Arguments are type-promoted as follows:
-    * `bool`, `unsigned char`, `unsigned short`, `unsigned int`, `unsigned long` -> `unsigned long long`.
-    * `signed char`, `short`, `int`, `long`, -> `long long`.
-    * `char` -> `long long` or `unsigned long long`, depending on whether `char` is signed.
-    * `float` -> `double`.
+Arguments are type-promoted as follows:
+
+* `bool`, `unsigned char`, `unsigned short`, `unsigned int`, `unsigned long` -> `unsigned long long`.
+* `signed char`, `short`, `int`, `long`, -> `long long`.
+* `char` -> `long long` or `unsigned long long`, depending on whether `char` is signed.
+* `float` -> `double`.
 
 By default, integer arguments are formatted as decimal integers with a minimum of one digit, and floating-point arguments are formatted as decimal floating-point numbers with two decimal places.  
-For formatting, C and CC strings of `char16_t` and `char32_t` elements are assumed to be encoded as UTF-16 and UTF-32, respectively.
+For formatting, C and **CC** strings of `char16_t` and `char32_t` elements are assumed to be encoded as UTF-16 and UTF-32, respectively.
 </dd></dl>
 
 ```c
@@ -1177,7 +1178,7 @@ Notes:
 
 ## Heterogeneous string insertion and lookup
 
-When CC strings are used as the key and/or element type of another container, most API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, CC automatically converts the C string into a CC string.
+When **CC** strings are used as the key and/or element type of another container, most API macros that operate on the container may alternatively take, as their key and/or element argument, a regular C string of the corresponding character type. In this case, **CC** automatically converts the C string into a **CC** string.
 
 The API macros that support heterogeneous insertion are `push`, `insert` and `get_or_insert`.
 
@@ -1189,8 +1190,8 @@ Trivial example:
 map( str( char ), str( char ) ) our_map = initialized( &our_map );
 if( insert( &our_map, "France", "Paris" ) ) // Heterogeneous insertion.
 {
-	str( char ) *el = get( &our_map, "France" ); // Heterogeneous lookup.
-	printf( first( el ) );
-	// Printed: Paris
+  str( char ) *el = get( &our_map, "France" ); // Heterogeneous lookup.
+  printf( first( el ) );
+  // Printed: Paris
 }
 ```
