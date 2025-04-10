@@ -396,7 +396,7 @@ map( key_ty, el_ty ) cntr
 
 Declares an uninitialized map named `cntr`.  
 `key_ty` must be a type, or alias for a type, for which comparison and hash functions have been defined (this requirement is enforced internally such that neglecting it causes a compiler error).  
-For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see *Destructor, comparison, and hash functions and custom max load factors* below.
+For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see [*Destructor, comparison, and hash functions and custom max load factors*](#destructor-comparison-and-hash-functions-and-custom-max-load-factors) below.
 </dd></dl>
 
 ```c
@@ -516,7 +516,7 @@ set( el_ty ) cntr
 
 Declares an uninitialized set named `cntr`.  
 `el_ty` must be a type, or alias for a type, for which comparison and hash functions have been defined (this requirement is enforced internally such that neglecting it causes a compiler error).  
-For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see *Destructor, comparison, and hash functions and custom max load factors* below.
+For types with in-built comparison and hash functions, and for details on how to declare new comparison and hash functions, see [*Destructor, comparison, and hash functions and custom max load factors*](#destructor-comparison-and-hash-functions-and-custom-max-load-factors) below.
 </dd></dl>
 
 ```c
@@ -616,7 +616,7 @@ omap( key_ty, el_ty ) cntr
 
 Declares an uninitialized ordered map named `cntr`.  
 `key_ty` must be a type, or alias for a type, for which a comparison function has been defined (this requirement is enforced internally such that neglecting it causes a compiler error).  
-For types with in-built comparison functions, and for details on how to declare new comparison functions, see *Destructor, comparison, and hash functions and custom max load factors* below.
+For types with in-built comparison functions, and for details on how to declare new comparison functions, see [*Destructor, comparison, and hash functions and custom max load factors*](#destructor-comparison-and-hash-functions-and-custom-max-load-factors) below.
 </dd></dl>
 
 ```c
@@ -775,7 +775,7 @@ oset( el_ty ) cntr
 
 Declares an uninitialized ordered set named `cntr`.  
 `el_ty` must be a type, or alias for a type, for which a comparison function has been defined (this requirement is enforced internally such that neglecting it causes a compiler error).  
-For types with in-built comparison functions, and for details on how to declare new comparison functions, see *Destructor, comparison, and hash functions and custom max load factors* below.
+For types with in-built comparison functions, and for details on how to declare new comparison functions, see [*Destructor, comparison, and hash functions and custom max load factors*](#destructor-comparison-and-hash-functions-and-custom-max-load-factors) below.
 </dd></dl>
 
 ```c
