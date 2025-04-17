@@ -818,7 +818,11 @@ Full API documentation is available [here](api_reference.md).
 
 ### How does it work?
 
-**CC** associates type information with a container by declaring it as a pointer in the form of `element_type (*(*)[ container_type_id ])( key_type * )`. The pointer points to the container's metadata and contents. API macros use `sizeof`, `typeof`, and `_Generic` tricks to deduce the container, element, and key types from this pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it.
+**CC** associates type information with a container by declaring it as a pointer in the form of 
+```C
+element_type (*(*)[ container_type_id ])( key_type * )
+```
+The pointer points to the container's metadata and contents. API macros use `sizeof`, `typeof`, and `_Generic` tricks to deduce the container, element, and key types from this pointer at compile time, selecting the relevant function and passing the type information, along with the pointer, into it.
 
 Destructor, comparison, and hash functions are also deduced via a novel technique for user-extendible `_Generic` macros.
 
