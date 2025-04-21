@@ -819,6 +819,7 @@ Full API documentation is available [here](api_reference.md).
 ### How does it work?
 
 **CC** associates type information with a container by declaring it as a pointer in the following form: 
+
 ```c
 element_type (*(*)[ container_type_id ])( key_type * )
 ```
