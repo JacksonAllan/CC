@@ -1,6 +1,6 @@
 /*
 
-Convenient Containers v1.4.0 - tests/tests_against_stl.cpp
+Convenient Containers v1.4.1 - tests/tests_against_stl.cpp
 
 This file tests CC containers against the equivalent C++ STL containers.
 Primarily, it checks that a CC container and its equivalent STL container end up in the same state after a random
@@ -73,7 +73,7 @@ bool failing_alloc_on = true; // Even when SIMULATE_ALLOC_FAILURES is enabled, w
 size_t simulated_alloc_failures;
 std::unordered_set<void *> oustanding_allocs;
 
-void *unreliable_tracking_realloc( void *ptr, size_t size )
+static void *unreliable_tracking_realloc( void *ptr, size_t size )
 {
 #ifdef SIMULATE_ALLOC_FAILURES
   if( failing_alloc_on && rand() % 5 == 0 )
@@ -94,7 +94,7 @@ void *unreliable_tracking_realloc( void *ptr, size_t size )
   return new_ptr;
 }
 
-void tracking_free( void *ptr )
+static void tracking_free( void *ptr )
 {
   if( ptr )
     oustanding_allocs.erase( ptr );

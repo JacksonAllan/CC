@@ -1,4 +1,4 @@
-/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.4.0 -------------------------------------------
+/*----------------------------------------- CC: CONVENIENT CONTAINERS v1.4.1 -------------------------------------------
 
 This library provides ergonomic, high-performance generic containers (vectors, linked lists, unordered maps, unordered
 sets, ordered maps, ordered sets, and null-terminated strings).
@@ -1032,6 +1032,10 @@ API:
 
 Version history:
 
+  21/04/2025 1.4.1: Removed dependency on uchar.h because the header is missing on macOS.
+                    Fixed the internal cc_unmove function to be compatible with C++23.
+                    Fixed incorrect handling of char8_t * arguments in cc_push_fmt and cc_insert_fmt in C++.
+                    Removed superfluous handling of const cc_str arguments in cc_push_fmt and cc_insert_fmt in C.
   10/04/2025 1.4.0: Added CC strings.
                     Added cc_initialized for in-situ initialization of global containers.
                     Added support for const char * map and omap keys and set and oset elements.
@@ -1108,7 +1112,6 @@ License (MIT):
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <uchar.h>
 #ifdef __cplusplus
 #include <type_traits>
 #endif
@@ -1208,7 +1211,7 @@ License (MIT):
 // This is used to pass pointers to elements and keys (which the user may have provided as rvalues) into container
 // functions.
 #ifdef __cplusplus
-template<typename ty> ty& cc_unmove( ty&& var ) { return var; }
+template<typename ty> ty& cc_unmove( ty&& var ) { return (ty&)var; }
 #define CC_MAKE_LVAL_COPY( ty, xp ) cc_unmove( (ty)( xp ) )
 #else
 #define CC_MAKE_LVAL_COPY( ty, xp ) *( ty[ 1 ] ){ xp }
@@ -1572,6 +1575,15 @@ typedef CC_TYPEOF_XP(
   )
 ) cc_maybe_size_t;
 
+#endif
+
+// Since macOS lacks uchar.h, we define char8_t, char16_t, and char32_t ourselves in accordance with the C Standard.
+#ifndef __cplusplus
+#if __STDC_VERSION__ >= 202311L
+typedef unsigned char char8_t;
+#endif
+typedef uint_least16_t char16_t;
+typedef uint_least32_t char32_t;
 #endif
 
 // Includes the code between parentheses in the case of C++20 or later.
@@ -5437,8 +5449,8 @@ template<
     ( std::is_same<el_ty, signed char>::value && std::is_same<arg_ty, signed char *>::value )           ||
     ( std::is_same<el_ty, signed char>::value && std::is_same<arg_ty, const signed char *>::value )     ||
 #if __cplusplus >= 202101L
-    ( std::is_same<el_ty, char16_t>::value && std::is_same<arg_ty, char8_t *>::value )                  ||
-    ( std::is_same<el_ty, char16_t>::value && std::is_same<arg_ty, const char8_t *>::value )            ||
+    ( std::is_same<el_ty, char8_t>::value && std::is_same<arg_ty, char8_t *>::value )                   ||
+    ( std::is_same<el_ty, char8_t>::value && std::is_same<arg_ty, const char8_t *>::value )             ||
 #endif
     ( std::is_same<el_ty, char16_t>::value && std::is_same<arg_ty, char16_t *>::value )                 ||
     ( std::is_same<el_ty, char16_t>::value && std::is_same<arg_ty, const char16_t *>::value )           ||
@@ -5461,11 +5473,7 @@ cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
 template<
   typename el_ty,
   typename arg_ty,
-  typename std::enable_if<
-    std::is_same<arg_ty, el_ty (*(*)[ CC_STR ])( size_t * )>::value ||      // CC_STR_RAW( el_ty ) *.
-    std::is_same<arg_ty, el_ty (*(* const)[ CC_STR ])( size_t * )>::value,  // const CC_STR_RAW( el_ty ) *.
-    bool
-  >::type = true
+  typename std::enable_if<std::is_same<arg_ty, el_ty (*(*)[ CC_STR ])( size_t * )>::value, bool>::type = true
 >
 cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg( arg_ty arg, bool is_final )
 {
@@ -5580,8 +5588,7 @@ static inline cc_wrapped_str_fmt_arg_ty cc_wrap_str_fmt_arg_passthrough( cc_wrap
   cc_wrapped_str_fmt_arg_ty: cc_wrap_str_fmt_arg_passthrough,        \
   void *:                    cc_wrap_str_fmt_arg_void_pointer,       \
   const void *:              cc_wrap_str_fmt_arg_void_pointer,       \
-  CC_STR_RAW( el_ty ):       cc_wrap_str_fmt_arg_str,                \
-  const CC_STR_RAW( el_ty ): cc_wrap_str_fmt_arg_str                 \
+  CC_STR_RAW( el_ty ):       cc_wrap_str_fmt_arg_str                 \
 )( arg, is_final )                                                   \
 
 #endif
@@ -5787,19 +5794,6 @@ static inline size_t cc_strlen_char32( const char32_t *string )
 // ASCII into the string's own buffer.
 // Hence, a post-print fix-up step is needed to distribute the characters properly.
 
-static inline void cc_snprintf_fixup_char32( char *first_char, size_t char_count )
-{
-  char *src_char = first_char + ( char_count - 1 );
-  char32_t *dest_char32 = (char32_t *)( first_char + sizeof( char32_t ) * ( char_count - 1 ) );
-  while( char_count > 0 )
-  {
-    *dest_char32 = (char32_t)*src_char;
-    --src_char;
-    --dest_char32;
-    --char_count;
-  }
-}
-
 static inline void cc_snprintf_fixup_char16( char *first_char, size_t char_count )
 {
   char *src_char = first_char + ( char_count - 1 );
@@ -5807,6 +5801,19 @@ static inline void cc_snprintf_fixup_char16( char *first_char, size_t char_count
   while( char_count > 0 )
   {
     *dest_char32 = (char16_t)*src_char;
+    --src_char;
+    --dest_char32;
+    --char_count;
+  }
+}
+
+static inline void cc_snprintf_fixup_char32( char *first_char, size_t char_count )
+{
+  char *src_char = first_char + ( char_count - 1 );
+  char32_t *dest_char32 = (char32_t *)( first_char + sizeof( char32_t ) * ( char_count - 1 ) );
+  while( char_count > 0 )
+  {
+    *dest_char32 = (char32_t)*src_char;
     --src_char;
     --dest_char32;
     --char_count;

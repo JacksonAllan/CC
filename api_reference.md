@@ -907,6 +907,7 @@ str( el_ty ) cntr
 
 Declares an uninitialized string named `cntr`.  
 `el_ty` must be `char`, `unsigned char`, `signed char`, `char8_t`, `char16_t`, `char32_t`, or an alias for one of these types.
+
 </dd></dl>
 
 ```c
