@@ -1335,6 +1335,7 @@ CC_CAST_MAYBE_UNUSED(                                               \
 #define CC_FREE_FN CC_2ND_ARG( CC_CAT_2( CC_FREE, _COMMA ) free, CC_FREE, )
 
 // Macro used with CC_STATIC_ASSERT to provide type safety in cc_init_clone and cc_splice calls.
+/*
 #ifdef __cplusplus
 
 #define CC_IS_SAME_TY( a, b )                                     \
@@ -1345,6 +1346,12 @@ CC_CAST_MAYBE_UNUSED(                                               \
 
 #else
 #define CC_IS_SAME_TY( a, b ) _Generic( (b), CC_TYPEOF_XP( a ): true, const CC_TYPEOF_XP( a ): true, default: false )
+#endif
+*/
+#ifdef __cplusplus
+#define CC_IS_SAME_TY( a, b ) std::is_same<CC_TYPEOF_XP( b ), CC_TYPEOF_XP( a )>::value
+#else
+#define CC_IS_SAME_TY( a, b ) _Generic( (b), CC_TYPEOF_XP( a ): true, default: false )
 #endif
 
 // Returns arg but generates a warning or error if it is not a pointer to the container's element type.
@@ -7047,7 +7054,7 @@ static inline CC_STR_RAW( char32_t ) cc_cstring_to_temp_str_char32( const char32
 (                                                                           \
   CC_WARN_DUPLICATE_SIDE_EFFECTS( cntr ),                                   \
   CC_STATIC_ASSERT( CC_CNTR_ID( *(cntr) ) == CC_LIST ),                     \
-  CC_STATIC_ASSERT( CC_IS_SAME_TY( (cntr), (src) ) ),                       \
+  CC_STATIC_ASSERT( CC_IS_SAME_TY( *(cntr), *(src) ) ),                     \
   CC_POINT_HNDL_TO_ALLOCING_FN_RESULT(                                      \
     *(cntr),                                                                \
     cc_list_splice( *(cntr), (itr), *(src), (src_itr), CC_REALLOC_FN )      \
