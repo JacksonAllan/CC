@@ -1,6 +1,6 @@
 /*
 
-Convenient Containers v1.4.2 - tests/unit_tests.c
+Convenient Containers v1.4.3 - tests/unit_tests.c
 
 This file tests CC containers.
 It aims to cover the full API and to check corner cases, particularly transitions between placeholder containers and
@@ -5466,6 +5466,11 @@ static void test_str_interoperability_oset( void )
 }
 
 #endif
+
+// Test in-situ initialization of global containers.
+// Specifically, we need ascertain that cc_initialized is, in fact, a constant expression.
+// There is no need for cleanup in this specific case because initialization allocates no memory.
+vec( int ) global_initialization_test = initialized( &global_initialization_test );
 
 int main( void )
 {
